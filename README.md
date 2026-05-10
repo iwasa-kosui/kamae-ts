@@ -87,6 +87,13 @@ Skill quality is continuously evaluated with [`microsoft/waza`](https://github.c
 
 A reading version of the principles is published at [https://iwasa-kosui.github.io/kamae-ts/](https://iwasa-kosui.github.io/kamae-ts/), in both [English (`/en/`)](https://iwasa-kosui.github.io/kamae-ts/en/) and [Japanese (`/ja/`)](https://iwasa-kosui.github.io/kamae-ts/ja/).
 
+## Community
+
+Join the official Discord server to discuss server-side TypeScript, ask questions, and share what you are working on: <https://discord.gg/Z9HVbqEWzd>
+
+- See the [community page](https://iwasa-kosui.github.io/kamae-ts/en/community/) for channel layout and what kind of conversation happens there.
+- Both this GitHub repository and the Discord server are governed by the [Code of Conduct](./CODE_OF_CONDUCT.md) (Contributor Covenant v2.1).
+
 ## Reference Articles
 
 These principles are based on the following articles:

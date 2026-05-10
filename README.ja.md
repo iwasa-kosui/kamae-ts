@@ -87,6 +87,13 @@ rule のフォーマットと具体例は [`rules/README.md`](./rules/README.md)
 
 読み物版は [https://iwasa-kosui.github.io/kamae-ts/](https://iwasa-kosui.github.io/kamae-ts/) に公開されており、[英語版（`/en/`）](https://iwasa-kosui.github.io/kamae-ts/en/) と [日本語版（`/ja/`）](https://iwasa-kosui.github.io/kamae-ts/ja/) の両方を提供している。
 
+## コミュニティ
+
+サーバーサイド TypeScript の議論・質問・近況共有の場として公式 Discord サーバーを運営している: <https://discord.gg/Z9HVbqEWzd>
+
+- チャンネル構成や話題のスコープは [コミュニティページ](https://iwasa-kosui.github.io/kamae-ts/ja/community/) を参照
+- 本 GitHub リポジトリと Discord サーバーは [行動規範](./CODE_OF_CONDUCT.ja.md)（Contributor Covenant v2.1）に従う
+
 ## 参考記事
 
 これらの原則は以下の記事群に基づいている:
