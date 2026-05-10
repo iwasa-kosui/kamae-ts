@@ -1,0 +1,59 @@
+name: Eval
+
+on:
+  pull_request:
+    paths:
+      - 'skills/**'
+      - 'evals/**'
+      - 'rules/**'
+      - '.waza.yaml'
+      - '.github/workflows/eval.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  evaluate:
+    name: Run waza eval suites
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+
+      - name: Install waza
+        run: |
+          go install github.com/microsoft/waza/cmd/waza@v0.9.0
+          waza --version
+
+      - name: Run kamae eval
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          waza run evals/kamae/eval.yaml \
+            --verbose \
+            --output results-kamae.json
+
+      - name: Run kamae-review eval
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          waza run evals/kamae-review/eval.yaml \
+            --verbose \
+            --output results-kamae-review.json
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: waza-results
+          path: |
+            results-kamae.json
+            results-kamae-review.json
+          if-no-files-found: ignore
