@@ -10,25 +10,20 @@ nav_order: 1
 
 An extensible harness of skill plugins for designing and implementing robust server-side TypeScript applications. Each skill encodes a *kamae* — a practiced stance for a specific design concern — that coding agents apply when generating or reviewing code.
 
-## English
+## 💬 Join the community / コミュニティに参加する
 
-→ [English documentation](./en/)
+A Discord server for discussion, questions, and casual chat about server-side TypeScript and functional domain modeling. You do not need to be a `kamae-ts` user — newcomers welcome.
 
-A reading version of the principles for practicing functional domain modeling in server-side TypeScript, reorganized as human-oriented prose.
+サーバーサイド TypeScript や関数型ドメインモデリングについて議論・質問・雑談する場です。`kamae-ts` のユーザーである必要はありません。気軽にどうぞ。
 
-The original coding-agent skill sources also live in the GitHub repository:
+→ **[Join the Discord](https://discord.gg/Z9HVbqEWzd)**
 
-- [`skills/kamae`](https://github.com/iwasa-kosui/kamae-ts/tree/main/skills/kamae) — writing skill (functional domain modeling)
-- [`skills/kamae-review`](https://github.com/iwasa-kosui/kamae-ts/tree/main/skills/kamae-review) — code review skill
-- [`rules/`](https://github.com/iwasa-kosui/kamae-ts/tree/main/rules) — user customization mechanism
-- [`README.md`](https://github.com/iwasa-kosui/kamae-ts#readme) — install and overview
+## Documentation
 
-## 日本語
+- **[English](./en/)** — A reading version of the kamae-ts functional domain modeling principles.
+- **[日本語](./ja/)** — kamae-ts の関数型ドメインモデリング原則の読み物。
 
-→ [日本語ドキュメント](./ja/)
+## Source
 
-サーバーサイド TypeScript で関数型ドメインモデリングを実践するための原則を、人間の読み物として整理した日本語版を提供している。
-
-## License
-
-MIT — see [LICENSE](https://github.com/iwasa-kosui/kamae-ts/blob/main/LICENSE).
+- [GitHub repository](https://github.com/iwasa-kosui/kamae-ts) — skill sources, installation, and overview.
+- License: [MIT](https://github.com/iwasa-kosui/kamae-ts/blob/main/LICENSE).
