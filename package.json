@@ -9,7 +9,8 @@
   },
   "scripts": {
     "eval": "bun run evals/runner/run.ts",
-    "gen:og-image": "bun run scripts/gen-og-image.ts"
+    "gen:og-image": "bun run scripts/gen-og-image.ts",
+    "gen:og-image-community": "bun run scripts/gen-og-image-community.ts"
   },
   "dependencies": {
     "yaml": "^2.6.1"

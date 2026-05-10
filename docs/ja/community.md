@@ -2,6 +2,7 @@
 title: コミュニティ
 parent: 日本語
 nav_order: 1
+image: /assets/og-image-community.png
 ---
 
 # コミュニティ
