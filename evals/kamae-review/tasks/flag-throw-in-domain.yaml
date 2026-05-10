@@ -11,8 +11,7 @@ inputs:
     findings against the kamae principles. Cite the relevant principle for
     each finding and tag severity (High / Medium / Low / Suggestion).
   files:
-    - path: src/assign-driver.ts
-      source: ../fixtures/violations/throw-domain-error.ts
+    - path: violations/throw-domain-error.ts
 
 expected:
   outcomes:

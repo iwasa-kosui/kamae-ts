@@ -11,8 +11,7 @@ inputs:
     findings against the kamae principles. Cite the relevant principle for
     each finding and tag severity (High / Medium / Low / Suggestion).
   files:
-    - path: src/taxi-request.ts
-      source: ../fixtures/violations/taxi-request-class.ts
+    - path: violations/taxi-request-class.ts
 
 expected:
   outcomes:

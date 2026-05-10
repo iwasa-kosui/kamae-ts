@@ -23,7 +23,6 @@ inputs:
     to its dependencies.
   files:
     - path: package.json
-      source: ../fixtures/package.json
 
 expected:
   outcomes:
