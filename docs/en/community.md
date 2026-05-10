@@ -2,6 +2,7 @@
 title: Community
 parent: English
 nav_order: 1
+image: /assets/og-image-community.png
 ---
 
 # Community
