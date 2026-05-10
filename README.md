@@ -85,7 +85,7 @@ Skill quality is continuously evaluated with [`microsoft/waza`](https://github.c
 
 ## Documentation
 
-A Japanese reading version of the principles is published at [https://iwasa-kosui.github.io/kamae-ts/](https://iwasa-kosui.github.io/kamae-ts/) (see `/ja/`).
+A reading version of the principles is published at [https://iwasa-kosui.github.io/kamae-ts/](https://iwasa-kosui.github.io/kamae-ts/), in both [English (`/en/`)](https://iwasa-kosui.github.io/kamae-ts/en/) and [Japanese (`/ja/`)](https://iwasa-kosui.github.io/kamae-ts/ja/).
 
 ## Reference Articles
 
