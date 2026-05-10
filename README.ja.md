@@ -1,8 +1,12 @@
 > English version: [README.md](README.md)
 
-# functional-ts-principles
+# kamae-ts
 
-サーバーサイドTypeScriptで関数型ドメインモデリングを実践するための原則を、コーディングエージェント向けスキルプラグインとして提供する。
+> _Kamae（構え）— 堅牢なTSサーバを書くために装着する姿勢・備え。_
+
+堅牢なサーバーサイドTypeScriptアプリケーションを設計・実装するための、拡張可能なスキルプラグイン集。各スキルは特定の設計関心に対する**構え**を体系化したもので、コーディングエージェントがコード生成・レビュー時に適用する。
+
+現在の構えは関数型ドメインモデリングを中心に構成されており、今後段階的に拡張されていく。
 
 ## 原則の概要
 
@@ -18,20 +22,20 @@
 
 ```bash
 # 単一スキルをインストール（エージェント/スコープは対話で選択）
-gh skill install iwasa-kosui/functional-ts-principles functional-ts
+gh skill install iwasa-kosui/kamae-ts functional-ts
 
 # 非対話的に Claude Code のユーザースコープへインストール
-gh skill install iwasa-kosui/functional-ts-principles functional-ts \
+gh skill install iwasa-kosui/kamae-ts functional-ts \
   --agent claude-code --scope user
 
 # 特定リリースを固定
-gh skill install iwasa-kosui/functional-ts-principles functional-ts@v0.1.0
+gh skill install iwasa-kosui/kamae-ts functional-ts@v0.1.0
 ```
 
 または [`skills` CLI](https://github.com/anthropics/skills) 経由:
 
 ```bash
-npx skills add iwasa-kosui/functional-ts-principles
+npx skills add iwasa-kosui/kamae-ts
 ```
 
 ## 提供スキル

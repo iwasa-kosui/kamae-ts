@@ -1,8 +1,12 @@
 > 日本語版: [README.ja.md](README.ja.md)
 
-# functional-ts-principles
+# kamae-ts
 
-Provides principles for practicing functional domain modeling in server-side TypeScript as skill plugins for coding agents.
+> _Kamae (構え) — a stance of readiness._
+
+An extensible harness of skill plugins for designing and implementing robust server-side TypeScript applications. Each skill encodes a *kamae* — a practiced stance for a specific design concern — that coding agents apply when generating or reviewing code.
+
+The current stances focus on functional domain modeling; more will be added over time.
 
 ## Overview of Principles
 
@@ -18,20 +22,20 @@ Via [`gh skill`](https://cli.github.com/manual/gh_skill) (the GitHub CLI's agent
 
 ```bash
 # Install a single skill (interactive prompt for agent/scope)
-gh skill install iwasa-kosui/functional-ts-principles functional-ts
+gh skill install iwasa-kosui/kamae-ts functional-ts
 
 # Install non-interactively for Claude Code at user scope
-gh skill install iwasa-kosui/functional-ts-principles functional-ts \
+gh skill install iwasa-kosui/kamae-ts functional-ts \
   --agent claude-code --scope user
 
 # Pin to a specific release
-gh skill install iwasa-kosui/functional-ts-principles functional-ts@v0.1.0
+gh skill install iwasa-kosui/kamae-ts functional-ts@v0.1.0
 ```
 
 Or via [`skills` CLI](https://github.com/anthropics/skills):
 
 ```bash
-npx skills add iwasa-kosui/functional-ts-principles
+npx skills add iwasa-kosui/kamae-ts
 ```
 
 ## Provided Skills
