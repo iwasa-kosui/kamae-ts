@@ -1,0 +1,14 @@
+title: kamae-ts
+description: Kamae (構え) — robust server-side TypeScript design harness
+theme: jekyll-theme-minimal
+plugins:
+  - jekyll-relative-links
+relative_links:
+  enabled: true
+  collections: false
+include:
+  - ja
+  - ja/result-libraries
+  - ja/validation-libraries
+exclude:
+  - superpowers
