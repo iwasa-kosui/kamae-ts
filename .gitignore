@@ -1,3 +1,4 @@
 results/
 results-*.json
-.waza-cache/
+node_modules/
+

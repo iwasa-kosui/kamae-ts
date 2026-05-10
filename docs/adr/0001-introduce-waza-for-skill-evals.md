@@ -1,6 +1,6 @@
 # ADR 0001: Introduce microsoft/waza for skill quality evaluation
 
-- Status: Proposed
+- Status: Superseded by [ADR 0002](./0002-replace-waza-with-claude-code-runner.md) (2026-05-10)
 - Date: 2026-05-10
 - Deciders: @iwasa-kosui
 

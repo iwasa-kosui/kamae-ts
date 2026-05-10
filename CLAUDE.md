@@ -6,50 +6,51 @@ Guidance for Claude Code instances working in this repository.
 
 `kamae-ts` is a plugin repository of coding-agent skills (`SKILL.md`-based) for functional domain modeling in server-side TypeScript. Two skills today: `kamae` (code generation) and `kamae-review` (adversarial review). Skills are installed via `gh skill install iwasa-kosui/kamae-ts <skill>` or the `skills` CLI. There is no application code — only Markdown skill files, YAML eval suites, and CI workflows.
 
-## Skill quality evaluation with waza
+## Skill quality evaluation
 
-Both skills have evaluation suites under `evals/<skill>/` that drive [`microsoft/waza`](https://github.com/microsoft/waza). Decision background is in [`docs/adr/0001-introduce-waza-for-skill-evals.md`](./docs/adr/0001-introduce-waza-for-skill-evals.md).
+Both skills have evaluation suites under `evals/<skill>/`, driven by an in-repo TypeScript runner at `evals/runner/run.ts`. The runner spawns `claude -p` for each task, parses its `--output-format stream-json`, and applies the suite's `text` / `behavior` graders. Decision background: [`docs/adr/0002-replace-waza-with-claude-code-runner.md`](./docs/adr/0002-replace-waza-with-claude-code-runner.md) (supersedes [`docs/adr/0001-introduce-waza-for-skill-evals.md`](./docs/adr/0001-introduce-waza-for-skill-evals.md)).
 
-### Local runs (real-model, copilot-sdk)
-
-The committed `config.executor` in each `evals/<skill>/eval.yaml` is `copilot-sdk`. A maintainer with an authenticated `copilot login` session can run a suite directly:
+### Local runs (real-model, Claude Code)
 
 ```bash
-waza run evals/kamae/eval.yaml --verbose --output /tmp/results-kamae.json
-waza run evals/kamae-review/eval.yaml --verbose --output /tmp/results-kamae-review.json
+bun install   # first time only
+bun run evals/runner/run.ts evals/kamae/eval.yaml --output /tmp/results-kamae.json
+bun run evals/runner/run.ts evals/kamae-review/eval.yaml --output /tmp/results-kamae-review.json
 ```
 
 Preconditions:
 
-- `waza` v0.31.0+ on PATH. Install from a GitHub Releases binary — `go install github.com/microsoft/waza/...` is broken upstream (the published `go.mod` declares `github.com/spboyer/waza`).
-- `copilot login` already authenticated. The `copilot-sdk` executor refuses to run otherwise; passing `GITHUB_TOKEN` does not satisfy it.
-- A live GitHub Copilot subscription. Each task burns Copilot premium requests (kamae: ~15 req/task, kamae-review: ~3 req/task with prompt caching).
+- `bun` and `claude` on PATH. The runner shells out to `claude -p` and consumes the maintainer's authenticated Claude Code session — no separate API key wiring needed.
+- The runner passes `--plugin-dir <repo-root>` so the in-tree `skills/kamae/` and `skills/kamae-review/` are loaded as `kamae-ts:kamae` and `kamae-ts:kamae-review`. Edits to `SKILL.md` files take effect on the next run; no reinstall needed.
 
 Run real-model evaluations before tagging a release, after editing any `skills/<skill>/**` file, and after touching the eval graders themselves. Treat aggregate score < 0.7 on either suite as a regression to investigate.
 
-### CI runs (mock override)
+Pass `--model claude-sonnet-4-6` (or another alias) to override the model the runner spawns. Pass `--repo-root <path>` if invoking from outside the worktree.
 
-`.github/workflows/eval.yml` runs on `pull_request` and `workflow_dispatch`. Before invoking `waza run`, the workflow rewrites `executor: copilot-sdk` -> `executor: mock` with `sed -i`, because GitHub-hosted runners cannot satisfy the `copilot login` requirement non-interactively. Mock CI catches:
+### CI runs (dry-run only)
 
-- YAML schema breaks (tasks, graders, fixture references)
-- Missing fixture files
-- Grader misconfiguration (regex syntax, unsupported keys)
-- Trigger-metadata regressions in `SKILL.md` frontmatter
+`.github/workflows/eval.yml` runs on `pull_request` and `workflow_dispatch`, invoking the runner with `--dry-run`. No model is called from CI. The dry-run validates:
 
-Mock CI does **not** catch semantic regressions in skill prose — that's the maintainer's local-run responsibility above.
+- Suite YAML parses with the expected schema (`name`, `skill`, `graders`, `tasks`).
+- Each grader's regex compiles (PCRE-style inline flags like `(?m)` and `(?i)` are supported via `evals/runner/regex.ts`).
+- Every `inputs.files[].path` resolves under `evals/<skill>/fixtures/`.
+- Each suite's `skill:` resolves to a `skills/<name>/SKILL.md` whose frontmatter `name` matches.
+
+CI does **not** catch semantic regressions in skill prose — that remains the maintainer's local-run responsibility above.
 
 ### When designing new graders
 
-- Mock returns canned text that echoes the prompt, so `text` graders matching keywords from the prompt itself trivially pass under mock. This is acceptable for structural validation; real-model graders are what gate semantic quality.
-- `behavior` graders with `required_tools` always fail under mock (mock never invokes tools). Use `max_tool_calls` and other tool-count metrics that mock can satisfy. Tool-presence checks belong in real-model-only graders or get scoped per-task on the local-run side.
+- `text.regex_match[]` / `regex_not_match[]`: every pattern must match (or not match) the assistant's final result text. Inline flags `(?i)`, `(?m)`, `(?s)`, `(?u)` are supported.
+- `behavior.max_tool_calls`: counts every `tool_use` block across the run. Practical thresholds for these suites are 15 (kamae) and 20 (kamae-review).
+- `behavior.required_tools`: only meaningful in real-model runs; the dry-run does not invoke `claude`. Scope tool-presence checks per-task rather than at suite level if a "no-tool" task exists.
 - A "no findings" task (e.g. clean-code negative control) cannot use a global `regex_match` grader that requires severity tags — there's nothing to tag. Either make the grader task-scoped or invert it to `regex_not_match` for High/Medium.
 
 ### Adding a new task
 
-1. Drop the fixture under `evals/<skill>/fixtures/<path>` (paths are relative to the suite's `fixtures/` root — no `source:` key).
+1. Drop the fixture under `evals/<skill>/fixtures/<path>` (paths in `inputs.files[].path` are relative to the suite's `fixtures/` root — no `source:` key).
 2. Create `evals/<skill>/tasks/<task-id>.yaml` with `id`, `name`, `inputs.prompt`, `inputs.files: [{path: ...}]`, and `expected.outcomes: [{type: task_completed}]`.
-3. Run the suite locally with `executor: copilot-sdk` to verify it passes against the real model. Adjust grader thresholds based on observed scores rather than guessing.
-4. Confirm CI passes under mock — if a grader fails under mock that the real model handles fine, the grader is too strict for structural validation; relax it or scope it per-task.
+3. Run the runner locally to verify it passes against the real model. Adjust grader thresholds based on observed scores rather than guessing.
+4. Confirm CI's `--dry-run` passes — if dry-run flags a grader pattern that the real model handles fine, fix the regex (it's likely an authoring mistake, not a runner limitation).
 
 ## Worktree conventions
 
