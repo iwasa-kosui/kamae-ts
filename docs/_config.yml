@@ -20,5 +20,8 @@ include:
   - ja
   - ja/result-libraries
   - ja/validation-libraries
+  - en
+  - en/result-libraries
+  - en/validation-libraries
 exclude:
   - superpowers
