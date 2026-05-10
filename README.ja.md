@@ -14,6 +14,22 @@
 
 ## インストール
 
+[`gh skill`](https://cli.github.com/manual/gh_skill)（GitHub CLI のエージェントスキル拡張）経由:
+
+```bash
+# 単一スキルをインストール（エージェント/スコープは対話で選択）
+gh skill install iwasa-kosui/functional-ts-principles functional-ts
+
+# 非対話的に Claude Code のユーザースコープへインストール
+gh skill install iwasa-kosui/functional-ts-principles functional-ts \
+  --agent claude-code --scope user
+
+# 特定リリースを固定
+gh skill install iwasa-kosui/functional-ts-principles functional-ts@v0.1.0
+```
+
+または [`skills` CLI](https://github.com/anthropics/skills) 経由:
+
 ```bash
 npx skills add iwasa-kosui/functional-ts-principles
 ```

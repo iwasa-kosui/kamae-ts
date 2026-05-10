@@ -14,6 +14,22 @@ Provides principles for practicing functional domain modeling in server-side Typ
 
 ## Installation
 
+Via [`gh skill`](https://cli.github.com/manual/gh_skill) (the GitHub CLI's agent skills extension):
+
+```bash
+# Install a single skill (interactive prompt for agent/scope)
+gh skill install iwasa-kosui/functional-ts-principles functional-ts
+
+# Install non-interactively for Claude Code at user scope
+gh skill install iwasa-kosui/functional-ts-principles functional-ts \
+  --agent claude-code --scope user
+
+# Pin to a specific release
+gh skill install iwasa-kosui/functional-ts-principles functional-ts@v0.1.0
+```
+
+Or via [`skills` CLI](https://github.com/anthropics/skills):
+
 ```bash
 npx skills add iwasa-kosui/functional-ts-principles
 ```
