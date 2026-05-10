@@ -1,0 +1,22 @@
+{
+  "name": "kamae-ts",
+  "owner": {
+    "name": "Kosui Iwasa"
+  },
+  "metadata": {
+    "description": "Kamae (構え) — robust server-side TypeScript design harness",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "kamae-ts",
+      "description": "Server-side TypeScript design and review skills with rules-based user customization",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/kamae",
+        "./skills/kamae-review"
+      ]
+    }
+  ]
+}
