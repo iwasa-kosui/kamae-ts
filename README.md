@@ -2,6 +2,10 @@
   <img src="./docs/assets/logo.svg" alt="kamae-ts" height="120">
 </p>
 
+<p align="center">
+  <a href="https://iwasa-kosui.github.io/kamae-ts/"><strong>Documentation →</strong></a>
+</p>
+
 > 日本語版: [README.ja.md](README.ja.md)
 
 # kamae-ts
