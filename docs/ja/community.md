@@ -6,25 +6,25 @@ nav_order: 1
 
 # コミュニティ
 
-`kamae-ts` ではサーバーサイド TypeScript や関数型ドメインモデリングに関する議論・質問・雑談の場として、公式 Discord サーバーを運営している。
+`kamae-ts` ではサーバーサイド TypeScript や関数型ドメインモデリングに関する議論・質問・雑談の場として、公式 Discord サーバーを運営しています。
 
 ## 参加方法
 
-Discord クライアントから以下の招待リンクを開いて参加する。
+Discord クライアントから以下の招待リンクを開いて参加してください。
 
 > **招待**: [https://discord.gg/Z9HVbqEWzd](https://discord.gg/Z9HVbqEWzd)
 
-Discord 自体が初めてなら[公式の Beginner's Guide](https://support.discord.com/hc/ja/articles/360045138571) を参照のこと。事前承認や紹介は不要。
+Discord 自体が初めてなら[公式の Beginner's Guide](https://support.discord.com/hc/ja/articles/360045138571) を参照してください。事前承認や紹介は不要です。
 
 ## 誰が歓迎されるか
 
-サーバーサイド TypeScript に関心のある人なら誰でも歓迎する。`kamae-ts` のヘビーユーザーである必要はなく、関数型ドメインモデリングを探っている段階の人や、なんとなく見にきた人も問題ない。
+サーバーサイド TypeScript に関心のある方ならどなたでも歓迎します。`kamae-ts` のヘビーユーザーである必要はありません。関数型ドメインモデリングを探っている段階の方や、なんとなく見にきた方も問題ありません。
 
-話題は技術的な内容（TypeScript の型システム、ドメインモデリング、Result 型、バリデーション、テスト、オブザーバビリティ）から、それ以外の雑談（キャリア、採用、勉強会、週末の趣味）まで幅広い。脱線歓迎。
+話題は技術的な内容（TypeScript の型システム、ドメインモデリング、Result 型、バリデーション、テスト、オブザーバビリティ）から、それ以外の雑談（キャリア、採用、勉強会、週末の趣味）まで幅広く扱います。脱線も歓迎です。
 
 ## チャンネル構成
 
-現状は日本語チャンネル中心の構成。英語専用チャンネルは需要が継続的にあれば追加する。要望はサーバー内で挙げてほしい。
+現状は日本語チャンネル中心の構成です。英語専用チャンネルは需要が継続的にあれば追加します。要望はサーバー内で挙げてください。
 
 ### `info`（読み取り中心 / お知らせ）
 
@@ -46,4 +46,4 @@ Discord 自体が初めてなら[公式の Beginner's Guide](https://support.dis
 
 ## 行動規範
 
-[`kamae-ts` の行動規範](https://github.com/iwasa-kosui/kamae-ts/blob/main/CODE_OF_CONDUCT.ja.md)（Contributor Covenant v2.1）は GitHub リポジトリに加えて Discord サーバーにも適用される。違反の通報は GitHub で非公開 Issue を開くか、[@iwasa-kosui](https://github.com/iwasa-kosui) へ直接連絡する。詳細は行動規範本文を参照。
+[`kamae-ts` の行動規範](https://github.com/iwasa-kosui/kamae-ts/blob/main/CODE_OF_CONDUCT.ja.md)（Contributor Covenant v2.1）は GitHub リポジトリに加えて Discord サーバーにも適用されます。違反の通報は GitHub で非公開 Issue を開くか、[@iwasa-kosui](https://github.com/iwasa-kosui) へ直接連絡してください。詳細は行動規範本文を参照してください。

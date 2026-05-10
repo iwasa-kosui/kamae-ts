@@ -19,12 +19,12 @@ import * as v from "valibot";
 | `v.string()` | 文字列スキーマ |
 | `v.number()` | 数値スキーマ |
 | `v.pipe(schema, ...actions)` | バリデーション・変換のチェーン |
-| `v.InferOutput<typeof Schema>` | スキーマからTypeScript出力型を抽出 |
+| `v.InferOutput<typeof Schema>` | スキーマから TypeScript 出力型を抽出 |
 | `v.safeParse(schema, raw)` | 例外をスローせず `{ success, output, issues }` を返す |
 | `v.parse(schema, raw)` | パース済みデータを返すか `ValiError` をスロー |
-| `v.brand("Name")` | nominalブランドを付与（`pipe` 内で使用） |
+| `v.brand("Name")` | nominal ブランドを付与（`pipe` 内で使用） |
 | `v.transform(fn)` | パース済みの値を変換（`pipe` 内で使用） |
-| `v.uuid()` | UUID形式バリデーション（`pipe` 内で使用） |
+| `v.uuid()` | UUID 形式バリデーション（`pipe` 内で使用） |
 
 ## スキーマ定義
 
@@ -42,7 +42,7 @@ type CreateRequestInput = v.InferOutput<typeof CreateRequestInput>;
 
 ## Branded Types
 
-`v.pipe()` 内で `v.brand()` を使いブランドを定義する。スキーマの出力型に自動的にブランドが付与される。
+`v.pipe()` 内で `v.brand()` を使いブランドを定義します。スキーマの出力型に自動的にブランドが付与されます。
 
 ```typescript
 const UserIdSchema = v.pipe(v.string(), v.uuid(), v.brand("UserId"));
@@ -68,7 +68,7 @@ const RequestId = {
 
 ## Sensitive型との統合
 
-`v.pipe()` 内で `v.transform()` を使用し、パース時にPIIフィールドを自動ラップする。
+`v.pipe()` 内で `v.transform()` を使用し、パース時に PII フィールドを自動ラップします。
 
 ```typescript
 const sensitiveString = v.pipe(v.string(), v.transform(Sensitive.of));
@@ -84,7 +84,7 @@ const PatientSchema = v.object({
 
 ## ガイドライン
 
-- Railway Oriented Programmingとの統合には `v.parse` より `v.safeParse` を使う（スキーマファクトリーパターンは [boundary-defense.md](../boundary-defense.md) を参照）
-- boundary-defense.md のスキーマファクトリーは Standard Schema 準拠のため、Valibotでもそのまま動作する
-- Valibotはツリーシェイキング対応でZodより大幅に軽量なため、エッジ環境（Cloudflare Workers等）に最適
-- `v.brand()` により Branded Types で `as` キャストが不要になる
+- Railway Oriented Programming との統合には `v.parse` より `v.safeParse` を使ってください（スキーマファクトリーパターンは [boundary-defense.md](../boundary-defense.md) を参照）
+- boundary-defense.md のスキーマファクトリーは Standard Schema 準拠のため、Valibot でもそのまま動作します
+- Valibot はツリーシェイキング対応で Zod より大幅に軽量なため、エッジ環境（Cloudflare Workers 等）に最適です
+- `v.brand()` により Branded Types で `as` キャストが不要になります

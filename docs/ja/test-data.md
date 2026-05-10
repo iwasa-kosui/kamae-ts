@@ -8,7 +8,7 @@ nav_order: 6
 
 ## `as const satisfies` で型安全なテストフィクスチャを定義する
 
-テストのダミーデータは `as const satisfies Type` で型安全に定義する。discriminantのリテラル型が保持され、wideningを防ぐ。
+テストのダミーデータは `as const satisfies Type` で型安全に定義します。discriminant のリテラル型が保持され、widening を防ぎます。
 
 ```typescript
 const waitingRequest = {
@@ -21,7 +21,7 @@ const waitingRequest = {
 
 ### なぜ `as const` だけでは不十分か
 
-`as const` だけではリテラル型は保持されるが、オブジェクトが期待する型と一致しているか検証されない。`satisfies Type` を追加することで、コンパイル時に型互換性が保証され、かつリテラル型も維持される。
+`as const` だけではリテラル型は保持されますが、オブジェクトが期待する型と一致しているかは検証されません。`satisfies Type` を追加することで、コンパイル時に型互換性が保証され、かつリテラル型も維持されます。
 
 ```typescript
 // ❌ 型チェックなし — タイポが検出されない

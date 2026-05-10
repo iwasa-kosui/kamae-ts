@@ -15,18 +15,18 @@ import { Result } from "@praha/byethrow";
 
 | 関数/型 | 説明 |
 |---------|------|
-| `Result.Result<T, E>` | Result型（`Success<T> \| Failure<E>` の判別共用体、プレーンオブジェクト） |
+| `Result.Result<T, E>` | Result 型（`Success<T> \| Failure<E>` の判別共用体、プレーンオブジェクト） |
 | `Result.ResultAsync<T, E>` | `Promise<Result<T, E>>` の型エイリアス |
-| `Result.succeed(value)` | 成功値を生成（`{ type: "Success", value }`) |
+| `Result.succeed(value)` | 成功値を生成（`{ type: "Success", value }`） |
 | `Result.fail(error)` | 失敗値を生成（`{ type: "Failure", error }`） |
 | `Result.do()` | `Success<{}>` を生成。`bind` と組み合わせてオブジェクトを段階的に構築する起点 |
 | `Result.bind(name, fn)` | 成功値のオブジェクトに `fn` の結果を `name` キーで追加（`andThen` + マージ） |
 | `Result.andThrough(fn)` | 副作用を実行し、成功なら元の値を維持して返す |
 | `Result.orThrough(fn)` | エラー側の副作用を実行し、失敗なら元のエラーを維持して返す |
 
-neverthrowとの主な違い:
+neverthrow との主な違いは次のとおりです。
 
-- クラスではなくプレーンオブジェクト（discriminantは `type` フィールド）
+- クラスではなくプレーンオブジェクト（discriminant は `type` フィールド）
 - メソッドチェーンではなく `Result.pipe` + カリー化関数で合成
 - `andThrough` / `orThrough` で副作用を挟みつつ元の値を維持できる
 
@@ -69,9 +69,9 @@ if (Result.isSuccess(result)) {
 
 ## コード例: 状態遷移パイプライン
 
-Railway Oriented Programmingの原則に従い、各処理を独立した関数に切り出し、ユースケースは `Result.pipe` でそれらを合成するだけにする。
+Railway Oriented Programming の原則に従い、各処理を独立した関数に切り出し、ユースケースは `Result.pipe` でそれらを合成するだけにします。
 
-`RequestResolver` / `RequestStore` の設計と、状態とドメインイベントを同一トランザクションで永続化する方法は [state-modeling.md#ドメインイベント](../state-modeling.md#ドメインイベント) を参照。
+`RequestResolver` / `RequestStore` の設計と、状態とドメインイベントを同一トランザクションで永続化する方法は [state-modeling.md#ドメインイベント](../state-modeling.md#ドメインイベント) を参照してください。
 
 ```typescript
 import { Result } from "@praha/byethrow";

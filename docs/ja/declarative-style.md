@@ -8,7 +8,7 @@ nav_order: 5
 
 ## 配列操作
 
-配列の変換は `filter` / `map` / `reduce` で宣言的に書く。述語関数はCompanion Objectに定義する。
+配列の変換は `filter` / `map` / `reduce` で宣言的に書きます。述語関数は Companion Object に定義します。
 
 ```typescript
 type Task = ActiveTask | CompletedTask;
@@ -29,7 +29,7 @@ for (const task of tasks) {
 
 ### 冗長な `x is Y` 型述語を書かない
 
-discriminated union を受け取る述語関数に、`: x is Y` の型述語アノテーションを明示する必要はない。TypeScript 5.5+ は `kind` で絞り込むボディから型述語を自動的に推論し、`Array.prototype.filter` はその推論結果を利用する。アノテーションを書くと「discriminated union の絞り込みだけでは型を狭められない」という誤った印象を読み手に与える。
+discriminated union を受け取る述語関数に、`: x is Y` の型述語アノテーションを明示する必要はありません。TypeScript 5.5+ は `kind` で絞り込むボディから型述語を自動的に推論し、`Array.prototype.filter` はその推論結果を利用します。アノテーションを書くと「discriminated union の絞り込みだけでは型を狭められない」という誤った印象を読み手に与えます。
 
 ```typescript
 // ❌ 冗長: 推論で十分
@@ -39,11 +39,11 @@ isActive: (task: Task): task is ActiveTask => task.kind === "Active",
 isActive: (task: Task) => task.kind === "Active",
 ```
 
-複数状態への絞り込みも同様。`kind === "..." || kind === "..."` や `kind !== "..." && kind !== "..."` のいずれの形でも、TS 5.5+ は正しい型述語に推論する。
+複数状態への絞り込みも同様です。`kind === "..." || kind === "..."` や `kind !== "..." && kind !== "..."` のいずれの形でも、TS 5.5+ は正しい型述語に推論します。
 
 ## ドメインイベント
 
-状態変更に伴うドメインイベントは不変レコードとして生成し、リポジトリとは分離して記録する。
+状態変更に伴うドメインイベントは不変レコードとして生成し、リポジトリとは分離して記録します。
 
 ```typescript
 type DomainEvent = Readonly<{
@@ -55,4 +55,4 @@ type DomainEvent = Readonly<{
 }>;
 ```
 
-ドメインイベントの詳細設計（イベント生成の責務、ユースケースとの統合）は [state-modeling.md](./state-modeling.md) を参照。
+ドメインイベントの詳細設計（イベント生成の責務、ユースケースとの統合）は [state-modeling.md](./state-modeling.md) を参照してください。
