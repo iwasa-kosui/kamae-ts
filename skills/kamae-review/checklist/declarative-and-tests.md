@@ -10,6 +10,10 @@ Flag: `for` / `for…of` loops that build up arrays imperatively when `filter` /
 
 Flag: state-change code that mutates a shared event log, or that omits domain events entirely when the state-modeling guidance calls for them. Events should be `Readonly<{ eventId; eventAt; eventName; payload; aggregateId }>` and recorded separately from the repository.
 
+## 5.3 Are companion-object predicates free of redundant `x is Y` annotations? — Low
+
+Flag: predicate functions over a discriminated union that carry an explicit `: x is Y` return-type annotation when the body is just `kind === "..."` comparisons (or their `!==` negation). TypeScript 5.5+ infers the type predicate from such bodies and `Array.prototype.filter` consumes the inferred predicate, so the annotation adds nothing — and falsely implies that discriminated union narrowing alone is insufficient. Suggest dropping the annotation.
+
 ## 6.1 Is `as const satisfies Type` used for fixtures? — Low
 
 Flag: test fixtures typed with `: Type =` or with `as Type`, which widen discriminant literals to `string`. Suggest `as const satisfies Type` so `kind` keeps its literal type.

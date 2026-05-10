@@ -138,12 +138,12 @@ const TaxiRequest = {
     reason,
   }),
 
-  isCancellable: (request: TaxiRequest): request is CancellableRequest =>
+  isCancellable: (request: TaxiRequest) =>
     request.kind === "Waiting" ||
     request.kind === "EnRoute" ||
     request.kind === "InTrip",
 
-  isTerminal: (request: TaxiRequest): request is Completed | Cancelled =>
+  isTerminal: (request: TaxiRequest) =>
     request.kind === "Completed" || request.kind === "Cancelled",
 
   describe: (request: TaxiRequest): string => {

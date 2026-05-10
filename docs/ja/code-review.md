@@ -153,6 +153,10 @@ declaration merging により型の形状が暗黙に変わる危険がある。
 
 兆候: 状態変更コードが共有のイベントログを mutate している、あるいは state-modeling ガイドが要求する場面でドメインイベントが発行されていない。`Readonly<{ eventId; eventAt; eventName; payload; aggregateId }>` としてリポジトリと分離して記録する。
 
+#### 5.3 companion object の述語に冗長な `x is Y` 型述語が付いていないか
+
+兆候: discriminated union を受け取る述語関数に、ボディが `kind === "..."`（あるいはその `!==` 否定）だけなのに `: x is Y` の型述語アノテーションを明示している。TypeScript 5.5+ はそのようなボディから型述語を推論し、`Array.prototype.filter` が推論結果を利用するため、アノテーションは何も足していない。むしろ「discriminated union の絞り込みでは型を狭められない」という誤った印象を与える。アノテーションを削除するよう提案する。
+
 ### 6. テストデータ
 
 参照: [`./index.md` §6](./index.md)
@@ -209,4 +213,5 @@ type TaskRepository = {
 | Low | discriminant が `kind` 以外 (1.2) | バグというよりスタイル不一致 |
 | Low | 命令的な配列ループ (5.1) | 正確性ではなく可読性 |
 | Low | ドメインイベント不発行 (5.2) | event sourcing の採否次第 |
+| Low | 冗長な `x is Y` 型述語 (5.3) | 文字数の無駄。discriminated union の絞り込みについて誤解を招く |
 | Low | フィクスチャに `as const satisfies` がない (6.1) | 実務上はテストで検出される |
