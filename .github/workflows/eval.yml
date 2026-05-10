@@ -6,8 +6,9 @@ on:
       - 'skills/**'
       - 'evals/**'
       - 'rules/**'
-      - '.waza.yaml'
       - '.github/workflows/eval.yml'
+      - 'package.json'
+      - 'bun.lock'
   workflow_dispatch:
 
 permissions:
@@ -15,53 +16,38 @@ permissions:
 
 jobs:
   evaluate:
-    name: Run waza eval suites
+    name: Validate eval suites
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install waza
-        env:
-          WAZA_VERSION: v0.31.0
-        run: |
-          set -euo pipefail
-          curl -fsSL -o /tmp/waza \
-            "https://github.com/microsoft/waza/releases/download/${WAZA_VERSION}/waza-linux-amd64"
-          chmod +x /tmp/waza
-          sudo mv /tmp/waza /usr/local/bin/waza
-          waza --version
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
-      - name: Override executor to mock for CI
-        run: |
-          set -euo pipefail
-          # CI runs without an authenticated `copilot login`, so swap each
-          # suite's executor: copilot-sdk -> mock. The committed value stays
-          # copilot-sdk so that local maintainer runs default to real-model
-          # evaluation without extra flags.
-          sed -i 's/^  executor: copilot-sdk$/  executor: mock/' \
-            evals/kamae/eval.yaml \
-            evals/kamae-review/eval.yaml
-          grep '^  executor:' evals/*/eval.yaml
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
 
-      - name: Run kamae eval
+      - name: Validate kamae suite
         run: |
-          waza run evals/kamae/eval.yaml \
-            --verbose \
+          bun run evals/runner/run.ts evals/kamae/eval.yaml \
+            --dry-run \
             --output results-kamae.json
 
-      - name: Run kamae-review eval
+      - name: Validate kamae-review suite
         run: |
-          waza run evals/kamae-review/eval.yaml \
-            --verbose \
+          bun run evals/runner/run.ts evals/kamae-review/eval.yaml \
+            --dry-run \
             --output results-kamae-review.json
 
       - name: Upload results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: waza-results
+          name: eval-dry-run-results
           path: |
             results-kamae.json
             results-kamae-review.json

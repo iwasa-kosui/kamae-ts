@@ -1,5 +1,0 @@
-engine: copilot-sdk
-model: claude-sonnet-4.6
-timeout_seconds: 300
-parallel: false
-workers: 4
