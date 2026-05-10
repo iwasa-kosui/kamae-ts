@@ -1,9 +1,15 @@
 title: kamae-ts
 description: Kamae (構え) — robust server-side TypeScript design harness
+url: https://iwasa-kosui.github.io
+baseurl: /kamae-ts
+image: /assets/og-image.png
+twitter:
+  card: summary_large_image
 remote_theme: just-the-docs/just-the-docs
 plugins:
   - jekyll-remote-theme
   - jekyll-relative-links
+  - jekyll-seo-tag
 relative_links:
   enabled: true
   collections: false

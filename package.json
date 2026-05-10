@@ -8,13 +8,17 @@
     "url": "https://github.com/iwasa-kosui/kamae-ts"
   },
   "scripts": {
-    "eval": "bun run evals/runner/run.ts"
+    "eval": "bun run evals/runner/run.ts",
+    "gen:og-image": "bun run scripts/gen-og-image.ts"
   },
   "dependencies": {
     "yaml": "^2.6.1"
   },
   "devDependencies": {
+    "@fontsource/inter": "^5.2.8",
+    "@resvg/resvg-js": "^2.6.2",
     "@types/bun": "^1.1.14",
+    "satori": "^0.26.0",
     "typescript": "^5.7.2"
   }
 }
