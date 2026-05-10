@@ -58,7 +58,9 @@ if (isOk(result)) {
 }
 ```
 
-## コード例: ドメインイベントの記録
+## コード例: 状態遷移パイプライン
+
+`RequestResolver` / `RequestStore` の設計と、状態とドメインイベントを同一トランザクションで永続化する方法は [state-modeling.md#ドメインイベント](../state-modeling.md#ドメインイベント) を参照。
 
 ```typescript
 import { createOk, createErr, isOk, isErr, type Result } from "option-t/plain_result";
@@ -77,22 +79,6 @@ type DriverId = string & { readonly [DriverIdBrand]: never };
 declare const PassengerIdBrand: unique symbol;
 type PassengerId = string & { readonly [PassengerIdBrand]: never };
 
-// --- Domain Event ---
-
-type DomainEvent<TName extends string, TPayload> = Readonly<{
-  eventId: string;
-  eventAt: Date;
-  eventName: TName;
-  payload: TPayload;
-  aggregateId: string;
-  aggregateName: string;
-}>;
-
-type DriverAssignedEvent = DomainEvent<
-  "DriverAssigned",
-  Readonly<{ driverId: DriverId; passengerId: PassengerId }>
->;
-
 // --- State Types ---
 
 type Waiting = Readonly<{
@@ -110,14 +96,13 @@ type EnRoute = Readonly<{
 
 // --- Repository Types ---
 
-type RequestRepository = {
+type RequestResolver = Readonly<{
   findById: (id: RequestId) => Promise<Result<Waiting | undefined, RepositoryError>>;
-  save: (request: EnRoute) => Promise<Result<void, RepositoryError>>;
-};
+}>;
 
-type EventStore = {
-  save: (event: DriverAssignedEvent) => Promise<Result<void, RepositoryError>>;
-};
+type RequestStore = Readonly<{
+  save: (state: EnRoute) => Promise<Result<void, RepositoryError>>;
+}>;
 
 // --- Error Types ---
 
@@ -131,14 +116,13 @@ type RepositoryError = Readonly<{ kind: "RepositoryError"; cause: unknown }>;
 // --- Use Case ---
 
 const assignDriverUseCase =
-  (requestRepo: RequestRepository, eventStore: EventStore) =>
+  (requestResolver: RequestResolver, requestStore: RequestStore) =>
   async (
     requestId: RequestId,
     driverId: DriverId,
     isDriverAvailable: boolean,
-    now: Date,
   ): Promise<Result<EnRoute, AssignDriverError>> => {
-    const requestResult = await requestRepo.findById(requestId);
+    const requestResult = await requestResolver.findById(requestId);
 
     const waitingResult = andThenForResult(requestResult, (request) =>
       request !== undefined
@@ -161,20 +145,8 @@ const assignDriverUseCase =
       driverId,
     };
 
-    const event: DriverAssignedEvent = {
-      eventId: crypto.randomUUID(),
-      eventAt: now,
-      eventName: "DriverAssigned",
-      payload: { driverId, passengerId: waiting.passengerId },
-      aggregateId: waiting.requestId,
-      aggregateName: "TaxiRequest",
-    };
-
-    const saveResult = await requestRepo.save(enRoute);
+    const saveResult = await requestStore.save(enRoute);
     if (isErr(saveResult)) return saveResult;
-
-    const eventResult = await eventStore.save(event);
-    if (isErr(eventResult)) return eventResult;
 
     return createOk(enRoute);
   };

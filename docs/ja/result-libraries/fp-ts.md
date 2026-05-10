@@ -53,9 +53,11 @@ pipe(
 );
 ```
 
-## コード例: ドメインイベントの記録
+## コード例: 状態遷移パイプライン
 
 Railway Oriented Programmingの原則に従い、各処理を独立した関数に切り出し、ユースケースは `pipe` + `Do`/`bind`/`chainFirst` でそれらを合成するだけにする。
+
+`RequestResolver` / `RequestStore` の設計と、状態とドメインイベントを同一トランザクションで永続化する方法は [state-modeling.md#ドメインイベント](../state-modeling.md#ドメインイベント) を参照。
 
 ```typescript
 import * as E from "fp-ts/Either";
@@ -72,22 +74,6 @@ type DriverId = string & { readonly [DriverIdBrand]: never };
 
 declare const PassengerIdBrand: unique symbol;
 type PassengerId = string & { readonly [PassengerIdBrand]: never };
-
-// --- Domain Event ---
-
-type DomainEvent<TName extends string, TPayload> = Readonly<{
-  eventId: string;
-  eventAt: Date;
-  eventName: TName;
-  payload: TPayload;
-  aggregateId: string;
-  aggregateName: string;
-}>;
-
-type DriverAssignedEvent = DomainEvent<
-  "DriverAssigned",
-  Readonly<{ driverId: DriverId; passengerId: PassengerId }>
->;
 
 // --- State Types ---
 
@@ -106,14 +92,13 @@ type EnRoute = Readonly<{
 
 // --- Repository Types ---
 
-type RequestRepository = {
+type RequestResolver = Readonly<{
   findById: (id: RequestId) => TE.TaskEither<RepositoryError, Waiting | undefined>;
-  save: (request: EnRoute) => TE.TaskEither<RepositoryError, void>;
-};
+}>;
 
-type EventStore = {
-  save: (event: DriverAssignedEvent) => TE.TaskEither<RepositoryError, void>;
-};
+type RequestStore = Readonly<{
+  save: (state: EnRoute) => TE.TaskEither<RepositoryError, void>;
+}>;
 
 // --- Error Types ---
 
@@ -150,43 +135,21 @@ const transitionToEnRoute = (ctx: {
   driverId: ctx.driverId,
 });
 
-const buildDriverAssignedEvent =
-  (now: Date) =>
-  (enRoute: EnRoute): DriverAssignedEvent => ({
-    eventId: crypto.randomUUID(),
-    eventAt: now,
-    eventName: "DriverAssigned",
-    payload: { driverId: enRoute.driverId, passengerId: enRoute.passengerId },
-    aggregateId: enRoute.requestId,
-    aggregateName: "TaxiRequest",
-  });
-
-const persistEnRoute =
-  (requestRepo: RequestRepository) =>
-  (enRoute: EnRoute): TE.TaskEither<AssignDriverError, void> =>
-    requestRepo.save(enRoute);
-
-const publishEvent =
-  (eventStore: EventStore) =>
-  (event: DriverAssignedEvent): TE.TaskEither<AssignDriverError, void> =>
-    eventStore.save(event);
-
 // --- Use Case (Do + bind による完全パイプライン合成) ---
 
 const assignDriverUseCase =
-  (requestRepo: RequestRepository, eventStore: EventStore) =>
+  (requestResolver: RequestResolver, requestStore: RequestStore) =>
   (
     requestId: RequestId,
     driverId: DriverId,
     isDriverAvailable: boolean,
-    now: Date,
   ): TE.TaskEither<AssignDriverError, EnRoute> =>
     pipe(
       TE.Do,
       // 1. リクエスト取得 → 存在確認
       TE.bind("waiting", () =>
         pipe(
-          requestRepo.findById(requestId),
+          requestResolver.findById(requestId),
           TE.chainEitherK(ensureExists(requestId)),
         ),
       ),
@@ -196,11 +159,7 @@ const assignDriverUseCase =
       ),
       // 3. 状態遷移
       TE.map(transitionToEnRoute),
-      // 4. 永続化（chainFirst で enRoute を維持）
-      TE.chainFirst(persistEnRoute(requestRepo)),
-      // 5. ドメインイベント発行（chainFirst で enRoute を維持）
-      TE.chainFirst((enRoute) =>
-        publishEvent(eventStore)(buildDriverAssignedEvent(now)(enRoute)),
-      ),
+      // 4. 永続化
+      TE.chainFirst(requestStore.save),
     );
 ```

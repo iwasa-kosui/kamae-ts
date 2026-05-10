@@ -119,7 +119,7 @@ const TaxiRequest = {
 
 ## Domain Events
 
-Record business-significant occurrences that accompany state transitions as domain events. Events are stored in a separate store from the repository.
+Record business-significant occurrences that accompany state transitions as domain events.
 
 ```typescript
 type DomainEvent<TName extends string, TPayload> = Readonly<{
@@ -142,30 +142,59 @@ type TripCompletedEvent = DomainEvent<
 >;
 ```
 
-### Event Generation Responsibility
+### Persist State and Events in the Same Transaction
 
-The use case layer generates events and passes the entity and events separately to the repository. Having the repository generate events inflates its responsibilities.
+The aggregate state and the events it emits must be persisted within the same transaction boundary. The naive approach of writing them in two separate steps suffers from the dual-write problem: the moment one succeeds and the other fails, the system is inconsistent.
 
 ```typescript
-const assignDriverUseCase = (
-  requestId: RequestId,
-  driverId: DriverId,
-) =>
-  findRequest(requestId)
-    .andThen(validateWaiting)
-    .map((waiting) => {
-      const enRoute = TaxiRequest.assignDriver(waiting, driverId);
-      const event: DriverAssignedEvent = {
-        eventId: crypto.randomUUID(),
-        eventAt: new Date(),
-        eventName: "DriverAssigned",
-        payload: { driverId, passengerId: waiting.passengerId },
-        aggregateId: waiting.requestId,
-        aggregateName: "TaxiRequest",
-      };
-      return { entity: enRoute, event };
-    })
-    .andThen(({ entity, event }) =>
-      saveRequest(entity).andThen(() => saveEvent(event))
-    );
+// Bad — state and event are persisted in different transactions; a failure
+// between them leaves the aggregate inconsistent.
+saveRequest(entity).andThen(() => saveEvent(event));
 ```
+
+The standard implementation is the **Outbox Pattern**: write the state row and the outbox row atomically in the same DB transaction, and let a separate process relay outbox rows to the broker. Express this atomicity in the interface as well. Read-side concerns are split out as `RequestResolver` (ISP).
+
+```typescript
+type RequestResolver = Readonly<{
+  findById: (id: RequestId) => ResultAsync<Waiting | undefined, RepositoryError>;
+}>;
+
+type RequestStore = Readonly<{
+  save: (
+    state: EnRoute,
+    events: readonly DriverAssignedEvent[],
+  ) => ResultAsync<void, RepositoryError>;
+}>;
+```
+
+Closing `save` into a single method makes it structurally impossible for callers to produce a half-written aggregate where the state was updated but the event never fired.
+
+### Event Generation Responsibility
+
+The use case layer generates events and hands them to `RequestStore.save` together with the state. Letting the repository generate events internally bloats its responsibilities by mixing persistence with business rules.
+
+```typescript
+const buildDriverAssignedEvent =
+  (now: Date) =>
+  (enRoute: EnRoute): DriverAssignedEvent => ({
+    eventId: crypto.randomUUID(),
+    eventAt: now,
+    eventName: "DriverAssigned",
+    payload: { driverId: enRoute.driverId, passengerId: enRoute.passengerId },
+    aggregateId: enRoute.requestId,
+    aggregateName: "TaxiRequest",
+  });
+
+const assignDriverUseCase =
+  (requestResolver: RequestResolver, requestStore: RequestStore) =>
+  (requestId: RequestId, driverId: DriverId, now: Date) =>
+    requestResolver
+      .findById(requestId)
+      .andThen(validateWaiting)
+      .map(transitionToEnRoute(driverId))
+      .andThrough((enRoute) =>
+        requestStore.save(enRoute, [buildDriverAssignedEvent(now)(enRoute)]),
+      );
+```
+
+`now` is injected as a parameter; never call `new Date()` inside the use case so tests can pin time deterministically.

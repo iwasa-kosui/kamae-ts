@@ -60,9 +60,11 @@ if (Result.isSuccess(result)) {
 }
 ```
 
-## Code Example: Recording Domain Events
+## Code Example: State Transition Pipeline
 
 Following Railway Oriented Programming principles, extract each step into an independent function, and let the use case simply compose them with `Result.pipe`.
+
+For the design of `RequestResolver` / `RequestStore` and how domain events are persisted atomically with state, see [state-modeling.md#domain-events](../state-modeling.md#domain-events).
 
 ```typescript
 import { Result } from "@praha/byethrow";
@@ -77,22 +79,6 @@ type DriverId = string & { readonly [DriverIdBrand]: never };
 
 declare const PassengerIdBrand: unique symbol;
 type PassengerId = string & { readonly [PassengerIdBrand]: never };
-
-// --- Domain Event ---
-
-type DomainEvent<TName extends string, TPayload> = Readonly<{
-  eventId: string;
-  eventAt: Date;
-  eventName: TName;
-  payload: TPayload;
-  aggregateId: string;
-  aggregateName: string;
-}>;
-
-type DriverAssignedEvent = DomainEvent<
-  "DriverAssigned",
-  Readonly<{ driverId: DriverId; passengerId: PassengerId }>
->;
 
 // --- State Types ---
 
@@ -111,14 +97,13 @@ type EnRoute = Readonly<{
 
 // --- Repository Types ---
 
-type RequestRepository = {
+type RequestResolver = Readonly<{
   findById: (id: RequestId) => Result.ResultAsync<Waiting | undefined, RepositoryError>;
-  save: (request: EnRoute) => Result.ResultAsync<void, RepositoryError>;
-};
+}>;
 
-type EventStore = {
-  save: (event: DriverAssignedEvent) => Result.ResultAsync<void, RepositoryError>;
-};
+type RequestStore = Readonly<{
+  save: (state: EnRoute) => Result.ResultAsync<void, RepositoryError>;
+}>;
 
 // --- Error Types ---
 
@@ -132,9 +117,9 @@ type RepositoryError = Readonly<{ kind: "RepositoryError"; cause: unknown }>;
 // --- Domain Functions ---
 
 const findWaitingRequest =
-  (requestRepo: RequestRepository) =>
+  (requestResolver: RequestResolver) =>
   (requestId: RequestId): Result.ResultAsync<Waiting | undefined, AssignDriverError> =>
-    requestRepo.findById(requestId);
+    requestResolver.findById(requestId);
 
 const ensureExists =
   (requestId: RequestId) =>
@@ -160,43 +145,21 @@ const transitionToEnRoute = (ctx: {
   driverId: ctx.driverId,
 });
 
-const buildDriverAssignedEvent =
-  (now: Date) =>
-  (enRoute: EnRoute): DriverAssignedEvent => ({
-    eventId: crypto.randomUUID(),
-    eventAt: now,
-    eventName: "DriverAssigned",
-    payload: { driverId: enRoute.driverId, passengerId: enRoute.passengerId },
-    aggregateId: enRoute.requestId,
-    aggregateName: "TaxiRequest",
-  });
-
-const persistEnRoute =
-  (requestRepo: RequestRepository) =>
-  (enRoute: EnRoute): Result.ResultAsync<void, AssignDriverError> =>
-    requestRepo.save(enRoute);
-
-const publishEvent =
-  (eventStore: EventStore) =>
-  (event: DriverAssignedEvent): Result.ResultAsync<void, AssignDriverError> =>
-    eventStore.save(event);
-
 // --- Use Case (full pipeline composition with do + bind) ---
 
 const assignDriverUseCase =
-  (requestRepo: RequestRepository, eventStore: EventStore) =>
+  (requestResolver: RequestResolver, requestStore: RequestStore) =>
   (
     requestId: RequestId,
     driverId: DriverId,
     isDriverAvailable: boolean,
-    now: Date,
   ): Result.ResultAsync<EnRoute, AssignDriverError> =>
     Result.pipe(
       Result.do(),
       // 1. Fetch request → verify existence
       Result.bind("waiting", () =>
         Result.pipe(
-          findWaitingRequest(requestRepo)(requestId),
+          findWaitingRequest(requestResolver)(requestId),
           Result.andThen(ensureExists(requestId)),
         ),
       ),
@@ -206,11 +169,7 @@ const assignDriverUseCase =
       ),
       // 3. State transition
       Result.map(transitionToEnRoute),
-      // 4. Persist (andThrough preserves enRoute)
-      Result.andThrough(persistEnRoute(requestRepo)),
-      // 5. Publish domain event (andThrough preserves enRoute)
-      Result.andThrough((enRoute) =>
-        publishEvent(eventStore)(buildDriverAssignedEvent(now)(enRoute)),
-      ),
+      // 4. Persist
+      Result.andThrough(requestStore.save),
     );
 ```

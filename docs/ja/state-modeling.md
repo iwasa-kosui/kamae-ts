@@ -125,7 +125,7 @@ const TaxiRequest = {
 
 ## ドメインイベント
 
-状態遷移に伴うビジネス上の出来事をドメインイベントとして記録する。イベントはリポジトリとは別のストアに保存する。
+状態遷移に伴うビジネス上の出来事をドメインイベントとして記録する。
 
 ```typescript
 type DomainEvent<TName extends string, TPayload> = Readonly<{
@@ -148,30 +148,58 @@ type TripCompletedEvent = DomainEvent<
 >;
 ```
 
-### イベント生成の責務
+### 状態とイベントは同一トランザクションで永続化する
 
-ユースケース層がイベントを生成し、リポジトリにはエンティティとイベントを別々に渡す。リポジトリがイベントを生成する設計は責務が肥大化する。
+集約の状態とそれが発行するイベントは、必ず同一のトランザクション境界で永続化する。別ストアに分けて 2 段で書き込む素朴な実装は dual-write 問題を抱え、片方が成功してもう片方が失敗した瞬間に整合が壊れる。
 
 ```typescript
-const assignDriverUseCase = (
-  requestId: RequestId,
-  driverId: DriverId,
-) =>
-  findRequest(requestId)
-    .andThen(validateWaiting)
-    .map((waiting) => {
-      const enRoute = TaxiRequest.assignDriver(waiting, driverId);
-      const event: DriverAssignedEvent = {
-        eventId: crypto.randomUUID(),
-        eventAt: new Date(),
-        eventName: "DriverAssigned",
-        payload: { driverId, passengerId: waiting.passengerId },
-        aggregateId: waiting.requestId,
-        aggregateName: "TaxiRequest",
-      };
-      return { entity: enRoute, event };
-    })
-    .andThen(({ entity, event }) =>
-      saveRequest(entity).andThen(() => saveEvent(event))
-    );
+// Bad — 状態とイベントが別 tx。途中で落ちると整合が壊れる
+saveRequest(entity).andThen(() => saveEvent(event));
 ```
+
+標準的な実装は **Outbox Pattern**: 状態テーブルへの UPDATE と outbox テーブルへの INSERT を同一 tx で行い、別プロセスが outbox 行をブローカーへリレーする。インタフェース上もこの不可分性を表現する。参照系（リード）は `RequestResolver` として書き込み系から切り出す（ISP）。
+
+```typescript
+type RequestResolver = Readonly<{
+  findById: (id: RequestId) => ResultAsync<Waiting | undefined, RepositoryError>;
+}>;
+
+type RequestStore = Readonly<{
+  save: (
+    state: EnRoute,
+    events: readonly DriverAssignedEvent[],
+  ) => ResultAsync<void, RepositoryError>;
+}>;
+```
+
+`save` を 1 メソッドに閉じることで、呼び出し側が「状態は更新したがイベントは飛ばなかった」中途半端な状態を構造的に作れなくする。
+
+### イベント生成の責務
+
+ユースケース層がイベントを生成し、`RequestStore.save` に状態と一緒に渡す。リポジトリがイベントを内部で生成する設計は、永続化と業務ルールが混ざって責務が肥大化する。
+
+```typescript
+const buildDriverAssignedEvent =
+  (now: Date) =>
+  (enRoute: EnRoute): DriverAssignedEvent => ({
+    eventId: crypto.randomUUID(),
+    eventAt: now,
+    eventName: "DriverAssigned",
+    payload: { driverId: enRoute.driverId, passengerId: enRoute.passengerId },
+    aggregateId: enRoute.requestId,
+    aggregateName: "TaxiRequest",
+  });
+
+const assignDriverUseCase =
+  (requestResolver: RequestResolver, requestStore: RequestStore) =>
+  (requestId: RequestId, driverId: DriverId, now: Date) =>
+    requestResolver
+      .findById(requestId)
+      .andThen(validateWaiting)
+      .map(transitionToEnRoute(driverId))
+      .andThrough((enRoute) =>
+        requestStore.save(enRoute, [buildDriverAssignedEvent(now)(enRoute)]),
+      );
+```
+
+`now` はユースケースの引数として外部から注入する。`new Date()` をユースケース内で呼ばないことで、テスト時に任意の時刻を注入できる。

@@ -36,9 +36,11 @@ result
   );
 ```
 
-## コード例: ドメインイベントの記録
+## コード例: 状態遷移パイプライン
 
 Railway Oriented Programmingの原則に従い、各処理を独立した関数に切り出し、ユースケースはメソッドチェーンでそれらを合成するだけにする。`andThrough` で副作用を挟みつつ元の値を維持する。
+
+`RequestResolver` / `RequestStore` の設計と、状態とドメインイベントを同一トランザクションで永続化する方法は [state-modeling.md#ドメインイベント](../state-modeling.md#ドメインイベント) を参照。
 
 ```typescript
 import { ok, err, Result, ResultAsync } from "neverthrow";
@@ -53,22 +55,6 @@ type DriverId = string & { readonly [DriverIdBrand]: never };
 
 declare const PassengerIdBrand: unique symbol;
 type PassengerId = string & { readonly [PassengerIdBrand]: never };
-
-// --- Domain Event ---
-
-type DomainEvent<TName extends string, TPayload> = Readonly<{
-  eventId: string;
-  eventAt: Date;
-  eventName: TName;
-  payload: TPayload;
-  aggregateId: string;
-  aggregateName: string;
-}>;
-
-type DriverAssignedEvent = DomainEvent<
-  "DriverAssigned",
-  Readonly<{ driverId: DriverId; passengerId: PassengerId }>
->;
 
 // --- State Types ---
 
@@ -87,14 +73,13 @@ type EnRoute = Readonly<{
 
 // --- Repository Types ---
 
-type RequestRepository = {
+type RequestResolver = Readonly<{
   findById: (id: RequestId) => ResultAsync<Waiting | undefined, RepositoryError>;
-  save: (request: EnRoute) => ResultAsync<void, RepositoryError>;
-};
+}>;
 
-type EventStore = {
-  save: (event: DriverAssignedEvent) => ResultAsync<void, RepositoryError>;
-};
+type RequestStore = Readonly<{
+  save: (state: EnRoute) => ResultAsync<void, RepositoryError>;
+}>;
 
 // --- Error Types ---
 
@@ -130,44 +115,19 @@ const transitionToEnRoute =
     driverId,
   });
 
-const buildDriverAssignedEvent =
-  (now: Date) =>
-  (enRoute: EnRoute): DriverAssignedEvent => ({
-    eventId: crypto.randomUUID(),
-    eventAt: now,
-    eventName: "DriverAssigned",
-    payload: { driverId: enRoute.driverId, passengerId: enRoute.passengerId },
-    aggregateId: enRoute.requestId,
-    aggregateName: "TaxiRequest",
-  });
-
-const persistEnRoute =
-  (requestRepo: RequestRepository) =>
-  (enRoute: EnRoute): ResultAsync<void, AssignDriverError> =>
-    requestRepo.save(enRoute);
-
-const publishEvent =
-  (eventStore: EventStore) =>
-  (event: DriverAssignedEvent): ResultAsync<void, AssignDriverError> =>
-    eventStore.save(event);
-
 // --- Use Case (andThrough によるパイプライン合成) ---
 
 const assignDriverUseCase =
-  (requestRepo: RequestRepository, eventStore: EventStore) =>
+  (requestResolver: RequestResolver, requestStore: RequestStore) =>
   (
     requestId: RequestId,
     driverId: DriverId,
     isDriverAvailable: boolean,
-    now: Date,
   ): ResultAsync<EnRoute, AssignDriverError> =>
-    requestRepo
+    requestResolver
       .findById(requestId)
       .andThen(ensureExists(requestId))
       .andThen(ensureDriverAvailable(driverId, isDriverAvailable))
       .map(transitionToEnRoute(driverId))
-      .andThrough(persistEnRoute(requestRepo))
-      .andThrough((enRoute) =>
-        publishEvent(eventStore)(buildDriverAssignedEvent(now)(enRoute)),
-      );
+      .andThrough(requestStore.save);
 ```
