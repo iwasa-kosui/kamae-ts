@@ -1,0 +1,20 @@
+id: kamae-review-clean-001
+name: Do not flag canonical kamae code
+description: |
+  Negative-control case. The fixture is the canonical taxi-request example
+  shipped with the kamae skill — it follows every principle. The reviewer
+  should report no High or Medium findings; only Low items or suggestions
+  are acceptable.
+
+inputs:
+  prompt: |
+    Review the attached TypeScript file as part of a pull request and report
+    findings against the kamae principles. Cite the relevant principle for
+    each finding and tag severity (High / Medium / Low / Suggestion).
+  files:
+    - path: src/taxi-request.ts
+      source: ../fixtures/clean/taxi-request.ts
+
+expected:
+  outcomes:
+    - type: task_completed

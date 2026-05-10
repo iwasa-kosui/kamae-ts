@@ -1,0 +1,19 @@
+id: kamae-review-class-001
+name: Flag class-based domain model
+description: |
+  Adversarial case. The fixture uses `class TaxiRequest`, an `as` assertion,
+  optional state-dependent fields, and a thrown Error. The reviewer should
+  surface multiple kamae principle violations with severity tags.
+
+inputs:
+  prompt: |
+    Review the attached TypeScript file as part of a pull request and report
+    findings against the kamae principles. Cite the relevant principle for
+    each finding and tag severity (High / Medium / Low / Suggestion).
+  files:
+    - path: src/taxi-request.ts
+      source: ../fixtures/violations/taxi-request-class.ts
+
+expected:
+  outcomes:
+    - type: task_completed
