@@ -1,10 +1,10 @@
 {
-  "name": "functional-ts-principal",
+  "name": "functional-ts-principles",
   "version": "0.1.0",
-  "description": "Claude Code skill plugin: functional domain modeling principles for server-side TypeScript",
+  "description": "Agent skill plugin: functional domain modeling principles for server-side TypeScript",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/iwasa-kosui/functional-ts-principal"
+    "url": "https://github.com/iwasa-kosui/functional-ts-principles"
   }
 }

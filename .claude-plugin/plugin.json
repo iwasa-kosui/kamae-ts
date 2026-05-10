@@ -1,11 +1,11 @@
 {
-  "name": "functional-ts-principal",
+  "name": "functional-ts-principles",
   "description": "Principles for functional domain modeling in server-side TypeScript: discriminated unions, pure state transitions, Result types, and boundary defense",
   "version": "0.1.0",
   "author": {
     "name": "Kosui Iwasa"
   },
-  "repository": "https://github.com/iwasa-kosui/functional-ts-principal",
+  "repository": "https://github.com/iwasa-kosui/functional-ts-principles",
   "license": "MIT",
   "keywords": [
     "typescript",
