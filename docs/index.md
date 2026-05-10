@@ -12,7 +12,11 @@ An extensible harness of skill plugins for designing and implementing robust ser
 
 ## English
 
-The English documentation lives in the skill source files in the GitHub repository:
+→ [English documentation](./en/)
+
+A reading version of the principles for practicing functional domain modeling in server-side TypeScript, reorganized as human-oriented prose.
+
+The original coding-agent skill sources also live in the GitHub repository:
 
 - [`skills/kamae`](https://github.com/iwasa-kosui/kamae-ts/tree/main/skills/kamae) — writing skill (functional domain modeling)
 - [`skills/kamae-review`](https://github.com/iwasa-kosui/kamae-ts/tree/main/skills/kamae-review) — code review skill

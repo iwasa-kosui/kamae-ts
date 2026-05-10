@@ -81,7 +81,7 @@ rule のフォーマットと具体例は [`rules/README.md`](./rules/README.md)
 
 ## ドキュメント
 
-日本語の読み物版は [https://iwasa-kosui.github.io/kamae-ts/](https://iwasa-kosui.github.io/kamae-ts/) に公開されている（`/ja/` 配下）。
+読み物版は [https://iwasa-kosui.github.io/kamae-ts/](https://iwasa-kosui.github.io/kamae-ts/) に公開されており、[英語版（`/en/`）](https://iwasa-kosui.github.io/kamae-ts/en/) と [日本語版（`/ja/`）](https://iwasa-kosui.github.io/kamae-ts/ja/) の両方を提供している。
 
 ## 参考記事
 
