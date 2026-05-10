@@ -15,7 +15,12 @@ export type RunClaudeOptions = {
 
 type StreamEvent = Record<string, unknown>
 
-const ALLOWED_TOOLS = ['Read', 'Glob', 'Grep', 'Skill', 'Bash']
+// `--tools` constrains the available built-in tool set (unlike `--allowedTools`,
+// which only governs auto-approval). Bash is excluded — the agent can write
+// files via `cat > path`, which inflates tool counts and makes lazy-loading
+// graders moot. The eval expects code answers in the response, not scaffolded
+// projects in a tmpdir. CLI accepts comma-separated string per claude --help.
+const TOOL_SET = 'Read,Glob,Grep,Skill'
 
 export async function runClaudeForTask(
   task: TaskFile,
@@ -35,8 +40,8 @@ export async function runClaudeForTask(
       sandbox,
       '--plugin-dir',
       options.pluginDir,
-      '--allowedTools',
-      ALLOWED_TOOLS.join(' '),
+      '--tools',
+      TOOL_SET,
       '--permission-mode',
       'bypassPermissions',
       '--no-session-persistence',
