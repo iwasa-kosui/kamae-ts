@@ -25,6 +25,8 @@ color_scheme: light
 aux_links:
   GitHub:
     - https://github.com/iwasa-kosui/kamae-ts
+  Discord:
+    - https://discord.gg/Z9HVbqEWzd
 
 include:
   - ja
