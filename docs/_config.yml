@@ -22,3 +22,4 @@ include:
   - ja/validation-libraries
 exclude:
   - superpowers
+  - adr
