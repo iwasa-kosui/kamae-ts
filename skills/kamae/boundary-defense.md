@@ -166,13 +166,15 @@ const id = RequestId.parse(raw); // Result<RequestId, ValidationError>
 
 ## Banning Type Assertions (`as`)
 
-`as` bypasses type checking. Use schema validation for external data; trust type inference for internal data.
+`as` bypasses type checking. The only permitted forms are `as const` and `as const satisfies Type` — every other `as` is prohibited.
+
+When the value's type is unknown to the compiler (external input, raw data, runtime-shaped objects), the answer is **always to parse it through a validation-library schema**. Asserting a type with `as` does not give you the guarantees the type claims; parsing does.
 
 ```typescript
-// Bad
+// ❌ as bypasses validation — the type is a lie if data doesn't match
 const user = data as User;
 
-// Good
+// ✅ Schema parse produces a real User
 const user = UserSchema.parse(data);
 ```
 
@@ -191,13 +193,17 @@ type ItemId = z.infer<typeof ItemIdSchema>;
 const parse = (raw: string): ItemId => ItemIdSchema.parse(raw); // already ItemId type
 ```
 
-In projects that do not use a validation library, `as` is permitted only inside Branded Type constructor functions.
+### Last-resort exception: `unique symbol` Branded Type factories
+
+Projects that have not yet adopted a validation library may use `as` **only** inside a Branded Type constructor that brands an already-validated value. Treat this as a fallback to be migrated away from as soon as a validation library is introduced — it is not a permanent option.
 
 ```typescript
 const UserId = {
-  of: (value: string): UserId => value as UserId, // permitted only when not using Zod
+  of: (value: string): UserId => value as UserId, // permitted only when no validation library is available
 };
 ```
+
+When you encounter a project where this fallback is in use, prefer adding a validation library and rewriting the brand with `z.brand()` / `v.brand()` / `.brand()` over keeping the `as`.
 
 ## PII Protection with the Sensitive Type
 

@@ -130,9 +130,9 @@ Signal: API handlers, DB result mappings, queue/message handlers, file/config re
 
 Reference: [`./index.md` §4 "Do not use type assertions (`as`)"](./index.md)
 
-Enumerate every `as` and verify it falls into one of:
-- External data: should be replaced with schema parsing.
-- `as` inside a Branded Type constructor: acceptable only when not using a validation library (the `unique symbol` pattern).
+The only permitted `as` forms are `as const` and `as const satisfies Type`. Enumerate every other `as` and verify it falls into one of:
+- External or unknown-typed data: should be replaced with schema parsing. `as` does not give the guarantee its type claims.
+- `as` inside a Branded Type constructor: tolerated only as a last-resort fallback when no validation library is present (`unique symbol` pattern). When flagged, recommend introducing a validation library and rewriting the brand with `z.brand()` / `v.brand()` / `.brand()` so the `as` can be removed.
 - Internal data: should be resolvable via type inference. If not, the type design is likely wrong.
 
 #### 4.3 PII fields wrapped in `Sensitive<T>`
@@ -152,6 +152,10 @@ Signal: transformations expressible with `filter` / `map` / `reduce` being built
 #### 5.2 Domain events published as immutable records
 
 Signal: state-mutation code directly mutating a shared event log, or domain events not being published where the state-modeling guide requires them. Events should be recorded as `Readonly<{ eventId; eventAt; eventName; payload; aggregateId }>`, separated from the repository.
+
+#### 5.3 Companion-object predicates free of redundant `x is Y` annotations
+
+Signal: predicate functions over a discriminated union that carry an explicit `: x is Y` return-type annotation when the body is just `kind === "..."` comparisons (or their `!==` negation). TypeScript 5.5+ infers the type predicate from such bodies and `Array.prototype.filter` consumes the inferred predicate, so the annotation adds nothing — and falsely implies that discriminated union narrowing alone is insufficient. Suggest dropping the annotation.
 
 ### 6. Test Data
 
@@ -209,4 +213,5 @@ type TaskRepository = {
 | [Low] | Discriminant is not `kind` (1.2) | Style inconsistency rather than a bug |
 | [Low] | Imperative array loops (5.1) | Readability, not correctness |
 | [Low] | Domain events not published (5.2) | Depends on whether event sourcing is adopted |
+| [Low] | Redundant `x is Y` predicate annotation (5.3) | Wastes characters; misleads about discriminated union narrowing |
 | [Low] | Fixtures missing `as const satisfies` (6.1) | Typically caught by tests in practice |

@@ -14,7 +14,7 @@ nav_order: 5
 type Task = ActiveTask | CompletedTask;
 
 const Task = {
-  isActive: (task: Task): task is ActiveTask => task.kind === "Active",
+  isActive: (task: Task) => task.kind === "Active",
 } as const;
 
 // 宣言的: 「何をしたいか」が明確
@@ -26,6 +26,20 @@ for (const task of tasks) {
   if (task.kind === "Active") activeTasks.push(task);
 }
 ```
+
+### 冗長な `x is Y` 型述語を書かない
+
+discriminated union を受け取る述語関数に、`: x is Y` の型述語アノテーションを明示する必要はない。TypeScript 5.5+ は `kind` で絞り込むボディから型述語を自動的に推論し、`Array.prototype.filter` はその推論結果を利用する。アノテーションを書くと「discriminated union の絞り込みだけでは型を狭められない」という誤った印象を読み手に与える。
+
+```typescript
+// ❌ 冗長: 推論で十分
+isActive: (task: Task): task is ActiveTask => task.kind === "Active",
+
+// ✅ コンパイラの推論に任せる
+isActive: (task: Task) => task.kind === "Active",
+```
+
+複数状態への絞り込みも同様。`kind === "..." || kind === "..."` や `kind !== "..." && kind !== "..."` のいずれの形でも、TS 5.5+ は正しい型述語に推論する。
 
 ## ドメインイベント
 

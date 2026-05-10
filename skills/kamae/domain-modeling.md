@@ -74,7 +74,7 @@ const TaxiRequest = {
     startTime,
   }),
 
-  isActive: (request: TaxiRequest): request is Waiting | EnRoute | InTrip =>
+  isActive: (request: TaxiRequest) =>
     request.kind !== "Completed" && request.kind !== "Cancelled",
 } as const;
 ```

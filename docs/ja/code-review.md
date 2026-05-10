@@ -130,9 +130,9 @@ declaration merging により型の形状が暗黙に変わる危険がある。
 
 参照: [`./index.md` §4「型アサーション（`as`）を使わない」](./index.md)
 
-すべての `as` を洗い出し、以下のいずれかに該当するか確認する:
-- 外部データ: スキーマパースで置き換えるべき。
-- Branded Type の生成関数内の `as`: バリデーションライブラリを使わない場合（`unique symbol` パターン）のみ許容。
+許容される `as` は `as const` と `as const satisfies Type` のみ。それ以外の `as` をすべて洗い出し、以下のいずれかに該当するか確認する:
+- 外部データ・型不明のデータ: スキーマパースで置き換えるべき。`as` は型が主張する保証を与えない。
+- Branded Type の生成関数内の `as`: バリデーションライブラリ未導入時の最後の手段としてのみ許容（`unique symbol` パターン）。指摘時には、バリデーションライブラリの導入と `z.brand()` / `v.brand()` / `.brand()` への書き換えで `as` を解消することを推奨する。
 - 内部データ: 型推論で解決可能なはず。解決できないなら型設計が誤っている可能性が高い。
 
 #### 4.3 PII フィールドが `Sensitive<T>` でラップされているか
@@ -152,6 +152,10 @@ declaration merging により型の形状が暗黙に変わる危険がある。
 #### 5.2 ドメインイベントが不変レコードとして発行されているか
 
 兆候: 状態変更コードが共有のイベントログを mutate している、あるいは state-modeling ガイドが要求する場面でドメインイベントが発行されていない。`Readonly<{ eventId; eventAt; eventName; payload; aggregateId }>` としてリポジトリと分離して記録する。
+
+#### 5.3 companion object の述語に冗長な `x is Y` 型述語が付いていないか
+
+兆候: discriminated union を受け取る述語関数に、ボディが `kind === "..."`（あるいはその `!==` 否定）だけなのに `: x is Y` の型述語アノテーションを明示している。TypeScript 5.5+ はそのようなボディから型述語を推論し、`Array.prototype.filter` が推論結果を利用するため、アノテーションは何も足していない。むしろ「discriminated union の絞り込みでは型を狭められない」という誤った印象を与える。アノテーションを削除するよう提案する。
 
 ### 6. テストデータ
 
@@ -209,4 +213,5 @@ type TaskRepository = {
 | Low | discriminant が `kind` 以外 (1.2) | バグというよりスタイル不一致 |
 | Low | 命令的な配列ループ (5.1) | 正確性ではなく可読性 |
 | Low | ドメインイベント不発行 (5.2) | event sourcing の採否次第 |
+| Low | 冗長な `x is Y` 型述語 (5.3) | 文字数の無駄。discriminated union の絞り込みについて誤解を招く |
 | Low | フィクスチャに `as const satisfies` がない (6.1) | 実務上はテストで検出される |

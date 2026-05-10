@@ -34,7 +34,7 @@ Library guides: [neverthrow](./result-libraries/neverthrow.md) / [byethrow](./re
 
 ## 4. Boundary Defense
 
-Validate external inputs (API requests, DB results, file reads) at runtime with a validation-library schema. Trust types inside the domain layer. Do not use type assertions (`as`). Wrap PII fields in a `Sensitive<T>` wrapper.
+Validate external inputs (API requests, DB results, file reads) at runtime with a validation-library schema. Trust types inside the domain layer. Do not use type assertions — `as const` and `as const satisfies Type` are the only allowed forms; when the type is unknown, parse the value through a validation-library schema instead. Wrap PII fields in a `Sensitive<T>` wrapper.
 
 Library guides: [zod](./validation-libraries/zod.md) / [valibot](./validation-libraries/valibot.md) / [arktype](./validation-libraries/arktype.md)
 
