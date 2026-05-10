@@ -26,7 +26,7 @@ Concretely:
 2. Add `evals/kamae/` and `evals/kamae-review/` suites, each with a small set of positive and should-skip tasks (proof-of-life only — broader topic coverage is deferred).
 3. Add `.github/workflows/eval.yml` that runs both suites on every pull request that touches `skills/**`, `evals/**`, `rules/**`, or `.waza.yaml`, plus on `workflow_dispatch`.
 4. Use `text` and `behavior` graders only at the start. LLM-as-judge graders and multi-model matrices are deferred until we have baseline data.
-5. Pin `waza` to a specific release (currently `v0.9.0`) in CI to insulate against `v0.x` schema churn.
+5. Pin `waza` to a specific release (currently `v0.31.0`) in CI by downloading the release binary directly. `go install github.com/microsoft/waza/...` does not work — the upstream `go.mod` still declares its module path as `github.com/spboyer/waza` after the repo was transferred to the `microsoft` org, so the Go toolchain rejects the install with a "version constraints conflict". Pin via `https://github.com/microsoft/waza/releases/download/${WAZA_VERSION}/waza-linux-amd64` instead.
 
 ## Consequences
 
