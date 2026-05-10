@@ -22,14 +22,14 @@ Via [`gh skill`](https://cli.github.com/manual/gh_skill) (the GitHub CLI's agent
 
 ```bash
 # Install a single skill (interactive prompt for agent/scope)
-gh skill install iwasa-kosui/kamae-ts functional-ts
+gh skill install iwasa-kosui/kamae-ts kamae
 
 # Install non-interactively for Claude Code at user scope
-gh skill install iwasa-kosui/kamae-ts functional-ts \
+gh skill install iwasa-kosui/kamae-ts kamae \
   --agent claude-code --scope user
 
 # Pin to a specific release
-gh skill install iwasa-kosui/kamae-ts functional-ts@v0.1.0
+gh skill install iwasa-kosui/kamae-ts kamae@v1.0.0
 ```
 
 Or via [`skills` CLI](https://github.com/anthropics/skills):
@@ -40,17 +40,36 @@ npx skills add iwasa-kosui/kamae-ts
 
 ## Provided Skills
 
-### `functional-ts`
+### `kamae`
 
-Automatically triggered when writing server-side TypeScript code (domain models, use cases, repositories). Guides code generation following the principles.
+Triggered when writing server-side TypeScript code (domain models, use cases, repositories, state transitions, error handling, boundary validation, PII protection). Guides code generation through a thin dispatcher SKILL.md that lazy-loads topic sub-files (`domain-modeling.md`, `state-modeling.md`, `error-handling.md`, `boundary-defense.md`, `declarative-style.md`, `test-data.md`) and library-specific guides only when relevant.
 
-### `functional-ts-review`
+### `kamae-review`
 
-Triggered during code review. Detects code patterns that violate the principles (class usage, type assertions, thrown exceptions, unprotected PII, etc.) and suggests fixes.
+Triggered during code review. Walks a checklist of severity-tagged review items (split across `checklist/*.md` sub-files) and reports findings citing the canonical principle in `kamae`. Depends on `kamae` being installed for the knowledge base — install both together.
 
-### `functional-ts-ja` / `functional-ts-review-ja`
+## Customization via Rules
 
-Japanese versions of the above skills.
+Both skills load applicable rules at the start of each invocation, in priority order:
+
+1. `.claude/rules/*.md` (project)
+2. `~/.claude/rules/*.md` (user-global)
+3. The plugin's own `rules/defaults/*.md`
+
+A rule applies to kamae-ts when its frontmatter declares `applies-to: kamae`, `applies-to: kamae-review`, or `applies-to: "*"`. Four rule types are supported:
+
+- `library-preference` — pin a specific Result or validation library (overrides auto-detection)
+- `check-toggle` — disable a named review check (e.g., PII protection for projects with no personal data)
+- `convention` — declare project-specific conventions (e.g., "Branded Types live in `src/types/brand.ts`")
+- `override` — replace specific guidance from a topic sub-file
+
+See [`rules/README.md`](./rules/README.md) for the rule format and concrete examples.
+
+For full skill replacement, use Claude Code's standard skill path-shadowing (`.claude/skills/kamae/SKILL.md` overrides the installed plugin's).
+
+## Documentation
+
+A Japanese reading version of the principles is published at [https://iwasa-kosui.github.io/kamae-ts/](https://iwasa-kosui.github.io/kamae-ts/) (see `/ja/`).
 
 ## Reference Articles
 

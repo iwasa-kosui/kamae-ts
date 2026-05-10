@@ -22,14 +22,14 @@
 
 ```bash
 # 単一スキルをインストール（エージェント/スコープは対話で選択）
-gh skill install iwasa-kosui/kamae-ts functional-ts
+gh skill install iwasa-kosui/kamae-ts kamae
 
 # 非対話的に Claude Code のユーザースコープへインストール
-gh skill install iwasa-kosui/kamae-ts functional-ts \
+gh skill install iwasa-kosui/kamae-ts kamae \
   --agent claude-code --scope user
 
 # 特定リリースを固定
-gh skill install iwasa-kosui/kamae-ts functional-ts@v0.1.0
+gh skill install iwasa-kosui/kamae-ts kamae@v1.0.0
 ```
 
 または [`skills` CLI](https://github.com/anthropics/skills) 経由:
@@ -40,13 +40,36 @@ npx skills add iwasa-kosui/kamae-ts
 
 ## 提供スキル
 
-### `functional-ts`
+### `kamae`
 
-TypeScriptのサーバーサイドコード（ドメインモデル、ユースケース、リポジトリ）を書くときに自動トリガーされる。原則に沿ったコード生成をガイドする。
+サーバーサイド TypeScript コード（ドメインモデル、ユースケース、リポジトリ、状態遷移、エラーハンドリング、境界バリデーション、PII 保護）を書くときにトリガーされる。薄い dispatcher SKILL.md がトピック別サブファイル（`domain-modeling.md`, `state-modeling.md`, `error-handling.md`, `boundary-defense.md`, `declarative-style.md`, `test-data.md`）と該当ライブラリ固有ガイドを必要時のみ Read する。
 
-### `functional-ts-review`
+### `kamae-review`
 
-コードレビュー時にトリガーされる。原則に反するコードパターン（class使用、型アサーション、例外throw、PII未保護など）を検出し、修正案を提示する。
+コードレビュー時にトリガーされる。severity タグ付きのレビュー項目（`checklist/*.md` サブファイルに分割）を順に走査し、`kamae` 内の正典原則を引用しながら指摘を返す。ナレッジベースとして `kamae` に依存するため、両者を併せてインストールすること。
+
+## Rules によるカスタマイズ
+
+両スキルは起動のたびに、優先度順で適用可能な rules を読み込む:
+
+1. `.claude/rules/*.md`（プロジェクト）
+2. `~/.claude/rules/*.md`（ユーザーグローバル）
+3. プラグイン同梱の `rules/defaults/*.md`
+
+frontmatter で `applies-to: kamae`, `applies-to: kamae-review`, あるいは `applies-to: "*"` を宣言した rule のみが kamae-ts に適用される。サポートする 4 種:
+
+- `library-preference` — 特定の Result / validation ライブラリを固定（自動検出をスキップ）
+- `check-toggle` — 名前付きレビュー項目の有効化/無効化（例: PII 未取扱プロジェクトでの `pii-protection` 無効化）
+- `convention` — プロジェクト固有規約の宣言（例: 「Branded Types は `src/types/brand.ts` に集約」）
+- `override` — トピックサブファイルの特定セクションを上書き
+
+rule のフォーマットと具体例は [`rules/README.md`](./rules/README.md) を参照。
+
+スキル全体を置き換えたい場合は、Claude Code 標準の skill path-shadowing（プロジェクトの `.claude/skills/kamae/SKILL.md` がインストール済みプラグインを上書きする）を使う。
+
+## ドキュメント
+
+日本語の読み物版は [https://iwasa-kosui.github.io/kamae-ts/](https://iwasa-kosui.github.io/kamae-ts/) に公開されている（`/ja/` 配下）。
 
 ## 参考記事
 
