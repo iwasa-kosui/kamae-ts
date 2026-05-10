@@ -6,8 +6,8 @@
     <rect width="240" height="240" rx="36" fill="#3178C6"/>
 
     <g fill="#ffffff">
-      <circle cx="120" cy="40" r="11"/>
-      <rect x="116" y="50" width="8" height="10"/>
+      <ellipse cx="120" cy="42" rx="12" ry="15"/>
+      <rect x="115" y="54" width="10" height="7"/>
       <path d="M80 84 L114 58 L120 86 L126 58 L160 84 L154 132 L86 132 Z"/>
       <path d="M80 84 L50 110 L54 130 L98 116 L100 100 L90 90 Z"/>
       <path d="M160 84 L190 110 L186 130 L142 116 L140 100 L150 90 Z"/>
