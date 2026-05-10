@@ -1,67 +1,63 @@
 ---
 name: kamae
-description: Use when writing server-side TypeScript code involving domain models, use cases, repositories, state transitions, or business logic. Guides functional domain modeling with discriminated unions, pure functions, and Result types.
+description: |
+  Kamae (構え) — robust server-side TypeScript design. Functional domain modeling with
+  discriminated unions, pure state transitions, Result types, schema-validated boundaries,
+  and PII protection.
+
+  TRIGGER when: writing TypeScript domain models, use cases, repositories, state transitions,
+  error handling, boundary validation, or PII handling on the server side; designing types
+  for business logic; implementing entity/value-object semantics in TS.
+  SKIP: frontend React/Vue components, browser code, build tooling, code generation scripts,
+  pure infrastructure-as-code; code unrelated to domain logic.
 license: MIT
 ---
 
-# Functional Domain Modeling in TypeScript
+# Kamae — Functional Domain Modeling in TypeScript
 
-Principles for writing domain models in server-side TypeScript. Instead of class-based OOP, this approach maximizes the TypeScript type system through a functional style.
+Six topic files cover the principles. Read only the file(s) relevant to the current task. The library guides under `result-libraries/` and `validation-libraries/` are read on demand based on the project's `package.json`.
 
-## 1. Type-Driven Domain Modeling
+## Step 1: Detect project libraries
 
-Represent states with discriminated unions using `kind` as the unified discriminant. Use `type` (not `interface`), companion objects, branded types, `Readonly<>`, function property notation, and one-concept-per-file structure.
+Read `package.json` once. Note which Result library and validation library are present:
 
-**Validation library detection:** Check `dependencies` / `devDependencies` in the project's `package.json` for branded type syntax:
+- Result libraries — match the first present in priority `neverthrow` > `byethrow` > `fp-ts` > `option-t`. Load the matching guide under [`result-libraries/`](./result-libraries/) when error-handling is in scope.
+- Validation libraries — match the first present in priority `zod` > `valibot` > `arktype`. Load the matching guide under [`validation-libraries/`](./validation-libraries/) when boundary or branded-type work is in scope.
 
-- `zod` → [validation-libraries/zod.md](./validation-libraries/zod.md)
-- `valibot` → [validation-libraries/valibot.md](./validation-libraries/valibot.md)
-- `arktype` → [validation-libraries/arktype.md](./validation-libraries/arktype.md)
+If none are present, ask the user before proceeding.
 
-Details: [domain-modeling.md](./domain-modeling.md)
+## Step 2: Apply the topic relevant to the task
 
-## 2. State Transitions via Functions
+Each topic below is one file. Read it lazily — only the file(s) you need for the current task.
 
-Express state transitions with pure functions. The argument type constrains valid source states, and the return type makes the target state explicit. Invalid transitions become compile errors. Use `assertNever` for exhaustiveness checking.
+### Type-Driven Domain Modeling — [domain-modeling.md](./domain-modeling.md)
 
-Details: [state-modeling.md](./state-modeling.md)
+Represent states with discriminated unions using `kind` as the unified discriminant. Use `type` (not `interface`), Companion Object pattern, branded types via the project's validation library, `Readonly<>`, function property notation, and one-concept-per-file structure.
 
-## 3. Error Handling — Railway Oriented Programming
+### State Transitions — [state-modeling.md](./state-modeling.md)
 
-Do not throw exceptions; treat errors as values using the Result type. Define error types as discriminated unions so callers can handle them exhaustively.
+Express transitions with pure functions. Argument types constrain valid source states; return types make targets explicit. Invalid transitions become compile errors. Use `assertNever` for exhaustiveness.
 
-**Library detection:** Check `dependencies` / `devDependencies` in the project's `package.json`:
+### Error Handling — [error-handling.md](./error-handling.md)
 
-- `neverthrow` → [result-libraries/neverthrow.md](./result-libraries/neverthrow.md)
-- `byethrow` → [result-libraries/byethrow.md](./result-libraries/byethrow.md)
-- `fp-ts` → [result-libraries/fp-ts.md](./result-libraries/fp-ts.md)
-- `option-t` → [result-libraries/option-t.md](./result-libraries/option-t.md)
+Treat errors as values via `Result`. Define error types as discriminated unions so callers branch exhaustively. Do not throw exceptions in domain code.
 
-Details: [error-handling.md](./error-handling.md)
+### Boundary Defense — [boundary-defense.md](./boundary-defense.md)
 
-## 4. Boundary Defense
+Validate every external input (API requests, DB results, file/queue/env) with a schema at runtime. Trust types inside the domain. Do not use `as`. Apply `Sensitive<T>` to PII fields; the validation schema auto-wraps them.
 
-Validate external inputs (API requests, DB results, file reads) with validation library schemas at runtime. Trust types inside the domain layer. Do not use type assertions (`as`). Apply `Sensitive<T>` wrapper to PII fields.
+### Declarative Style — [declarative-style.md](./declarative-style.md)
 
-Details: [boundary-defense.md](./boundary-defense.md)
+Use `filter` / `map` / `reduce` with companion-object predicates instead of imperative loops. Model domain events as immutable records.
 
-## 5. Declarative Style
+### Test Data — [test-data.md](./test-data.md)
 
-Write array transformations declaratively using `filter` / `map` / `reduce` with companion object predicates. Model domain events as immutable records.
+Define fixtures with `as const satisfies Type` to preserve discriminant literal types and prevent widening.
 
-Details: [declarative-style.md](./declarative-style.md)
+## Examples
 
-## 6. Test Data
-
-Define test data with `as const satisfies Type` to preserve discriminant literal types and prevent widening.
-
-Details: [test-data.md](./test-data.md)
+Worked end-to-end examples are in [examples/](./examples/). Read them only when the topic guide cites a specific example.
 
 ## Applying These Principles
 
-These are recommendations, not strict rules. You may use your judgment based on context, but if you deviate from a principle, explicitly state the reason in a comment.
-
-Typical justified reasons to deviate:
-- An external library requires class inheritance
-- Immutable object creation cost is a performance concern
-- A different pattern has been adopted by team agreement
+These are recommendations, not strict rules. Use judgment based on context. If you deviate from a principle, state the reason in a comment. Justifiable reasons include: external library requires class inheritance, immutable object creation cost is a measured performance concern, or a different pattern has been adopted by team agreement.
