@@ -1,5 +1,5 @@
 ---
-name: functional-ts
+name: kamae
 description: Use when writing server-side TypeScript code involving domain models, use cases, repositories, state transitions, or business logic. Guides functional domain modeling with discriminated unions, pure functions, and Result types.
 license: MIT
 ---
