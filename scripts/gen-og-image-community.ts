@@ -22,8 +22,6 @@ const BG_OUTER = '#1E1F22'
 const BG_CARD = '#2B2D31'
 const TEXT_MUTED = '#B5BAC1'
 const TEXT_FAINT = '#80848E'
-const DOT_OFFLINE = '#80848E'
-
 // Render the kamae-ts square icon (the first 240x240 of logo.svg) as a standalone SVG.
 const fullLogoSvg = readFileSync(LOGO_SVG, 'utf8')
 const iconSvg = fullLogoSvg
@@ -160,26 +158,6 @@ const svg = await satori(
                                   },
                                 },
                                 'Online',
-                              ],
-                            },
-                          },
-                          {
-                            type: 'div',
-                            props: {
-                              style: { display: 'flex', alignItems: 'center', gap: 10 },
-                              children: [
-                                {
-                                  type: 'div',
-                                  props: {
-                                    style: {
-                                      width: 14,
-                                      height: 14,
-                                      borderRadius: 7,
-                                      background: DOT_OFFLINE,
-                                    },
-                                  },
-                                },
-                                'Members',
                               ],
                             },
                           },
