@@ -1,54 +1,55 @@
 ---
-name: functional-ts-review-ja
-description: サーバーサイドTypeScriptコードを関数型ドメインモデリング原則に照らしてレビューする。`functional-ts-ja` スキルと同じナレッジを参照し、Discriminated Union、Companion Object、Branded Types、不変性、ファイル構成、純粋関数による状態遷移、網羅性チェック、Result型によるエラーハンドリング、境界の防御（スキーマバリデーション・`as` 禁止・PII 保護）、宣言的スタイル、型安全なテストデータをチェックする。
-license: MIT
+title: コードレビュー
+description: kamae-ts の原則に照らしたサーバーサイド TypeScript コードの敵対的レビューガイド
 ---
 
-# Functional TypeScript Code Review
+# 関数型 TypeScript コードレビュー
 
-`functional-ts-ja` スキルが定める関数型ドメインモデリング原則に照らしてサーバーサイドTypeScriptコードをレビューする。本スキルは `functional-ts-ja` と**同じナレッジを参照する**。各チェック項目はあちらの章と1対1で対応し、根拠の所在を相対リンクで明示する。
+kamae-ts の原則（[index](./index.md) 参照）に照らしてサーバーサイド TypeScript コードをレビューするためのガイド。各チェック項目は原則の章と 1 対 1 で対応する。
+
+> このガイドは [kamae-ts プラグイン](https://github.com/iwasa-kosui/kamae-ts) の `kamae-review` スキルが内部的に使うチェックリストの読み物版である。コーディングエージェントを使わず手動でレビューを行う場合の参考資料。
 
 ## レビュー手順
 
 1. **原則ナレッジを先に読み込む。** コード閲覧の前に以下を読み、指摘で正典の原則を引けるようにする:
-   - [`../functional-ts-ja/SKILL.md`](../functional-ts-ja/SKILL.md) — 原則のインデックス
-   - [`../functional-ts-ja/error-handling.md`](../functional-ts-ja/error-handling.md)
-   - [`../functional-ts-ja/boundary-defense.md`](../functional-ts-ja/boundary-defense.md)
-   - [`../functional-ts-ja/state-modeling.md`](../functional-ts-ja/state-modeling.md)
-   - プロジェクトの `package.json` に応じたバリデーションライブラリガイド ([`../functional-ts-ja/validation-libraries/`](../functional-ts-ja/validation-libraries/) 配下の `zod.md` / `valibot.md` / `arktype.md`)
-   - プロジェクトの `package.json` に応じた Result ライブラリガイド ([`../functional-ts-ja/result-libraries/`](../functional-ts-ja/result-libraries/) 配下の `neverthrow.md` / `byethrow.md` / `fp-ts.md` / `option-t.md`)
+   - [index.md](./index.md) — 原則のインデックス
+   - [error-handling.md](./error-handling.md)
+   - [boundary-defense.md](./boundary-defense.md)
+   - [state-modeling.md](./state-modeling.md)
+   - プロジェクトの `package.json` に応じたバリデーションライブラリガイド（[validation-libraries/](./validation-libraries/) 配下の `zod.md` / `valibot.md` / `arktype.md`）
+   - プロジェクトの `package.json` に応じた Result ライブラリガイド（[result-libraries/](./result-libraries/) 配下の `neverthrow.md` / `byethrow.md` / `fp-ts.md` / `option-t.md`）
 2. レビュー対象のファイルを読む。
-3. 以下のチェック項目を、原則の順序（`functional-ts-ja/SKILL.md` の章立てと一致）でスキャンする。
+3. 以下のチェック項目を、原則の順序（[index.md](./index.md) の章立てと一致）でスキャンする。
 4. 違反を発見した場合、原則・理由・修正案を添えて指摘する。
 5. 違反ではないが改善余地がある場合は提案として伝える。
 
 ## チェック項目
 
-チェック項目は [`../functional-ts-ja/SKILL.md`](../functional-ts-ja/SKILL.md) の構造をそのまま反映する。各項目は正典の章へリンクする。
+チェック項目は [index.md](./index.md) の構造をそのまま反映する。各項目は正典の章へリンクする。
 
 ### 1. 型によるドメインモデリング
 
 #### 1.1 ドメイン状態を Discriminated Union でモデリングしているか
 
-参照: [`../functional-ts-ja/SKILL.md` §1「Discriminated Unionで状態を表現する」](../functional-ts-ja/SKILL.md)
+参照: [`./index.md` §1「Discriminated Unionで状態を表現する」](./index.md)
 
 兆候: 多数の optional プロパティと `string` の状態フィールドを持つ単一の型（例: `{ state: string; driverId?: string; startTime?: Date }`）。状態ごとに型を分けて union にし、状態固有プロパティを必須にするよう提案する。
 
 #### 1.2 discriminant が `kind` で統一されているか
 
-参照: [`../functional-ts-ja/SKILL.md` §1「discriminantは `kind` で統一する」](../functional-ts-ja/SKILL.md)
+参照: [`./index.md` §1「discriminantは `kind` で統一する」](./index.md)
 
 兆候: `type`, `status`, `state`, `_tag` など `kind` 以外の discriminant 名。コードベースの一貫性のため `kind` への変更を提案する。
 
 #### 1.3 ドメインモデルに class を使っていないか
 
-参照: [`../functional-ts-ja/SKILL.md` §1「Discriminated Unionで状態を表現する」](../functional-ts-ja/SKILL.md) および Companion Object パターン。
+参照: [`./index.md` §1「Discriminated Unionで状態を表現する」](./index.md) および Companion Object パターン。
 
 ドメインエンティティ・値オブジェクトの定義に `class` を使っている場合、Discriminated Union + Companion Object パターンへの変更を提案する。外部ライブラリが class 継承を要求する場合は正当な逸脱。
 
 #### 1.4 Companion Object パターンに従っているか
 
-参照: [`../functional-ts-ja/SKILL.md` §1「Companion Object パターン」](../functional-ts-ja/SKILL.md)
+参照: [`./index.md` §1「Companion Object パターン」](./index.md)
 
 以下を確認する:
 - 型に関連する操作が、型と同名の `const` に集約されているか。
@@ -57,37 +58,37 @@ license: MIT
 
 #### 1.5 ドメイン型に `interface` を使っていないか
 
-参照: [`../functional-ts-ja/SKILL.md` §1「`type` を使う（`interface` ではなく）」](../functional-ts-ja/SKILL.md)
+参照: [`./index.md` §1「`type` を使う（`interface` ではなく）」](./index.md)
 
 declaration merging により型の形状が暗黙に変わる危険がある。ドメイン型は `type` で定義する。`interface` はライブラリの型拡張（augmentation）の場合のみ許容。
 
 #### 1.6 型定義内でメソッド記法を使っていないか
 
-参照: [`../functional-ts-ja/SKILL.md` §1「関数プロパティ記法を使う（メソッド記法ではなく）」](../functional-ts-ja/SKILL.md)
+参照: [`./index.md` §1「関数プロパティ記法を使う（メソッド記法ではなく）」](./index.md)
 
 メソッド記法（`save(task: Task): Promise<void>`）はパラメータが bivariant になり、依存注入時に狭い型の実装（`save(task: DoingTask): …`）が型チェックを通過する。関数プロパティ記法（`save: (task: Task) => Promise<void>`）への変更を提案する。
 
 #### 1.7 意味の異なるプリミティブに Branded Types が適用されているか
 
-参照: [`../functional-ts-ja/SKILL.md` §1「Branded Typesで意味を区別する」](../functional-ts-ja/SKILL.md)。プロジェクトのバリデーションライブラリガイド ([`../functional-ts-ja/validation-libraries/`](../functional-ts-ja/validation-libraries/)) も参照。
+参照: [`./index.md` §1「Branded Typesで意味を区別する」](./index.md)。プロジェクトのバリデーションライブラリガイド ([`./validation-libraries/`](./validation-libraries/)) も参照。
 
 兆候: ID や意味の異なる値（`UserId`, `OrderId`, `Email`, 金額など）が素の `string` / `number` で扱われている。バリデーションライブラリがある場合はそのブランド機能で（`as` キャスト不要）、ない場合は `unique symbol` パターンで定義されているかを確認する。
 
 #### 1.8 ドメインオブジェクトが `Readonly<>` か
 
-参照: [`../functional-ts-ja/SKILL.md` §1「`Readonly<>` で不変性を保証する」](../functional-ts-ja/SKILL.md)
+参照: [`./index.md` §1「`Readonly<>` で不変性を保証する」](./index.md)
 
 兆候: ドメインオブジェクトの型定義が `Readonly<…>`（または各プロパティの `readonly`）で保護されていない。状態変更は新しいオブジェクトの生成で表現する。
 
 #### 1.9 「1 概念 1 ファイル」の構成になっているか
 
-参照: [`../functional-ts-ja/SKILL.md` §1「ファイル構成: 1概念1ファイル」](../functional-ts-ja/SKILL.md)
+参照: [`./index.md` §1「ファイル構成: 1概念1ファイル」](./index.md)
 
 兆候: `types.ts`, `models.ts`, `domain.ts` のような catch-all ファイルに多数のドメイン型が集約されている、特に companion object が別ファイルにある場合。barrel file（`index.ts`）は re-export のみ。
 
 ### 2. 関数による状態遷移
 
-参照: [`../functional-ts-ja/SKILL.md` §2](../functional-ts-ja/SKILL.md) および [`../functional-ts-ja/state-modeling.md`](../functional-ts-ja/state-modeling.md)
+参照: [`./index.md` §2](./index.md) および [`./state-modeling.md`](./state-modeling.md)
 
 #### 2.1 状態遷移関数が引数型で遷移元を制約しているか
 
@@ -95,13 +96,13 @@ declaration merging により型の形状が暗黙に変わる危険がある。
 
 #### 2.2 Discriminated Union の `switch` に `assertNever` があるか
 
-参照: [`../functional-ts-ja/SKILL.md` §2「網羅性チェック」](../functional-ts-ja/SKILL.md)
+参照: [`./index.md` §2「網羅性チェック」](./index.md)
 
 兆候: `kind` で分岐する `switch` に `default: return assertNever(x)` がない。新バリアント追加時にコンパイルエラーで検出できなくなる。
 
 ### 3. エラーハンドリング — Railway Oriented Programming
 
-参照: [`../functional-ts-ja/SKILL.md` §3](../functional-ts-ja/SKILL.md), [`../functional-ts-ja/error-handling.md`](../functional-ts-ja/error-handling.md), プロジェクトの Result ライブラリガイド ([`../functional-ts-ja/result-libraries/`](../functional-ts-ja/result-libraries/))。
+参照: [`./index.md` §3](./index.md), [`./error-handling.md`](./error-handling.md), プロジェクトの Result ライブラリガイド ([`./result-libraries/`](./result-libraries/))。
 
 #### 3.1 ドメイン層で例外を throw していないか
 
@@ -113,11 +114,11 @@ declaration merging により型の形状が暗黙に変わる危険がある。
 
 #### 3.3 Result チェーンを使って合成しているか（即 unwrap していないか）
 
-プロジェクトに対応する Result ライブラリの API（`.map`, `.andThen`, `Result.do` など）でチェーン合成しているかを確認する。即 unwrap して if/else に展開している場合は、`../functional-ts-ja/result-libraries/` 配下の該当ガイドを引用して適切なコンビネータを提案する。
+プロジェクトに対応する Result ライブラリの API（`.map`, `.andThen`, `Result.do` など）でチェーン合成しているかを確認する。即 unwrap して if/else に展開している場合は、`./result-libraries/` 配下の該当ガイドを引用して適切なコンビネータを提案する。
 
 ### 4. 境界の防御
 
-参照: [`../functional-ts-ja/SKILL.md` §4](../functional-ts-ja/SKILL.md), [`../functional-ts-ja/boundary-defense.md`](../functional-ts-ja/boundary-defense.md), プロジェクトのバリデーションライブラリガイド ([`../functional-ts-ja/validation-libraries/`](../functional-ts-ja/validation-libraries/))。
+参照: [`./index.md` §4](./index.md), [`./boundary-defense.md`](./boundary-defense.md), プロジェクトのバリデーションライブラリガイド ([`./validation-libraries/`](./validation-libraries/))。
 
 #### 4.1 すべての外部境界にスキーマバリデーションがあるか
 
@@ -125,7 +126,7 @@ declaration merging により型の形状が暗黙に変わる危険がある。
 
 #### 4.2 `as` による型アサーションがないか
 
-参照: [`../functional-ts-ja/SKILL.md` §4「型アサーション（`as`）を使わない」](../functional-ts-ja/SKILL.md)
+参照: [`./index.md` §4「型アサーション（`as`）を使わない」](./index.md)
 
 すべての `as` を洗い出し、以下のいずれかに該当するか確認する:
 - 外部データ: スキーマパースで置き換えるべき。
@@ -134,13 +135,13 @@ declaration merging により型の形状が暗黙に変わる危険がある。
 
 #### 4.3 PII フィールドが `Sensitive<T>` でラップされているか
 
-参照: [`../functional-ts-ja/SKILL.md` §4「PIIの防御」](../functional-ts-ja/SKILL.md), [`../functional-ts-ja/boundary-defense.md`](../functional-ts-ja/boundary-defense.md)
+参照: [`./index.md` §4「PIIの防御」](./index.md), [`./boundary-defense.md`](./boundary-defense.md)
 
 兆候: 個人情報を含みうるフィールド（氏名、メールアドレス、電話番号、住所、各種ID、決済情報、健康・診断情報、IP アドレスなど）が素の `string` / `number` のまま。特にログやエラーメッセージに出力されうるオブジェクトを重点的にチェックする。バリデーションスキーマで `Sensitive.of` による自動ラップが行われているかも確認する。
 
 ### 5. 宣言的なスタイル
 
-参照: [`../functional-ts-ja/SKILL.md` §5](../functional-ts-ja/SKILL.md), [`../functional-ts-ja/state-modeling.md`](../functional-ts-ja/state-modeling.md)
+参照: [`./index.md` §5](./index.md), [`./state-modeling.md`](./state-modeling.md)
 
 #### 5.1 配列操作が宣言的か
 
@@ -152,7 +153,7 @@ declaration merging により型の形状が暗黙に変わる危険がある。
 
 ### 6. テストデータ
 
-参照: [`../functional-ts-ja/SKILL.md` §6](../functional-ts-ja/SKILL.md)
+参照: [`./index.md` §6](./index.md)
 
 #### 6.1 フィクスチャが `as const satisfies Type` で定義されているか
 
@@ -163,7 +164,7 @@ declaration merging により型の形状が暗黙に変わる危険がある。
 各指摘には以下を含める:
 
 1. **何が問題か**: 具体的なコードの場所（`path:line`）。
-2. **なぜ問題か**: 原則（`../functional-ts-ja/...` への参照リンク付き）と、違反した場合のリスク。
+2. **なぜ問題か**: 原則（`./...` への参照リンク付き）と、違反した場合のリスク。
 3. **どう直すか**: 修正案のコード例。
 
 ```
@@ -172,7 +173,7 @@ declaration merging により型の形状が暗黙に変わる危険がある。
 `src/repository/task-repository.ts:15`
 
 `save(task: Task): Promise<void>` はメソッド記法です。
-[`../functional-ts-ja/SKILL.md` §1「関数プロパティ記法を使う」](../functional-ts-ja/SKILL.md)
+[`./index.md` §1「関数プロパティ記法を使う」](./index.md)
 にあるとおり、メソッド記法ではパラメータが bivariant になり、
 `save(task: DoingTask): Promise<void>` のような狭い型の実装が依存注入時に型チェックを通過します。
 
