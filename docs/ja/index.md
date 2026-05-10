@@ -34,7 +34,7 @@ Discriminated Union で状態を表現し、`kind` を discriminant として統
 
 ## 4. 境界の防御
 
-外部入力（API リクエスト、DB 結果、ファイル読み込み）はバリデーションライブラリのスキーマで実行時バリデーションする。ドメイン層内部では型を信頼する。型アサーション（`as`）は使わない。PII フィールドには `Sensitive<T>` ラッパーを適用する。
+外部入力（API リクエスト、DB 結果、ファイル読み込み）はバリデーションライブラリのスキーマで実行時バリデーションする。ドメイン層内部では型を信頼する。型アサーションは使わない — 許容するのは `as const` と `as const satisfies Type` のみで、型が不明なときはバリデーションライブラリのスキーマでパースする。PII フィールドには `Sensitive<T>` ラッパーを適用する。
 
 ライブラリ別ガイド: [zod](./validation-libraries/zod.md) / [valibot](./validation-libraries/valibot.md) / [arktype](./validation-libraries/arktype.md)
 

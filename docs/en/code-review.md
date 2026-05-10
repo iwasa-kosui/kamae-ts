@@ -130,9 +130,9 @@ Signal: API handlers, DB result mappings, queue/message handlers, file/config re
 
 Reference: [`./index.md` §4 "Do not use type assertions (`as`)"](./index.md)
 
-Enumerate every `as` and verify it falls into one of:
-- External data: should be replaced with schema parsing.
-- `as` inside a Branded Type constructor: acceptable only when not using a validation library (the `unique symbol` pattern).
+The only permitted `as` forms are `as const` and `as const satisfies Type`. Enumerate every other `as` and verify it falls into one of:
+- External or unknown-typed data: should be replaced with schema parsing. `as` does not give the guarantee its type claims.
+- `as` inside a Branded Type constructor: tolerated only as a last-resort fallback when no validation library is present (`unique symbol` pattern). When flagged, recommend introducing a validation library and rewriting the brand with `z.brand()` / `v.brand()` / `.brand()` so the `as` can be removed.
 - Internal data: should be resolvable via type inference. If not, the type design is likely wrong.
 
 #### 4.3 PII fields wrapped in `Sensitive<T>`

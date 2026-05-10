@@ -173,13 +173,15 @@ const id = RequestId.parse(raw); // Result<RequestId, ValidationError>
 
 ## 型アサーション（`as`）の禁止
 
-`as` は型チェックをバイパスする。外部データにはスキーマバリデーション、内部データは型推論を信頼する。
+`as` は型チェックをバイパスする。許容するのは `as const` と `as const satisfies Type` のみで、それ以外の `as` はすべて禁止する。
+
+コンパイラから見て型が不明な値（外部入力、生データ、ランタイムで形が決まるオブジェクト）に出会ったら、答えは**常にバリデーションライブラリのスキーマでパースすること**。`as` は型が主張する保証を実体としては与えない。パースだけが与える。
 
 ```typescript
-// Bad
+// ❌ as はバリデーションをバイパスする — データが一致しなければ型は嘘
 const user = data as User;
 
-// Good
+// ✅ スキーマパースで本物の User が得られる
 const user = UserSchema.parse(data);
 ```
 
@@ -198,13 +200,17 @@ type ItemId = z.infer<typeof ItemIdSchema>;
 const parse = (raw: string): ItemId => ItemIdSchema.parse(raw); // 既に ItemId 型
 ```
 
-バリデーションライブラリを使わないプロジェクトでは、Branded Types の生成関数内に限り `as` を許容する。
+### 最後の手段としての例外: `unique symbol` Branded Type の生成関数
+
+バリデーションライブラリをまだ導入していないプロジェクトでは、検証済みの値をブランドする Branded Type の生成関数内**でのみ** `as` を使ってよい。これは恒久的な選択肢ではなく、バリデーションライブラリ導入と同時に解消すべき暫定措置として扱う。
 
 ```typescript
 const UserId = {
-  of: (value: string): UserId => value as UserId, // Zod未使用時のみ許容
+  of: (value: string): UserId => value as UserId, // バリデーションライブラリ未導入時のみ許容
 };
 ```
+
+このフォールバックを使っているプロジェクトに遭遇したら、`as` を残すのではなく、バリデーションライブラリを導入して `z.brand()` / `v.brand()` / `.brand()` でブランドを書き換えることを優先する。
 
 ## Sensitive型によるPII防御
 

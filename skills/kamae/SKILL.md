@@ -62,7 +62,7 @@ Treat errors as values via `Result`. Define error types as discriminated unions 
 
 ### Boundary Defense — [boundary-defense.md](./boundary-defense.md)
 
-Validate every external input (API requests, DB results, file/queue/env) with a schema at runtime. Trust types inside the domain. Do not use `as`. Apply `Sensitive<T>` to PII fields; the validation schema auto-wraps them.
+Validate every external input (API requests, DB results, file/queue/env) with a schema at runtime. Trust types inside the domain. Do not use type assertions — `as const` and `as const satisfies Type` are the only allowed forms; when the type is unknown, parse through a validation-library schema instead. Apply `Sensitive<T>` to PII fields; the validation schema auto-wraps them.
 
 ### Declarative Style — [declarative-style.md](./declarative-style.md)
 
