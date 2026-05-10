@@ -27,13 +27,13 @@ import { Result } from "option-t/plain_result/namespace";
 
 | 関数/型 | 説明 |
 |---------|------|
-| `Result<T, E>` | Result型（`Ok<T> \| Err<E>` の判別共用体、プレーンオブジェクト） |
+| `Result<T, E>` | Result 型（`Ok<T> \| Err<E>` の判別共用体、プレーンオブジェクト） |
 | `createOk(value)` | 成功値を生成（`{ ok: true, val: T, err: null }`） |
 | `createErr(error)` | 失敗値を生成（`{ ok: false, val: null, err: E }`） |
 
-neverthrowとの主な違い:
+neverthrow との主な違いは次のとおりです。
 
-- クラスではなくプレーンオブジェクト（discriminantは `ok` フィールド）
+- クラスではなくプレーンオブジェクト（discriminant は `ok` フィールド）
 - メソッドチェーンではなくスタンドアロン関数で合成
 - 非同期は `*Async` バリアント関数を使用（戻り値は `Promise<Result<T, E>>`）
 
@@ -50,7 +50,7 @@ const mappedErr = mapErrForResult(result, (error) => transformErr(error));
 const chained = andThenForResult(result, (value) => nextResult(value));
 const recovered = orElseForResult(result, (error) => recover(error));
 
-// 分岐は型ガードまたはokフィールドで判定
+// 分岐は型ガードまたは ok フィールドで判定
 if (isOk(result)) {
   console.log(result.val);
 } else {
@@ -60,7 +60,7 @@ if (isOk(result)) {
 
 ## コード例: 状態遷移パイプライン
 
-`RequestResolver` / `RequestStore` の設計と、状態とドメインイベントを同一トランザクションで永続化する方法は [state-modeling.md#ドメインイベント](../state-modeling.md#ドメインイベント) を参照。
+`RequestResolver` / `RequestStore` の設計と、状態とドメインイベントを同一トランザクションで永続化する方法は [state-modeling.md#ドメインイベント](../state-modeling.md#ドメインイベント) を参照してください。
 
 ```typescript
 import { createOk, createErr, isOk, isErr, type Result } from "option-t/plain_result";

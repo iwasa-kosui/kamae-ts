@@ -15,8 +15,8 @@ import { ok, err, Result, ResultAsync } from "neverthrow";
 
 | 関数/型 | 説明 |
 |---------|------|
-| `Result<T, E>` | 同期Result型 |
-| `ResultAsync<T, E>` | 非同期Result型（Promise<Result>のラッパー） |
+| `Result<T, E>` | 同期 Result 型 |
+| `ResultAsync<T, E>` | 非同期 Result 型（Promise<Result> のラッパー） |
 | `ok(value)` | 成功値を生成 |
 | `err(error)` | 失敗値を生成 |
 | `.andThrough(fn)` | 副作用を実行し、成功なら元の値を維持して返す |
@@ -38,9 +38,9 @@ result
 
 ## コード例: 状態遷移パイプライン
 
-Railway Oriented Programmingの原則に従い、各処理を独立した関数に切り出し、ユースケースはメソッドチェーンでそれらを合成するだけにする。`andThrough` で副作用を挟みつつ元の値を維持する。
+Railway Oriented Programming の原則に従い、各処理を独立した関数に切り出し、ユースケースはメソッドチェーンでそれらを合成するだけにします。`andThrough` で副作用を挟みつつ元の値を維持します。
 
-`RequestResolver` / `RequestStore` の設計と、状態とドメインイベントを同一トランザクションで永続化する方法は [state-modeling.md#ドメインイベント](../state-modeling.md#ドメインイベント) を参照。
+`RequestResolver` / `RequestStore` の設計と、状態とドメインイベントを同一トランザクションで永続化する方法は [state-modeling.md#ドメインイベント](../state-modeling.md#ドメインイベント) を参照してください。
 
 ```typescript
 import { ok, err, Result, ResultAsync } from "neverthrow";

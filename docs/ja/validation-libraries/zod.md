@@ -18,10 +18,10 @@ import { z } from "zod";
 | `z.object({...})` | オブジェクトスキーマ |
 | `z.string()` | 文字列スキーマ |
 | `z.number()` | 数値スキーマ |
-| `z.infer<typeof Schema>` | スキーマからTypeScript型を抽出 |
+| `z.infer<typeof Schema>` | スキーマから TypeScript 型を抽出 |
 | `schema.safeParse(raw)` | 例外をスローせず `{ success, data, error }` を返す |
 | `schema.parse(raw)` | パース済みデータを返すか `ZodError` をスロー |
-| `z.brand<typeof Brand>()` | 出力型にnominalブランドを付与（`unique symbol` を使用） |
+| `z.brand<typeof Brand>()` | 出力型に nominal ブランドを付与（`unique symbol` を使用） |
 | `.transform(fn)` | パース済みの値を変換 |
 
 ## スキーマ定義
@@ -40,7 +40,7 @@ type CreateRequestInput = z.infer<typeof CreateRequestInput>;
 
 ## Branded Types
 
-`z.brand()` でブランドを定義する。スキーマの出力型に自動的にブランドが付与されるため、`as` キャストが不要になる。
+`z.brand()` でブランドを定義します。スキーマの出力型に自動的にブランドが付与されるため、`as` キャストが不要になります。
 
 ```typescript
 export const UserIdBrand = Symbol();
@@ -69,7 +69,7 @@ const RequestId = {
 
 ## Sensitive型との統合
 
-`.transform()` を使用してパース時にPIIフィールドを自動ラップする。
+`.transform()` を使用してパース時に PII フィールドを自動ラップします。
 
 ```typescript
 const sensitiveString = z.string().transform(Sensitive.of);
@@ -85,7 +85,7 @@ const PatientSchema = z.object({
 
 ## ガイドライン
 
-- Railway Oriented Programmingとの統合には `parse` より `safeParse` を使う（スキーマファクトリーパターンは [boundary-defense.md](../boundary-defense.md) を参照）
-- boundary-defense.md のスキーマファクトリーは Standard Schema 準拠のため、Zodでもそのまま動作する
-- `z.brand()` により Branded Types で `as` キャストが不要になる
-- ブランドキーには文字列リテラルではなく `unique symbol`（`Symbol()` 経由）を使う — 文字列リテラルはカプセル化に欠け、オートコンプリートを汚染する
+- Railway Oriented Programming との統合には `parse` より `safeParse` を使ってください（スキーマファクトリーパターンは [boundary-defense.md](../boundary-defense.md) を参照）
+- boundary-defense.md のスキーマファクトリーは Standard Schema 準拠のため、Zod でもそのまま動作します
+- `z.brand()` により Branded Types で `as` キャストが不要になります
+- ブランドキーには文字列リテラルではなく `unique symbol`（`Symbol()` 経由）を使ってください — 文字列リテラルはカプセル化に欠け、オートコンプリートを汚染します

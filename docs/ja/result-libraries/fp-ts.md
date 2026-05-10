@@ -17,8 +17,8 @@ import { pipe } from "fp-ts/function";
 
 | 関数/型 | 説明 |
 |---------|------|
-| `Either<E, A>` | 同期Result型。エラーが第1型引数（Left）、成功が第2型引数（Right） |
-| `TaskEither<E, A>` | 非同期Result型（`() => Promise<Either<E, A>>`） |
+| `Either<E, A>` | 同期 Result 型。エラーが第 1 型引数（Left）、成功が第 2 型引数（Right） |
+| `TaskEither<E, A>` | 非同期 Result 型（`() => Promise<Either<E, A>>`） |
 | `E.right(value)` | 成功値を生成 |
 | `E.left(error)` | 失敗値を生成 |
 | `TE.Do` | `TaskEither<never, {}>` を生成。`bind` と組み合わせてオブジェクトを段階的に構築する起点 |
@@ -28,7 +28,7 @@ import { pipe } from "fp-ts/function";
 
 ## パイプによる合成
 
-fp-tsではメソッドチェーンではなく `pipe` で関数を合成する。
+fp-ts ではメソッドチェーンではなく `pipe` で関数を合成します。
 
 ```typescript
 pipe(
@@ -55,9 +55,9 @@ pipe(
 
 ## コード例: 状態遷移パイプライン
 
-Railway Oriented Programmingの原則に従い、各処理を独立した関数に切り出し、ユースケースは `pipe` + `Do`/`bind`/`chainFirst` でそれらを合成するだけにする。
+Railway Oriented Programming の原則に従い、各処理を独立した関数に切り出し、ユースケースは `pipe` + `Do`/`bind`/`chainFirst` でそれらを合成するだけにします。
 
-`RequestResolver` / `RequestStore` の設計と、状態とドメインイベントを同一トランザクションで永続化する方法は [state-modeling.md#ドメインイベント](../state-modeling.md#ドメインイベント) を参照。
+`RequestResolver` / `RequestStore` の設計と、状態とドメインイベントを同一トランザクションで永続化する方法は [state-modeling.md#ドメインイベント](../state-modeling.md#ドメインイベント) を参照してください。
 
 ```typescript
 import * as E from "fp-ts/Either";

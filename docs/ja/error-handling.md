@@ -9,11 +9,11 @@ has_children: true
 
 ## Railway Oriented Programming
 
-Result型を使い、成功と失敗を型で表現する。例外のthrowはドメイン層では使わない。ライブラリ固有のAPIについては [result-libraries/](./result-libraries/) 内の該当ガイドを参照。
+Result 型を使い、成功と失敗を型で表現します。例外の throw はドメイン層では使いません。ライブラリ固有の API については [result-libraries/](./result-libraries/) 内の該当ガイドを参照してください。
 
 ## エラー型の設計
 
-エラーもDiscriminated Unionで定義し、呼び出し元が網羅的にハンドルできるようにする。
+エラーも Discriminated Union で定義し、呼び出し元が網羅的にハンドルできるようにします。
 
 ```typescript
 type AssignDriverError =
@@ -24,7 +24,7 @@ type AssignDriverError =
 
 ### エラー型の粒度
 
-各ユースケースが返すエラー型は、そのユースケース固有のものにする。共通のエラー型（`AppError`）にすべてを詰め込むと、呼び出し元が「実際にはどのエラーが起こりうるか」を型から判断できなくなる。
+各ユースケースが返すエラー型は、そのユースケース固有のものにします。共通のエラー型（`AppError`）にすべてを詰め込むと、呼び出し元が「実際にはどのエラーが起こりうるか」を型から判断できなくなります。
 
 ```typescript
 // Good: ユースケース固有のエラー型
@@ -37,11 +37,11 @@ type AppError = RequestNotFoundError | InvalidStateError | DriverNotAvailableErr
 
 ## 処理の合成
 
-各ステップがResult型を返し、エラーが発生した時点で後続のステップはスキップされる。合成のAPIはライブラリごとに異なる（neverthrow/byethrowでは `.andThen()`、fp-tsでは `pipe` + `chain`、option-tでは `flatMapForResult`）。
+各ステップが Result 型を返し、エラーが発生した時点で後続のステップはスキップされます。合成の API はライブラリごとに異なります（neverthrow/byethrow では `.andThen()`、fp-ts では `pipe` + `chain`、option-t では `flatMapForResult`）。
 
 ### ヘルパー関数
 
-共通のバリデーションは小さな関数に切り出し、合成の各ステップとして使う。
+共通のバリデーションは小さな関数に切り出し、合成の各ステップとして使います。
 
 ```typescript
 // ヘルパーの戻り値はResult型。具体的なAPI（ok/err, right/left等）はライブラリに依存
@@ -62,7 +62,7 @@ const ensureWaiting = (
 
 ## Controller層でのエラー変換
 
-ドメインエラーをHTTPレスポンスに変換するのはController層の責務。ドメインエラーのkindに基づいてステータスコードを決定する。
+ドメインエラーを HTTP レスポンスに変換するのは Controller 層の責務です。ドメインエラーの kind に基づいてステータスコードを決定します。
 
 ```typescript
 const toHttpResponse = (error: AssignDriverError): Response => {
@@ -81,7 +81,7 @@ const toHttpResponse = (error: AssignDriverError): Response => {
 
 ## 例外を使うべき場所
 
-ドメイン層では例外をスローしないが、以下の場所では例外が適切:
+ドメイン層では例外をスローしませんが、以下の場所では例外が適切です。
 
 - `assertNever`: 到達不能コードの検出（プログラムのバグ）
-- インフラ層の予期しない障害（DB接続断など）— これはフレームワークのエラーハンドラに任せる
+- インフラ層の予期しない障害（DB 接続断など）— これはフレームワークのエラーハンドラに任せます

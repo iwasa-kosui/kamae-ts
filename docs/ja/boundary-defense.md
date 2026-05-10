@@ -9,9 +9,9 @@ has_children: true
 
 ## TypeScriptの型の限界を理解する
 
-TypeScriptの型はコンパイル時に消去される。ランタイムには型情報が残らないため、外部から入ってくるデータの正しさは型だけでは保証できない。
+TypeScript の型はコンパイル時に消去されます。ランタイムには型情報が残らないため、外部から入ってくるデータの正しさは型だけでは保証できません。
 
-構造的部分型により、余分なプロパティを持つオブジェクトは少ないプロパティの型に代入できる。これが意図しないデータ漏洩の原因になる。
+構造的部分型により、余分なプロパティを持つオブジェクトは少ないプロパティの型に代入できてしまいます。これが意図しないデータ漏洩の原因になります。
 
 ```typescript
 type LogPayload = { id: string; role: string };
@@ -23,15 +23,15 @@ console.log(JSON.stringify(user satisfies LogPayload));
 
 ## スキーマベースのバリデーション
 
-外部境界（APIリクエスト、DB結果、環境変数、ファイル読み込み）ではバリデーションライブラリのスキーマでパースする。
+外部境界（API リクエスト、DB 結果、環境変数、ファイル読み込み）ではバリデーションライブラリのスキーマでパースします。
 
-**バリデーションライブラリの検出:** プロジェクトの `package.json` の `dependencies` / `devDependencies` を確認し、該当するライブラリのガイドに従う。いずれも見つからない場合はユーザーに確認する。
+**バリデーションライブラリの検出:** プロジェクトの `package.json` の `dependencies` / `devDependencies` を確認し、該当するライブラリのガイドに従ってください。いずれも見つからない場合はユーザーに確認します。
 
 - `zod` → [validation-libraries/zod.md](./validation-libraries/zod.md)
 - `valibot` → [validation-libraries/valibot.md](./validation-libraries/valibot.md)
 - `arktype` → [validation-libraries/arktype.md](./validation-libraries/arktype.md)
 
-以下の例はZodの構文を使用。ValibotとArkTypeの等価な構文は上記のバリデーションライブラリガイドを参照。
+以下の例は Zod の構文を使用しています。Valibot と ArkType の等価な構文は上記のバリデーションライブラリガイドを参照してください。
 
 ```typescript
 import { z } from "zod";
@@ -49,7 +49,7 @@ type CreateRequestInput = z.infer<typeof CreateRequestInput>;
 
 ### `safeParse` を使う
 
-`parse` は例外をスローする。Railway Oriented Programmingとの統合には `safeParse` を使い、結果をResult型に変換する。
+`parse` は例外をスローします。Railway Oriented Programming との統合には `safeParse` を使い、結果を Result 型に変換します。
 
 ```typescript
 // safeParse の結果をプロジェクトで使用しているResult型ライブラリに変換する
@@ -62,9 +62,9 @@ const parseInput = (raw: unknown): Result<CreateRequestInput, ValidationError> =
 
 ### スキーマファクトリ: バリデーション → Result型の自動変換
 
-上記のバリデーション → Result型変換は全スキーマで同じパターンになる。毎回手書きせず、プロジェクトで使用するResult型ライブラリに合わせたスキーマファクトリを1つ定義し、各スキーマの `parse` 関数を自動生成する。
+上記のバリデーション → Result 型変換は全スキーマで同じパターンになります。毎回手書きせず、プロジェクトで使用する Result 型ライブラリに合わせたスキーマファクトリを 1 つ定義し、各スキーマの `parse` 関数を自動生成します。
 
-これらのファクトリは [Standard Schema](https://github.com/standard-schema/standard-schema) インタフェース（`schema['~standard'].validate()`）を使用するため、Standard Schema準拠の**あらゆる**ライブラリ（Zod、Valibot、ArkType等）でそのまま動作する。
+これらのファクトリは [Standard Schema](https://github.com/standard-schema/standard-schema) インタフェース（`schema['~standard'].validate()`）を使用するため、Standard Schema 準拠の**あらゆる**ライブラリ（Zod、Valibot、ArkType 等）でそのまま動作します。
 
 #### neverthrow の場合
 
@@ -155,10 +155,10 @@ const schemaResult = <T>(schema: StandardSchemaV1<unknown, T>) =>
 
 #### ガイドライン
 
-- スキーマごとにバリデーション → Result変換を手書きしない。ファクトリ関数を1つ定義してプロジェクト全体で再利用する
-- ファクトリの戻り値の型は、使用するResult型ライブラリの型に統一する
-- ファクトリはStandard Schemaを使用するため、Standard Schema準拠のバリデーションライブラリ（Zod、Valibot、ArkType）であれば同じファクトリが動作する
-- companion objectパターンと組み合わせ、スキーマ定義と `parse` 関数をまとめて公開する:
+- スキーマごとにバリデーション → Result 変換を手書きしないでください。ファクトリ関数を 1 つ定義してプロジェクト全体で再利用します
+- ファクトリの戻り値の型は、使用する Result 型ライブラリの型に統一します
+- ファクトリは Standard Schema を使用するため、Standard Schema 準拠のバリデーションライブラリ（Zod、Valibot、ArkType）であれば同じファクトリが動作します
+- companion object パターンと組み合わせ、スキーマ定義と `parse` 関数をまとめて公開します。
 
 ```typescript
 // Standard Schema準拠のバリデーションライブラリであれば動作する
@@ -173,9 +173,9 @@ const id = RequestId.parse(raw); // Result<RequestId, ValidationError>
 
 ## 型アサーション（`as`）の禁止
 
-`as` は型チェックをバイパスする。許容するのは `as const` と `as const satisfies Type` のみで、それ以外の `as` はすべて禁止する。
+`as` は型チェックをバイパスします。許容するのは `as const` と `as const satisfies Type` のみで、それ以外の `as` はすべて禁止します。
 
-コンパイラから見て型が不明な値（外部入力、生データ、ランタイムで形が決まるオブジェクト）に出会ったら、答えは**常にバリデーションライブラリのスキーマでパースすること**。`as` は型が主張する保証を実体としては与えない。パースだけが与える。
+コンパイラから見て型が不明な値（外部入力、生データ、ランタイムで形が決まるオブジェクト）に出会ったら、答えは**常にバリデーションライブラリのスキーマでパースすること**です。`as` は型が主張する保証を実体としては与えません。パースだけが与えます。
 
 ```typescript
 // ❌ as はバリデーションをバイパスする — データが一致しなければ型は嘘
@@ -185,7 +185,7 @@ const user = data as User;
 const user = UserSchema.parse(data);
 ```
 
-Branded Types についても、バリデーションライブラリのブランド機能を使えば `as` は不要になる。[バリデーションライブラリガイド](./validation-libraries/)で、Valibot/ArkTypeのBranded Types構文を参照。
+Branded Types についても、バリデーションライブラリのブランド機能を使えば `as` は不要になります。[バリデーションライブラリガイド](./validation-libraries/)で、Valibot/ArkType の Branded Types 構文を参照してください。
 
 ```typescript
 // ❌ 手動ブランド + as キャスト
@@ -202,7 +202,7 @@ const parse = (raw: string): ItemId => ItemIdSchema.parse(raw); // 既に ItemId
 
 ### 最後の手段としての例外: `unique symbol` Branded Type の生成関数
 
-バリデーションライブラリをまだ導入していないプロジェクトでは、検証済みの値をブランドする Branded Type の生成関数内**でのみ** `as` を使ってよい。これは恒久的な選択肢ではなく、バリデーションライブラリ導入と同時に解消すべき暫定措置として扱う。
+バリデーションライブラリをまだ導入していないプロジェクトでは、検証済みの値をブランドする Branded Type の生成関数内**でのみ** `as` を使ってかまいません。これは恒久的な選択肢ではなく、バリデーションライブラリ導入と同時に解消すべき暫定措置として扱ってください。
 
 ```typescript
 const UserId = {
@@ -210,17 +210,17 @@ const UserId = {
 };
 ```
 
-このフォールバックを使っているプロジェクトに遭遇したら、`as` を残すのではなく、バリデーションライブラリを導入して `z.brand()` / `v.brand()` / `.brand()` でブランドを書き換えることを優先する。
+このフォールバックを使っているプロジェクトに遭遇したら、`as` を残すのではなく、バリデーションライブラリを導入して `z.brand()` / `v.brand()` / `.brand()` でブランドを書き換えることを優先してください。
 
 ## Sensitive型によるPII防御
 
 ### 問題
 
-TypeScriptの型はランタイムで消えるため、型で「PIIだ」とマークしても `JSON.stringify` や `console.log` で漏洩する。Branded Typeでも変数代入時にブランドが失われる。
+TypeScript の型はランタイムで消えるため、型で「PII だ」とマークしても `JSON.stringify` や `console.log` で漏洩します。Branded Type でも変数代入時にブランドが失われます。
 
 ### 解決策: クロージャベースのラッパー
 
-値を関数クロージャに閉じ込め、シリアライズ時に自動マスクする。
+値を関数クロージャに閉じ込め、シリアライズ時に自動マスクします。
 
 ```typescript
 type Sensitive<T> = Readonly<{
@@ -241,7 +241,7 @@ const Sensitive = {
 
 ### バリデーションライブラリとの統合
 
-パース時に自動でSensitiveラップする。以下はZodの例。ValibotとArkTypeの等価な構文は[バリデーションライブラリガイド](./validation-libraries/)を参照。
+パース時に自動で Sensitive ラップします。以下は Zod の例です。Valibot と ArkType の等価な構文は[バリデーションライブラリガイド](./validation-libraries/)を参照してください。
 
 ```typescript
 const sensitiveString = z.string().transform(Sensitive.of);
@@ -261,7 +261,7 @@ console.log(JSON.stringify(patient));
 
 ### 多層防御: Pinoのredaction
 
-Sensitiveラッパーの適用漏れに備え、ロガーレベルでもredactionを設定する。
+Sensitive ラッパーの適用漏れに備え、ロガーレベルでも redaction を設定します。
 
 ```typescript
 import pino from "pino";
@@ -276,7 +276,7 @@ const logger = pino({
 
 ## ドメイン内部では過剰防御しない
 
-外部境界でバリデーション済みのデータは、ドメイン層内部で再度バリデーションしない。型を信頼する。
+外部境界でバリデーション済みのデータは、ドメイン層内部で再度バリデーションしません。型を信頼します。
 
 ```typescript
 // Bad: ドメイン層で冗長なチェック
