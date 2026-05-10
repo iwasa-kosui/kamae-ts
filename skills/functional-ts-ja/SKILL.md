@@ -1,6 +1,7 @@
 ---
 name: functional-ts-ja
 description: サーバーサイドTypeScriptでドメインモデル、ユースケース、リポジトリ、状態遷移、ビジネスロジックを書くときに使用する。Discriminated Union、純粋関数、Result型による関数型ドメインモデリングをガイドする。
+license: MIT
 ---
 
 # Functional Domain Modeling in TypeScript
