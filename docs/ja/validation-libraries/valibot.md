@@ -1,5 +1,5 @@
 ---
-title: valibot
+title: Valibot
 parent: 境界の防御
 grand_parent: 日本語
 nav_order: 2
