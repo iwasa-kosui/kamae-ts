@@ -1,0 +1,43 @@
+name: kamae-eval
+description: |
+  Evaluation suite for the kamae skill. Confirms that an agent applying the
+  skill produces server-side TypeScript code that follows the kamae principles
+  (Discriminated Unions, Result types, no thrown exceptions, no class-based
+  domain models) and correctly recognises out-of-scope prompts as SKIP.
+
+skill: kamae
+version: "1.0"
+
+config:
+  trials_per_task: 1
+  timeout_seconds: 300
+  parallel: false
+  executor: copilot-sdk
+  model: claude-sonnet-4.6
+
+metrics:
+  - name: task_completion
+    weight: 0.6
+    threshold: 0.7
+  - name: behavior_quality
+    weight: 0.4
+    threshold: 0.7
+
+graders:
+  - type: text
+    name: no_class_domain_models
+    config:
+      regex_not_match:
+        - "(?m)^\\s*class\\s+\\w+"
+  - type: text
+    name: no_thrown_exceptions
+    config:
+      regex_not_match:
+        - "throw\\s+new\\s+\\w*Error\\b"
+  - type: behavior
+    name: lazy_loading
+    config:
+      max_tool_calls: 15
+
+tasks:
+  - "tasks/*.yaml"

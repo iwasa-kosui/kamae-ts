@@ -1,0 +1,68 @@
+name: Eval
+
+on:
+  pull_request:
+    paths:
+      - 'skills/**'
+      - 'evals/**'
+      - 'rules/**'
+      - '.waza.yaml'
+      - '.github/workflows/eval.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  evaluate:
+    name: Run waza eval suites
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install waza
+        env:
+          WAZA_VERSION: v0.31.0
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/waza \
+            "https://github.com/microsoft/waza/releases/download/${WAZA_VERSION}/waza-linux-amd64"
+          chmod +x /tmp/waza
+          sudo mv /tmp/waza /usr/local/bin/waza
+          waza --version
+
+      - name: Override executor to mock for CI
+        run: |
+          set -euo pipefail
+          # CI runs without an authenticated `copilot login`, so swap each
+          # suite's executor: copilot-sdk -> mock. The committed value stays
+          # copilot-sdk so that local maintainer runs default to real-model
+          # evaluation without extra flags.
+          sed -i 's/^  executor: copilot-sdk$/  executor: mock/' \
+            evals/kamae/eval.yaml \
+            evals/kamae-review/eval.yaml
+          grep '^  executor:' evals/*/eval.yaml
+
+      - name: Run kamae eval
+        run: |
+          waza run evals/kamae/eval.yaml \
+            --verbose \
+            --output results-kamae.json
+
+      - name: Run kamae-review eval
+        run: |
+          waza run evals/kamae-review/eval.yaml \
+            --verbose \
+            --output results-kamae-review.json
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: waza-results
+          path: |
+            results-kamae.json
+            results-kamae-review.json
+          if-no-files-found: ignore

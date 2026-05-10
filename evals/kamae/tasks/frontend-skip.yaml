@@ -1,0 +1,16 @@
+id: kamae-skip-001
+name: Recognise frontend code as out of scope
+description: |
+  Should-skip case. The kamae SKILL.md frontmatter explicitly lists
+  "frontend React/Vue components, browser code" under SKIP. The agent should
+  decline to apply the kamae principles and answer the React question on its
+  own merits, without producing server-side domain types.
+
+inputs:
+  prompt: |
+    Implement a React component that displays a list of taxi requests with a
+    button to assign a driver. Use functional components and React hooks.
+
+expected:
+  outcomes:
+    - type: task_completed

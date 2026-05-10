@@ -1,0 +1,9 @@
+{
+  "name": "kamae-eval-fixture",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "neverthrow": "^8.0.0",
+    "zod": "^3.23.0"
+  }
+}

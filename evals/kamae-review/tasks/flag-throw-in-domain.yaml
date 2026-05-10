@@ -1,0 +1,18 @@
+id: kamae-review-throw-001
+name: Flag thrown exceptions in domain code
+description: |
+  Adversarial case. The fixture throws Errors instead of returning Result and
+  uses `as` to cast at the boundary. The reviewer should call out both the
+  error-handling violation and the missing schema validation.
+
+inputs:
+  prompt: |
+    Review the attached TypeScript file as part of a pull request and report
+    findings against the kamae principles. Cite the relevant principle for
+    each finding and tag severity (High / Medium / Low / Suggestion).
+  files:
+    - path: violations/throw-domain-error.ts
+
+expected:
+  outcomes:
+    - type: task_completed

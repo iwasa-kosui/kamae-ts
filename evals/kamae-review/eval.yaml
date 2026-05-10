@@ -1,0 +1,43 @@
+name: kamae-review-eval
+description: |
+  Evaluation suite for the kamae-review skill. Confirms that an agent applying
+  the skill identifies kamae principle violations in TypeScript code, tags
+  severity, cites the kamae principle file, and does not flag clean code as
+  violating.
+
+skill: kamae-review
+version: "1.0"
+
+config:
+  trials_per_task: 1
+  timeout_seconds: 300
+  parallel: false
+  executor: copilot-sdk
+  model: claude-sonnet-4.6
+
+metrics:
+  - name: task_completion
+    weight: 0.6
+    threshold: 0.7
+  - name: behavior_quality
+    weight: 0.4
+    threshold: 0.7
+
+graders:
+  - type: text
+    name: cites_kamae_principles
+    config:
+      regex_match:
+        - "(?i)kamae|domain-modeling|error-handling|boundary"
+  - type: text
+    name: uses_severity_tags
+    config:
+      regex_match:
+        - "(?i)\\b(High|Medium|Low|Suggestion)\\b"
+  - type: behavior
+    name: reads_code_under_review
+    config:
+      max_tool_calls: 20
+
+tasks:
+  - "tasks/*.yaml"
