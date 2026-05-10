@@ -17,6 +17,24 @@ license: MIT
 
 Six topic files cover the principles. Read only the file(s) relevant to the current task. The library guides under `result-libraries/` and `validation-libraries/` are read on demand based on the project's `package.json`.
 
+## Step 0: Load applicable rules
+
+Before any other step, glob and Read rules in priority order:
+
+1. `.claude/rules/*.md` (project-level overrides at the working-tree root)
+2. `~/.claude/rules/*.md` (user-global preferences)
+3. `../../rules/defaults/*.md` relative to this `SKILL.md` (plugin defaults)
+
+For each file:
+
+- Read the YAML frontmatter. Skip the rule unless `applies-to` is `kamae` or `*`.
+- Group by `name`. For each `name`, keep only the highest-tier instance (1 > 2 > 3); within a tier the lexicographically last filename wins.
+- Apply the body of each surviving rule throughout the remaining steps. A `library-preference` rule overrides Step 1 detection; a `convention` rule shapes generated code; an `override` rule replaces guidance from a specific topic file.
+
+If no rules are found, proceed with the plugin defaults already documented in [`../../rules/defaults/`](../../rules/defaults/).
+
+See [`../../rules/README.md`](../../rules/README.md) for the rule format.
+
 ## Step 1: Detect project libraries
 
 Read `package.json` once. Note which Result library and validation library are present:

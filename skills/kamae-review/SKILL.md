@@ -15,6 +15,23 @@ license: MIT
 
 Adversarial review against the kamae principles. The knowledge base lives in `../kamae/`; this skill links rather than duplicates.
 
+## Step 0: Load applicable rules
+
+Before any other step, glob and Read rules in priority order:
+
+1. `.claude/rules/*.md` (project-level overrides at the working-tree root)
+2. `~/.claude/rules/*.md` (user-global preferences)
+3. `../../rules/defaults/*.md` relative to this `SKILL.md` (plugin defaults)
+
+For each file:
+
+- Read the YAML frontmatter. Skip the rule unless `applies-to` is `kamae-review` or `*`.
+- Group by `name`. For each `name`, keep only the highest-tier instance (1 > 2 > 3); within a tier the lexicographically last filename wins.
+- A `check-toggle` rule with `enabled: false` removes the named check from the walk in step 3 below.
+- A `convention` rule sets project-specific expectations the review respects (e.g., a designated location for Branded Types).
+
+If no rules are found, proceed with all checks active. See [`../../rules/README.md`](../../rules/README.md) for the rule format.
+
 ## Review Procedure
 
 1. **Load principle knowledge.** Before reading any code under review, read:
