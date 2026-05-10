@@ -33,6 +33,18 @@ jobs:
           sudo mv /tmp/waza /usr/local/bin/waza
           waza --version
 
+      - name: Override executor to mock for CI
+        run: |
+          set -euo pipefail
+          # CI runs without an authenticated `copilot login`, so swap each
+          # suite's executor: copilot-sdk -> mock. The committed value stays
+          # copilot-sdk so that local maintainer runs default to real-model
+          # evaluation without extra flags.
+          sed -i 's/^  executor: copilot-sdk$/  executor: mock/' \
+            evals/kamae/eval.yaml \
+            evals/kamae-review/eval.yaml
+          grep '^  executor:' evals/*/eval.yaml
+
       - name: Run kamae eval
         run: |
           waza run evals/kamae/eval.yaml \
