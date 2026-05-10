@@ -1,7 +1,7 @@
 {
   "name": "kamae-ts",
   "description": "Kamae (構え) — an extensible harness of skill plugins for designing and implementing robust server-side TypeScript applications",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "author": {
     "name": "Kosui Iwasa"
   },
@@ -12,6 +12,8 @@
     "functional-programming",
     "domain-modeling",
     "discriminated-union",
-    "coding-agent"
+    "result-types",
+    "coding-agent",
+    "server-side"
   ]
 }

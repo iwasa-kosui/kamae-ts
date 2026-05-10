@@ -1,6 +1,6 @@
 {
   "name": "kamae-ts",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Kamae (構え) — an extensible harness of skill plugins for designing and implementing robust server-side TypeScript applications",
   "license": "MIT",
   "repository": {
