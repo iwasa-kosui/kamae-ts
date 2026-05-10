@@ -1,10 +1,10 @@
 {
-  "name": "functional-ts-principles",
+  "name": "kamae-ts",
   "version": "0.1.0",
-  "description": "Agent skill plugin: functional domain modeling principles for server-side TypeScript",
+  "description": "Kamae (構え) — an extensible harness of skill plugins for designing and implementing robust server-side TypeScript applications",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/iwasa-kosui/functional-ts-principles"
+    "url": "https://github.com/iwasa-kosui/kamae-ts"
   }
 }

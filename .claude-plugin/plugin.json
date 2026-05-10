@@ -1,11 +1,11 @@
 {
-  "name": "functional-ts-principles",
-  "description": "Principles for functional domain modeling in server-side TypeScript: discriminated unions, pure state transitions, Result types, and boundary defense",
+  "name": "kamae-ts",
+  "description": "Kamae (構え) — an extensible harness of skill plugins for designing and implementing robust server-side TypeScript applications",
   "version": "0.1.0",
   "author": {
     "name": "Kosui Iwasa"
   },
-  "repository": "https://github.com/iwasa-kosui/functional-ts-principles",
+  "repository": "https://github.com/iwasa-kosui/kamae-ts",
   "license": "MIT",
   "keywords": [
     "typescript",
