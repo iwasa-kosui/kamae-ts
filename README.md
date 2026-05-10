@@ -67,6 +67,14 @@ See [`rules/README.md`](./rules/README.md) for the rule format and concrete exam
 
 For full skill replacement, use Claude Code's standard skill path-shadowing (`.claude/skills/kamae/SKILL.md` overrides the installed plugin's).
 
+## Evaluation
+
+Skill quality is continuously evaluated with [`microsoft/waza`](https://github.com/microsoft/waza).
+
+- Suites live under [`evals/kamae/`](./evals/kamae/) and [`evals/kamae-review/`](./evals/kamae-review/).
+- [`.github/workflows/eval.yml`](./.github/workflows/eval.yml) runs both suites on every `pull_request` that touches `skills/**`, `evals/**`, `rules/**`, or `.waza.yaml`, using the `copilot-sdk` executor.
+- See [ADR 0001](./docs/adr/0001-introduce-waza-for-skill-evals.md) for adoption rationale and preconditions.
+
 ## Documentation
 
 A Japanese reading version of the principles is published at [https://iwasa-kosui.github.io/kamae-ts/](https://iwasa-kosui.github.io/kamae-ts/) (see `/ja/`).

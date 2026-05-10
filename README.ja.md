@@ -67,6 +67,14 @@ rule のフォーマットと具体例は [`rules/README.md`](./rules/README.md)
 
 スキル全体を置き換えたい場合は、Claude Code 標準の skill path-shadowing（プロジェクトの `.claude/skills/kamae/SKILL.md` がインストール済みプラグインを上書きする）を使う。
 
+## 評価
+
+各スキルの品質を [`microsoft/waza`](https://github.com/microsoft/waza) で継続的に評価している。
+
+- スイートは [`evals/kamae/`](./evals/kamae/) と [`evals/kamae-review/`](./evals/kamae-review/) に配置
+- `pull_request` で `skills/**` / `evals/**` / `rules/**` / `.waza.yaml` のいずれかが変更された場合、[`.github/workflows/eval.yml`](./.github/workflows/eval.yml) が `copilot-sdk` executor で実行される
+- 採用の背景・前提条件は [ADR 0001](./docs/adr/0001-introduce-waza-for-skill-evals.md) を参照
+
 ## ドキュメント
 
 日本語の読み物版は [https://iwasa-kosui.github.io/kamae-ts/](https://iwasa-kosui.github.io/kamae-ts/) に公開されている（`/ja/` 配下）。
