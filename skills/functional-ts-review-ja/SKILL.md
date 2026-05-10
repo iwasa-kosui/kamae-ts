@@ -1,82 +1,180 @@
 ---
 name: functional-ts-review-ja
-description: サーバーサイドTypeScriptコードを関数型ドメインモデリング原則に照らしてレビューする。class使用、メソッド記法、interface宣言、型アサーション、例外throw、網羅性チェック不足、PII保護をチェックする。
+description: サーバーサイドTypeScriptコードを関数型ドメインモデリング原則に照らしてレビューする。`functional-ts-ja` スキルと同じナレッジを参照し、Discriminated Union、Companion Object、Branded Types、不変性、ファイル構成、純粋関数による状態遷移、網羅性チェック、Result型によるエラーハンドリング、境界の防御（スキーマバリデーション・`as` 禁止・PII 保護）、宣言的スタイル、型安全なテストデータをチェックする。
 license: MIT
 ---
 
 # Functional TypeScript Code Review
 
-サーバーサイドTypeScriptコードを関数型ドメインモデリング原則に照らしてレビューする。
+`functional-ts-ja` スキルが定める関数型ドメインモデリング原則に照らしてサーバーサイドTypeScriptコードをレビューする。本スキルは `functional-ts-ja` と**同じナレッジを参照する**。各チェック項目はあちらの章と1対1で対応し、根拠の所在を相対リンクで明示する。
 
 ## レビュー手順
 
-1. 変更対象のファイルを読む
-2. 以下のチェック項目を順にスキャンする
-3. 違反を発見した場合、原則と理由を添えて指摘する
-4. 違反ではないが改善余地がある場合は提案として伝える
+1. **原則ナレッジを先に読み込む。** コード閲覧の前に以下を読み、指摘で正典の原則を引けるようにする:
+   - [`../functional-ts-ja/SKILL.md`](../functional-ts-ja/SKILL.md) — 原則のインデックス
+   - [`../functional-ts-ja/error-handling.md`](../functional-ts-ja/error-handling.md)
+   - [`../functional-ts-ja/boundary-defense.md`](../functional-ts-ja/boundary-defense.md)
+   - [`../functional-ts-ja/state-modeling.md`](../functional-ts-ja/state-modeling.md)
+   - プロジェクトの `package.json` に応じたバリデーションライブラリガイド ([`../functional-ts-ja/validation-libraries/`](../functional-ts-ja/validation-libraries/) 配下の `zod.md` / `valibot.md` / `arktype.md`)
+   - プロジェクトの `package.json` に応じた Result ライブラリガイド ([`../functional-ts-ja/result-libraries/`](../functional-ts-ja/result-libraries/) 配下の `neverthrow.md` / `byethrow.md` / `fp-ts.md` / `option-t.md`)
+2. レビュー対象のファイルを読む。
+3. 以下のチェック項目を、原則の順序（`functional-ts-ja/SKILL.md` の章立てと一致）でスキャンする。
+4. 違反を発見した場合、原則・理由・修正案を添えて指摘する。
+5. 違反ではないが改善余地がある場合は提案として伝える。
 
 ## チェック項目
 
-### 1. ドメインモデルにclassを使っていないか
+チェック項目は [`../functional-ts-ja/SKILL.md`](../functional-ts-ja/SKILL.md) の構造をそのまま反映する。各項目は正典の章へリンクする。
 
-ドメインエンティティ・値オブジェクトの定義に `class` を使っている場合、Discriminated Union + Companion Objectパターンへの変更を提案する。
+### 1. 型によるドメインモデリング
 
-外部ライブラリがclass継承を要求している場合は正当な逸脱。
+#### 1.1 ドメイン状態を Discriminated Union でモデリングしているか
 
-### 2. メソッド記法を使っていないか
+参照: [`../functional-ts-ja/SKILL.md` §1「Discriminated Unionで状態を表現する」](../functional-ts-ja/SKILL.md)
 
-型定義内の関数がメソッド記法（`save(task: Task): Promise<void>`）になっている場合、関数プロパティ記法（`save: (task: Task) => Promise<void>`）への変更を指摘する。
+兆候: 多数の optional プロパティと `string` の状態フィールドを持つ単一の型（例: `{ state: string; driverId?: string; startTime?: Date }`）。状態ごとに型を分けて union にし、状態固有プロパティを必須にするよう提案する。
 
-メソッド記法はパラメータ型がbivariantになり、依存注入時に狭い型の実装が型チェックを通過してしまう。
+#### 1.2 discriminant が `kind` で統一されているか
 
-### 3. ドメイン型に `interface` を使っていないか
+参照: [`../functional-ts-ja/SKILL.md` §1「discriminantは `kind` で統一する」](../functional-ts-ja/SKILL.md)
 
-`interface` のdeclaration mergingは、別ファイルで同名のinterfaceを宣言するだけで型の形状が暗黙的に変わる。ドメイン型は `type` で定義する。
+兆候: `type`, `status`, `state`, `_tag` など `kind` 以外の discriminant 名。コードベースの一貫性のため `kind` への変更を提案する。
 
-ライブラリの型拡張（augmentation）には `interface` が必要。これは正当な用途。
+#### 1.3 ドメインモデルに class を使っていないか
 
-### 4. `as` による型アサーションがないか
+参照: [`../functional-ts-ja/SKILL.md` §1「Discriminated Unionで状態を表現する」](../functional-ts-ja/SKILL.md) および Companion Object パターン。
 
-`as` は型チェックをバイパスする。以下を確認する:
-- 外部データ: バリデーションスキーマ（Zod、Valibot、またはArkType）でパースしているか
-- Branded Type生成関数内の `as`: 許容（唯一の例外）
-- それ以外: 型推論で解決できないか検討
+ドメインエンティティ・値オブジェクトの定義に `class` を使っている場合、Discriminated Union + Companion Object パターンへの変更を提案する。外部ライブラリが class 継承を要求する場合は正当な逸脱。
 
-### 5. ドメイン層で例外をthrowしていないか
+#### 1.4 Companion Object パターンに従っているか
 
-ドメイン層（エンティティ、ユースケース）で `throw` を使っている場合、`Result` 型への変更を提案する。
+参照: [`../functional-ts-ja/SKILL.md` §1「Companion Object パターン」](../functional-ts-ja/SKILL.md)
 
-以下は許容:
-- `assertNever` 内の throw（到達不能コードの検出）
-- インフラ層の予期しない障害
+以下を確認する:
+- 型に関連する操作が、型と同名の `const` に集約されているか。
+- Branded Type のバリデーションスキーマが、スタンドアロンの `XxxSchema` ではなく companion object の `.schema` プロパティとして公開されているか。
+- companion object に置くべきドメインロジックが、`xxxAssignDriver` のような独立関数として散在していないか。
 
-### 6. switch文に assertNever があるか
+#### 1.5 ドメイン型に `interface` を使っていないか
 
-Discriminated Unionを `switch` で分岐している箇所に `default: return assertNever(x)` がない場合、追加を指摘する。新しいバリアントが追加されたときにコンパイルエラーで検出できなくなる。
+参照: [`../functional-ts-ja/SKILL.md` §1「`type` を使う（`interface` ではなく）」](../functional-ts-ja/SKILL.md)
 
-### 7. 外部境界にスキーマバリデーションがあるか
+declaration merging により型の形状が暗黙に変わる危険がある。ドメイン型は `type` で定義する。`interface` はライブラリの型拡張（augmentation）の場合のみ許容。
 
-APIハンドラ、DB結果の変換、設定ファイルの読み込みなど外部境界で、生のデータを型アサーションなしにドメイン型として扱っていないか確認する。プロジェクトでは外部データのパースにバリデーションライブラリ（Zod、Valibot、またはArkType）を使用すべきである。
+#### 1.6 型定義内でメソッド記法を使っていないか
 
-### 8. PIIフィールドにSensitiveラッパーがあるか
+参照: [`../functional-ts-ja/SKILL.md` §1「関数プロパティ記法を使う（メソッド記法ではなく）」](../functional-ts-ja/SKILL.md)
 
-個人情報（氏名、メールアドレス、電話番号、診断情報など）を含むフィールドが `Sensitive<T>` でラップされているか確認する。特にログに出力される可能性のあるオブジェクトを重点的にチェックする。
+メソッド記法（`save(task: Task): Promise<void>`）はパラメータが bivariant になり、依存注入時に狭い型の実装（`save(task: DoingTask): …`）が型チェックを通過する。関数プロパティ記法（`save: (task: Task) => Promise<void>`）への変更を提案する。
+
+#### 1.7 意味の異なるプリミティブに Branded Types が適用されているか
+
+参照: [`../functional-ts-ja/SKILL.md` §1「Branded Typesで意味を区別する」](../functional-ts-ja/SKILL.md)。プロジェクトのバリデーションライブラリガイド ([`../functional-ts-ja/validation-libraries/`](../functional-ts-ja/validation-libraries/)) も参照。
+
+兆候: ID や意味の異なる値（`UserId`, `OrderId`, `Email`, 金額など）が素の `string` / `number` で扱われている。バリデーションライブラリがある場合はそのブランド機能で（`as` キャスト不要）、ない場合は `unique symbol` パターンで定義されているかを確認する。
+
+#### 1.8 ドメインオブジェクトが `Readonly<>` か
+
+参照: [`../functional-ts-ja/SKILL.md` §1「`Readonly<>` で不変性を保証する」](../functional-ts-ja/SKILL.md)
+
+兆候: ドメインオブジェクトの型定義が `Readonly<…>`（または各プロパティの `readonly`）で保護されていない。状態変更は新しいオブジェクトの生成で表現する。
+
+#### 1.9 「1 概念 1 ファイル」の構成になっているか
+
+参照: [`../functional-ts-ja/SKILL.md` §1「ファイル構成: 1概念1ファイル」](../functional-ts-ja/SKILL.md)
+
+兆候: `types.ts`, `models.ts`, `domain.ts` のような catch-all ファイルに多数のドメイン型が集約されている、特に companion object が別ファイルにある場合。barrel file（`index.ts`）は re-export のみ。
+
+### 2. 関数による状態遷移
+
+参照: [`../functional-ts-ja/SKILL.md` §2](../functional-ts-ja/SKILL.md) および [`../functional-ts-ja/state-modeling.md`](../functional-ts-ja/state-modeling.md)
+
+#### 2.1 状態遷移関数が引数型で遷移元を制約しているか
+
+兆候: 遷移関数の引数型が個別の状態（`Waiting`）ではなく union（`TaxiRequest`）になっている。広い型を受け取ると、無効な遷移元での呼び出しが許されてしまう。
+
+#### 2.2 Discriminated Union の `switch` に `assertNever` があるか
+
+参照: [`../functional-ts-ja/SKILL.md` §2「網羅性チェック」](../functional-ts-ja/SKILL.md)
+
+兆候: `kind` で分岐する `switch` に `default: return assertNever(x)` がない。新バリアント追加時にコンパイルエラーで検出できなくなる。
+
+### 3. エラーハンドリング — Railway Oriented Programming
+
+参照: [`../functional-ts-ja/SKILL.md` §3](../functional-ts-ja/SKILL.md), [`../functional-ts-ja/error-handling.md`](../functional-ts-ja/error-handling.md), プロジェクトの Result ライブラリガイド ([`../functional-ts-ja/result-libraries/`](../functional-ts-ja/result-libraries/))。
+
+#### 3.1 ドメイン層で例外を throw していないか
+
+兆候: エンティティ・値オブジェクト・ユースケース内の `throw`。`Result` 型への変更を提案する。許容: `assertNever` 内の throw（到達不能）、インフラ層の予期しない障害。
+
+#### 3.2 エラー型が Discriminated Union になっているか
+
+兆候: `Error` のサブクラス、自由形式の `string` エラーコード、`Result<T, string>`。Discriminated Union（`{ kind: "DriverNotAvailable"; driverId } | { kind: "RequestAlreadyAssigned" }`）への変更を提案し、呼び出し元が網羅的に分岐できるようにする。
+
+#### 3.3 Result チェーンを使って合成しているか（即 unwrap していないか）
+
+プロジェクトに対応する Result ライブラリの API（`.map`, `.andThen`, `Result.do` など）でチェーン合成しているかを確認する。即 unwrap して if/else に展開している場合は、`../functional-ts-ja/result-libraries/` 配下の該当ガイドを引用して適切なコンビネータを提案する。
+
+### 4. 境界の防御
+
+参照: [`../functional-ts-ja/SKILL.md` §4](../functional-ts-ja/SKILL.md), [`../functional-ts-ja/boundary-defense.md`](../functional-ts-ja/boundary-defense.md), プロジェクトのバリデーションライブラリガイド ([`../functional-ts-ja/validation-libraries/`](../functional-ts-ja/validation-libraries/))。
+
+#### 4.1 すべての外部境界にスキーマバリデーションがあるか
+
+兆候: API ハンドラ、DB 結果のマッピング、キュー・メッセージハンドラ、ファイル・設定の読み込み、環境変数の読み取りなどで、生のデータをバリデーションライブラリ（Zod / Valibot / ArkType）でパースせずにドメイン型として扱っている。
+
+#### 4.2 `as` による型アサーションがないか
+
+参照: [`../functional-ts-ja/SKILL.md` §4「型アサーション（`as`）を使わない」](../functional-ts-ja/SKILL.md)
+
+すべての `as` を洗い出し、以下のいずれかに該当するか確認する:
+- 外部データ: スキーマパースで置き換えるべき。
+- Branded Type の生成関数内の `as`: バリデーションライブラリを使わない場合（`unique symbol` パターン）のみ許容。
+- 内部データ: 型推論で解決可能なはず。解決できないなら型設計が誤っている可能性が高い。
+
+#### 4.3 PII フィールドが `Sensitive<T>` でラップされているか
+
+参照: [`../functional-ts-ja/SKILL.md` §4「PIIの防御」](../functional-ts-ja/SKILL.md), [`../functional-ts-ja/boundary-defense.md`](../functional-ts-ja/boundary-defense.md)
+
+兆候: 個人情報を含みうるフィールド（氏名、メールアドレス、電話番号、住所、各種ID、決済情報、健康・診断情報、IP アドレスなど）が素の `string` / `number` のまま。特にログやエラーメッセージに出力されうるオブジェクトを重点的にチェックする。バリデーションスキーマで `Sensitive.of` による自動ラップが行われているかも確認する。
+
+### 5. 宣言的なスタイル
+
+参照: [`../functional-ts-ja/SKILL.md` §5](../functional-ts-ja/SKILL.md), [`../functional-ts-ja/state-modeling.md`](../functional-ts-ja/state-modeling.md)
+
+#### 5.1 配列操作が宣言的か
+
+兆候: `filter` / `map` / `reduce` で表現できる変換を、`for` / `for…of` ループで命令的に組み立てている。述語関数を companion object に定義し、`tasks.filter(Task.isActive)` のように書くよう提案する。
+
+#### 5.2 ドメインイベントが不変レコードとして発行されているか
+
+兆候: 状態変更コードが共有のイベントログを mutate している、あるいは state-modeling ガイドが要求する場面でドメインイベントが発行されていない。`Readonly<{ eventId; eventAt; eventName; payload; aggregateId }>` としてリポジトリと分離して記録する。
+
+### 6. テストデータ
+
+参照: [`../functional-ts-ja/SKILL.md` §6](../functional-ts-ja/SKILL.md)
+
+#### 6.1 フィクスチャが `as const satisfies Type` で定義されているか
+
+兆候: テストフィクスチャが `: Type =` や `as Type` で型付けされており、discriminant のリテラル型が `string` に widening されている。`as const satisfies Type` への変更を提案し、`kind` のリテラル型を保持する。
 
 ## 指摘の書き方
 
 各指摘には以下を含める:
 
-1. **何が問題か**: 具体的なコードの場所
-2. **なぜ問題か**: 原則と、違反した場合のリスク
-3. **どう直すか**: 修正案のコード例
+1. **何が問題か**: 具体的なコードの場所（`path:line`）。
+2. **なぜ問題か**: 原則（`../functional-ts-ja/...` への参照リンク付き）と、違反した場合のリスク。
+3. **どう直すか**: 修正案のコード例。
 
 ```
 ### メソッド記法の使用
 
 `src/repository/task-repository.ts:15`
 
-`save(task: Task): Promise<void>` はメソッド記法です。メソッド記法ではパラメータ型がbivariantになり、
-`save(task: DoingTask): Promise<void>` のような狭い型の実装が型チェックを通過します。
+`save(task: Task): Promise<void>` はメソッド記法です。
+[`../functional-ts-ja/SKILL.md` §1「関数プロパティ記法を使う」](../functional-ts-ja/SKILL.md)
+にあるとおり、メソッド記法ではパラメータが bivariant になり、
+`save(task: DoingTask): Promise<void>` のような狭い型の実装が依存注入時に型チェックを通過します。
 
 修正案:
 \`\`\`typescript
@@ -88,15 +186,24 @@ type TaskRepository = {
 
 ## 重要度
 
-チェック項目には以下の重要度がある:
-
 | 重要度 | 項目 | 理由 |
 |--------|------|------|
-| High | `as` 型アサーション | ランタイムエラーの直接原因 |
-| High | PII未保護 | コンプライアンス違反リスク |
-| High | 外部境界のスキーマバリデーション不足 | ランタイムエラーの直接原因 |
-| Medium | class使用 | 拡張時の型安全性低下 |
-| Medium | throw使用 | エラーハンドリングの一貫性 |
-| Medium | assertNever不足 | 新バリアント追加時の見落とし |
-| Low | メソッド記法 | 特定条件下でのみ問題顕在化 |
-| Low | interface使用 | declaration merging事故は稀 |
+| High | `as` 型アサーション (4.2) | ランタイムエラーの直接原因 |
+| High | PII 未保護 (4.3) | コンプライアンス違反リスク |
+| High | 外部境界のスキーマバリデーション不足 (4.1) | ランタイムエラーの直接原因 |
+| High | 意味の異なるプリミティブの Branded Types 不足 (1.7) | 異種 ID の取り違えがランタイムで発生 |
+| Medium | class 使用 (1.3) | 拡張時の型安全性低下 |
+| Medium | optional プロパティでの状態モデリング (1.1) | 不正な状態が表現可能になる |
+| Medium | ドメイン層での `throw` (3.1) | エラーハンドリングの一貫性欠如 |
+| Medium | 非 Discriminated Union のエラー型 (3.2) | 呼び出し元が網羅的に分岐できない |
+| Medium | `assertNever` 不足 (2.2) | 新バリアント追加時の見落とし |
+| Medium | union 型を受ける状態遷移関数 (2.1) | 無効な遷移がコンパイルを通る |
+| Medium | catch-all 型ファイル (1.9) | 循環依存・型と振る舞いの分離 |
+| Medium | Companion Object パターン違反・スキーマ単独 export (1.4) | 実装詳細の漏洩 |
+| Low | メソッド記法 (1.6) | 特定条件下でのみ問題顕在化 |
+| Low | ドメイン型の `interface` 使用 (1.5) | declaration merging 事故は稀 |
+| Low | `Readonly<>` 未使用のドメイン型 (1.8) | mutation はレビューで気付ける場合が多い |
+| Low | discriminant が `kind` 以外 (1.2) | バグというよりスタイル不一致 |
+| Low | 命令的な配列ループ (5.1) | 正確性ではなく可読性 |
+| Low | ドメインイベント不発行 (5.2) | event sourcing の採否次第 |
+| Low | フィクスチャに `as const satisfies` がない (6.1) | 実務上はテストで検出される |
