@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 240" width="720" height="240">
+  <title>kamae-ts — horizontal lockup</title>
+
+  <!-- Icon -->
+  <g>
+    <rect width="240" height="240" rx="36" fill="#3178C6"/>
+
+    <g fill="#ffffff">
+      <circle cx="120" cy="40" r="11"/>
+      <rect x="116" y="50" width="8" height="10"/>
+      <path d="M80 84 L114 58 L120 86 L126 58 L160 84 L154 132 L86 132 Z"/>
+      <path d="M80 84 L50 110 L54 130 L98 116 L100 100 L90 90 Z"/>
+      <path d="M160 84 L190 110 L186 130 L142 116 L140 100 L150 90 Z"/>
+    </g>
+
+    <rect x="82" y="130" width="76" height="7" rx="1" fill="#0f172a"/>
+
+    <g fill="#ffffff">
+      <path d="M82 137 L158 137 L162 158 L78 158 Z"/>
+      <path d="M78 158 L64 200 L62 220 L94 220 L106 200 L108 158 Z"/>
+      <path d="M162 158 L176 200 L178 220 L146 220 L134 200 L132 158 Z"/>
+    </g>
+  </g>
+
+  <!-- Wordmark -->
+  <text x="280" y="150"
+        font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, 'Segoe UI', 'Inter', sans-serif"
+        font-size="92"
+        font-weight="800"
+        letter-spacing="-3"
+        fill="#0f172a">kamae-ts</text>
+</svg>

@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./docs/assets/logo.svg" alt="kamae-ts" height="120">
+</p>
+
 > English version: [README.md](README.md)
 
 # kamae-ts
