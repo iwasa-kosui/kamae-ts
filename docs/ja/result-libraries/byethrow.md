@@ -1,3 +1,10 @@
+---
+title: byethrow
+parent: エラーハンドリング
+grand_parent: 日本語
+nav_order: 2
+---
+
 # @praha/byethrow
 
 ## 基本API

@@ -1,3 +1,9 @@
+---
+title: 関数による状態遷移
+parent: 日本語
+nav_order: 2
+---
+
 # 状態モデリング詳細ガイド
 
 ## Discriminated Unionによる状態遷移の設計

@@ -1,11 +1,21 @@
 title: kamae-ts
 description: Kamae (構え) — robust server-side TypeScript design harness
-theme: jekyll-theme-minimal
+remote_theme: just-the-docs/just-the-docs
 plugins:
+  - jekyll-remote-theme
   - jekyll-relative-links
 relative_links:
   enabled: true
   collections: false
+
+# just-the-docs settings
+search_enabled: true
+heading_anchors: true
+color_scheme: light
+aux_links:
+  GitHub:
+    - https://github.com/iwasa-kosui/kamae-ts
+
 include:
   - ja
   - ja/result-libraries

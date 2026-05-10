@@ -1,3 +1,9 @@
+---
+title: テストデータ
+parent: 日本語
+nav_order: 6
+---
+
 # テストデータガイド
 
 ## `as const satisfies` で型安全なテストフィクスチャを定義する

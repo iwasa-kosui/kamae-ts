@@ -1,6 +1,8 @@
 ---
 title: コードレビュー
 description: kamae-ts の原則に照らしたサーバーサイド TypeScript コードの敵対的レビューガイド
+parent: 日本語
+nav_order: 7
 ---
 
 # 関数型 TypeScript コードレビュー

@@ -1,3 +1,10 @@
+---
+title: 境界の防御
+parent: 日本語
+nav_order: 4
+has_children: true
+---
+
 # 境界防御の詳細ガイド
 
 ## TypeScriptの型の限界を理解する

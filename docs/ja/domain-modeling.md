@@ -1,3 +1,9 @@
+---
+title: 型によるドメインモデリング
+parent: 日本語
+nav_order: 1
+---
+
 # 型によるドメインモデリング 詳細ガイド
 
 ## Discriminated Unionで状態を表現する

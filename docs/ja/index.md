@@ -1,6 +1,9 @@
 ---
-title: kamae-ts — 日本語ドキュメント
+title: 日本語
 description: 堅牢なサーバーサイド TypeScript アプリケーションを設計・実装するための構え（型・規律）の集合
+nav_order: 2
+has_children: true
+permalink: /ja/
 ---
 
 # kamae-ts — 関数型ドメインモデリング

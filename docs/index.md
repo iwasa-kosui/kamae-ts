@@ -1,6 +1,7 @@
 ---
-title: kamae-ts
+title: Home
 description: Kamae (構え) — robust server-side TypeScript design harness
+nav_order: 1
 ---
 
 # kamae-ts
