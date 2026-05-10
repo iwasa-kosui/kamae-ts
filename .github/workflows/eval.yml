@@ -34,16 +34,12 @@ jobs:
           waza --version
 
       - name: Run kamae eval
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           waza run evals/kamae/eval.yaml \
             --verbose \
             --output results-kamae.json
 
       - name: Run kamae-review eval
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           waza run evals/kamae-review/eval.yaml \
             --verbose \
