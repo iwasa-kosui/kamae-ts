@@ -1,0 +1,30 @@
+id: kamae-error-handling-001
+name: Implement a use case without thrown exceptions
+description: |
+  Positive case. Asks the agent to implement a use case that may fail in
+  multiple ways. The expected output uses Result and a discriminated-union
+  error type, not thrown Errors.
+
+inputs:
+  prompt: |
+    Implement an `assignDriver` use case in TypeScript.
+
+    Inputs:
+      - taxiRequestId: TaxiRequestId (branded)
+      - driverId: DriverId (branded)
+
+    Possible failures:
+      - the request does not exist
+      - the request is not in the "requested" state
+      - the driver is already assigned to another active request
+
+    Implement the use case so each failure is reflected at the type level and
+    callers must branch on the failure exhaustively. Use the project's
+    dependencies (see package.json).
+  files:
+    - path: package.json
+      source: ../fixtures/package.json
+
+expected:
+  outcomes:
+    - type: task_completed

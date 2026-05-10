@@ -1,0 +1,30 @@
+id: kamae-domain-modeling-001
+name: Model a TaxiRequest with discriminated unions
+description: |
+  Positive case. Asks the agent to design a server-side domain type. The
+  expected output is a Discriminated Union with `kind` discriminants and a
+  Companion Object — not a class.
+
+inputs:
+  prompt: |
+    Design TypeScript types for a TaxiRequest domain entity.
+
+    States:
+      - "requested": only customerId and pickupLocation are known
+      - "assigned": adds driverId and assignedAt
+      - "completed": adds completedAt and fareAmount
+
+    Provide:
+      1. The domain types
+      2. A pure function transitioning "requested" -> "assigned"
+      3. A pure function transitioning "assigned" -> "completed"
+
+    The project's package.json is provided. Apply the conventions appropriate
+    to its dependencies.
+  files:
+    - path: package.json
+      source: ../fixtures/package.json
+
+expected:
+  outcomes:
+    - type: task_completed
