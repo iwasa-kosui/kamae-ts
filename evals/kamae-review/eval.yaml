@@ -38,8 +38,6 @@ graders:
     name: reads_code_under_review
     config:
       max_tool_calls: 20
-      required_tools:
-        - Read
 
 tasks:
   - "tasks/*.yaml"
