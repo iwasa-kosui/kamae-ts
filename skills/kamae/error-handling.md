@@ -23,19 +23,19 @@ Use `fromSafePromise` only for Promises that are genuinely infallible — e.g. `
 
 ## Error Type Design
 
-Define errors as Discriminated Unions so that callers can handle them exhaustively. Each variant should expose contextual data as **typed fields**, not buried inside a `message` string.
+Define errors as Discriminated Unions so that callers can handle them exhaustively. Each variant should expose contextual data as **typed fields**. A `message` field for logging or display is fine, but it must not be the only place where context values live — callers that need to branch or retry based on those values should not have to parse a string.
 
 ```typescript
-// Good: context available as typed fields
+// Good: context available as typed fields; message is optional and for display only
 type AssignDriverError =
   | Readonly<{ kind: "RequestNotFound"; requestId: RequestId }>
   | Readonly<{ kind: "InvalidState"; currentKind: string; expectedKind: "Waiting" }>
-  | Readonly<{ kind: "DriverNotAvailable"; driverId: DriverId }>;
+  | Readonly<{ kind: "DriverNotAvailable"; driverId: DriverId; message?: string }>;
 
-// Bad: context baked into message — callers must parse to extract driverId
+// Bad: driverId and zoneId exist only inside message — callers must parse to extract them
 type DriverNotAvailableError = Readonly<{
   kind: "DriverNotAvailableError";
-  message: string; // "Driver drv-123 is not available"
+  message: string; // "Driver drv-123 is not available in zone zone-A"
 }>;
 ```
 

@@ -11,15 +11,39 @@ has_children: true
 
 Result 型を使い、成功と失敗を型で表現します。例外の throw はドメイン層では使いません。ライブラリ固有の API については [result-libraries/](./result-libraries/) 内の該当ガイドを参照してください。
 
-## エラー型の設計
+## fromSafePromise の誤用
 
-エラーも Discriminated Union で定義し、呼び出し元が網羅的にハンドルできるようにします。
+`ResultAsync.fromSafePromise`（neverthrow）や他ライブラリの同等の「safe」ラッパーは、渡された Promise が **reject しない** ことを前提にしています。reject しうる Promise（DB クエリ、HTTP 呼び出し、ファイル I/O など）をラップすると、reject 時にエラーが Result チャネルを迂回し、ハンドルされない rejection になります。
 
 ```typescript
+// Bad: DB呼び出しはrejectしうる — fromSafePromiseではその可能性が無視される
+ResultAsync.fromSafePromise(deps.getDriver(driverId))
+
+// Good: fromPromiseで明示的にエラーをマッピング
+ResultAsync.fromPromise(
+  deps.getDriver(driverId),
+  (cause): RepositoryError => ({ kind: "RepositoryError", cause }),
+)
+```
+
+`fromSafePromise` を使ってよいのは、本当に reject しない Promise だけです — `Promise.resolve(value)` やインメモリのルックアップ、reject しないことがドキュメントに明記されたライブラリ呼び出しなどが該当します。
+
+## エラー型の設計
+
+エラーも Discriminated Union で定義し、呼び出し元が網羅的にハンドルできるようにします。各バリアントは、コンテキストデータを **型付きフィールド** として公開します。ログや表示用の `message` フィールドを持つこと自体は問題ありませんが、コンテキストの値が `message` にしか存在しない状態は避けます。分岐やリトライに必要な値を文字列からパースしなければならなくなるためです。
+
+```typescript
+// Good: コンテキストが型付きフィールドとして利用可能。messageは表示用で省略可
 type AssignDriverError =
   | Readonly<{ kind: "RequestNotFound"; requestId: RequestId }>
   | Readonly<{ kind: "InvalidState"; currentKind: string; expectedKind: "Waiting" }>
-  | Readonly<{ kind: "DriverNotAvailable"; driverId: DriverId }>;
+  | Readonly<{ kind: "DriverNotAvailable"; driverId: DriverId; message?: string }>;
+
+// Bad: driverIdとzoneIdがmessageの中にしかない — 取り出すにはパースが必要
+type DriverNotAvailableError = Readonly<{
+  kind: "DriverNotAvailableError";
+  message: string; // "Driver drv-123 is not available in zone zone-A"
+}>;
 ```
 
 ### エラー型の粒度

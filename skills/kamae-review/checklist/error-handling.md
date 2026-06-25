@@ -12,7 +12,7 @@ Also flag: `ResultAsync.fromSafePromise` (or equivalent "safe" wrapper in other 
 
 Flag: `Error` subclasses, free-form `string` error codes, or `Result<T, string>`. Suggest a Discriminated Union (`{ kind: "DriverNotAvailable"; driverId } | { kind: "RequestAlreadyAssigned" }`) so callers can branch exhaustively.
 
-Also flag: error DU variants where contextual data (IDs, codes, values that caused the error) is embedded only in a `message: string` field and not available as typed fields. Callers that need the raw values (e.g. `driverId` for a retry) are forced to parse the message string, defeating the purpose of typed errors. Suggest adding the relevant context as named fields alongside or instead of `message`. See [`../../kamae/error-handling.md` §Error Type Design](../../kamae/error-handling.md).
+Also flag: error DU variants where contextual data (IDs, codes, values that caused the error) exists only in a `message: string` field and is not exposed as typed fields. A `message` field itself is fine for logging or display, but when callers must parse it to extract values for branching or retry logic, the typed error has lost its purpose. Suggest adding the relevant context as named fields alongside `message`. See [`../../kamae/error-handling.md` §Error Type Design](../../kamae/error-handling.md).
 
 ## 3.3 Are Result chains used instead of nested if/else? — Low
 

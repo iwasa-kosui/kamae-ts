@@ -110,13 +110,19 @@ Reference: [`./index.md` §3](./index.md), [`./error-handling.md`](./error-handl
 
 Signal: `throw` inside an entity, value object, or use case. Suggest converting to a `Result` type. Acceptable exceptions: `throw` inside `assertNever` (unreachable), and unexpected infrastructure failures in the infrastructure layer.
 
+Also flag: `ResultAsync.fromSafePromise` (or equivalent "safe" wrapper in other libraries) wrapping a Promise that can reject — database calls, network I/O, external API calls. `fromSafePromise` is a contract stating the Promise never rejects; violating it bypasses the Result error channel and produces an unhandled rejection at runtime. Suggest `fromPromise` with an explicit error mapper, and include the mapped error type in the function's error union. Reference: [`./error-handling.md` §fromSafePromise Misuse](./error-handling.md)
+
 #### 3.2 Error types defined as Discriminated Unions
 
 Signal: `Error` subclasses, free-form `string` error codes, or `Result<T, string>`. Suggest a Discriminated Union (`{ kind: "DriverNotAvailable"; driverId } | { kind: "RequestAlreadyAssigned" }`) so callers can handle errors exhaustively.
 
+Also flag: error DU variants where contextual data (IDs, codes, values that caused the error) exists only in a `message: string` field and is not exposed as typed fields. A `message` field itself is fine for logging or display, but when callers must parse it to extract values for branching or retry logic, the typed error has lost its purpose. Suggest adding the relevant context as named fields alongside `message`. Reference: [`./error-handling.md` §Designing Error Types](./error-handling.md)
+
 #### 3.3 Result chains used for composition (no premature unwrap)
 
 Verify that the project's Result-library API (`.map`, `.andThen`, `Result.do`, etc.) is used for chained composition. If the code immediately unwraps into `if/else`, cite the relevant guide under `./result-libraries/` and suggest an appropriate combinator.
+
+Also flag: `andThen` / `map` callbacks exceeding ~5 lines or containing multi-branch if/else logic. This is procedural code wrapped in a Result combinator, not Railway Oriented Programming. Suggest extracting each logical step into a named function so the chain reads as a flat pipeline of operations. Reference: [`./error-handling.md` §Composing Operations](./error-handling.md)
 
 ### 4. Boundary Defense
 
