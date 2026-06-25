@@ -1,0 +1,19 @@
+id: kamae-review-error-context-001
+name: Flag error DU variants with context buried in message string
+description: |
+  The fixture defines error Discriminated Unions that are structurally correct
+  (have a kind discriminant) but embed contextual data (driverId, requestId)
+  only inside a message string. The reviewer should flag this as a 3.2 violation
+  and suggest adding typed fields for the contextual data.
+
+inputs:
+  prompt: |
+    Review the attached TypeScript file as part of a pull request and report
+    findings against the kamae principles. Cite the relevant principle for
+    each finding and tag severity (High / Medium / Low / Suggestion).
+  files:
+    - path: violations/error-context-in-message.ts
+
+expected:
+  outcomes:
+    - type: task_completed

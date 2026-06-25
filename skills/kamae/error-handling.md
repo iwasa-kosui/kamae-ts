@@ -4,15 +4,39 @@
 
 Use Result types to represent success and failure in the type system. Do not throw exceptions in the domain layer. For library-specific APIs, refer to the corresponding guide in [result-libraries/](./result-libraries/).
 
-## Error Type Design
+## fromSafePromise Misuse
 
-Define errors as Discriminated Unions so that callers can handle them exhaustively.
+`ResultAsync.fromSafePromise` (neverthrow) and equivalent "safe" wrappers in other libraries assert that the wrapped Promise **never rejects**. Wrapping a Promise that can reject (database queries, HTTP calls, file I/O) violates that contract: on rejection the error bypasses the Result channel entirely and becomes an unhandled rejection.
 
 ```typescript
+// Bad: DB call can reject — fromSafePromise swallows that possibility
+ResultAsync.fromSafePromise(deps.getDriver(driverId))
+
+// Good: fromPromise with an explicit error mapper
+ResultAsync.fromPromise(
+  deps.getDriver(driverId),
+  (cause): RepositoryError => ({ kind: "RepositoryError", cause }),
+)
+```
+
+Use `fromSafePromise` only for Promises that are genuinely infallible — e.g. `Promise.resolve(value)`, in-memory lookups that never throw, or library calls documented to never reject.
+
+## Error Type Design
+
+Define errors as Discriminated Unions so that callers can handle them exhaustively. Each variant should expose contextual data as **typed fields**, not buried inside a `message` string.
+
+```typescript
+// Good: context available as typed fields
 type AssignDriverError =
   | Readonly<{ kind: "RequestNotFound"; requestId: RequestId }>
   | Readonly<{ kind: "InvalidState"; currentKind: string; expectedKind: "Waiting" }>
   | Readonly<{ kind: "DriverNotAvailable"; driverId: DriverId }>;
+
+// Bad: context baked into message — callers must parse to extract driverId
+type DriverNotAvailableError = Readonly<{
+  kind: "DriverNotAvailableError";
+  message: string; // "Driver drv-123 is not available"
+}>;
 ```
 
 ### Error Type Granularity

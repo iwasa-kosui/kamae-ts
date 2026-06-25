@@ -1,0 +1,19 @@
+id: kamae-review-procedural-001
+name: Flag procedural if/else logic inside andThen callback
+description: |
+  The fixture wraps multi-branch if/else logic inside a single andThen callback
+  instead of composing named functions into a flat pipeline. The reviewer should
+  flag this as a 3.3 violation and suggest extracting each check into a named
+  function.
+
+inputs:
+  prompt: |
+    Review the attached TypeScript file as part of a pull request and report
+    findings against the kamae principles. Cite the relevant principle for
+    each finding and tag severity (High / Medium / Low / Suggestion).
+  files:
+    - path: violations/procedural-andthen.ts
+
+expected:
+  outcomes:
+    - type: task_completed
