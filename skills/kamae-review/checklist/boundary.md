@@ -15,12 +15,12 @@ The only permitted `as` forms are `as const` and `as const satisfies Type`. Flag
 
 ## 4.4 Are schema-backed types inferred from their schemas? — Low
 
-Flag a hand-written `type` or `interface` that restates the same shape as an existing runtime validation schema. The duplicated definitions create two sources of truth and can drift apart. Recommend the library's inference API and show a concrete replacement when practical:
+Flag a separate hand-written `type` or `interface` and runtime validation schema that are intended to represent the same boundary, whether their definitions still match or have already drifted. The duplicated boundary representations create two sources of truth. Recommend the library's inference API and show a concrete replacement when practical:
 
 ```typescript
 type CreateTaskInput = z.infer<typeof CreateTaskInputSchema>;
 ```
 
-Use Low while the definitions still match. Raise severity when they already disagree or the mismatch can cause incorrect acceptance, rejection, or data exposure.
+Use Low only while the definitions still match. When actual drift exists, calibrate severity from its actual incorrect acceptance, rejection, or data-exposure impact, not hypothetical future risk.
 
-Do not flag a boundary representation that is explicitly parsed or mapped into a semantically different domain type.
+Exempt only a separate, semantically different domain type reached by an explicit parser or mapper; this does not exempt the boundary representation itself.

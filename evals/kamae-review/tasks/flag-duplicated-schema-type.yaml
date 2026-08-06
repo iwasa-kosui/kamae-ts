@@ -28,9 +28,9 @@ graders:
     name: recommends_schema_inference
     config:
       regex_match:
-        - '(?i)z\.(?:infer|input|output)\s*<'
+        - '(?i)z\.(?:infer|input|output)\s*<\s*typeof\s+CreateTaskInputSchema\s*>'
   - type: text
     name: defaults_matching_definitions_to_low
     config:
       regex_match:
-        - '(?i)\bLow\b'
+        - '(?is)(?:^|\n)#{1,6}\s*(?:\[\s*)?Low\b(?:\s*\])?(?:(?!\n#{1,6}\s*(?:\[\s*)?(?:High|Medium|Low|Suggestion)\b).){0,800}\b(?:duplicat(?:e|ed|ion)|two sources of truth|restate)\b'
