@@ -22,8 +22,8 @@ graders:
     name: identifies_duplicated_schema_type
     config:
       regex_match:
-        - '(?i)duplicat(?:e|ed|ion)|two sources of truth|restate'
-        - '(?i)\bdrift(?:s|ed|ing)?\b|out of sync|single source of truth'
+        - '(?i)duplicat(?:e|ed|ion)|two sources of truth|restat(?:e|es|ed|ing)|二重管理'
+        - '(?i)\bdrift(?:s|ed|ing)?\b|out of sync|(?:single|one) source of truth|ずれ|唯一の情報源'
   - type: text
     name: recommends_schema_inference
     config:
@@ -33,4 +33,4 @@ graders:
     name: defaults_matching_definitions_to_low
     config:
       regex_match:
-        - '(?is)(?:^|\n)#{1,6}\s*(?:\[\s*)?Low\b(?:\s*\])?(?:(?!\n#{1,6}\s*(?:\[\s*)?(?:High|Medium|Low|Suggestion)\b).){0,800}\b(?:duplicat(?:e|ed|ion)|two sources of truth|restate)\b'
+        - '(?is)(?:^|\n)#{1,6}\s*(?:\[\s*)?Low\b(?:\s*\])?(?=(?:(?!\n#{1,6}\s*(?:\[\s*)?(?:High|Medium|Low|Suggestion)\b).){0,800}\bCreateTaskInput\b)(?=(?:(?!\n#{1,6}\s*(?:\[\s*)?(?:High|Medium|Low|Suggestion)\b).){0,800}\bCreateTaskInputSchema\b)(?=(?:(?!\n#{1,6}\s*(?:\[\s*)?(?:High|Medium|Low|Suggestion)\b).){0,800}(?:\bduplicat(?:e|ed|ion)\b|two sources of truth|\brestat(?:e|es|ed|ing)\b|二重管理))(?:(?!\n#{1,6}\s*(?:\[\s*)?(?:High|Medium|Low|Suggestion)\b).){0,800}'
