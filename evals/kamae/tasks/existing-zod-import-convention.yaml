@@ -1,0 +1,30 @@
+id: kamae-existing-zod-convention-001
+name: Preserve an established Zod named-import convention
+description: |
+  Existing-project case. The supplied domain module consistently uses Zod's
+  named import. The agent should preserve that local convention instead of
+  replacing it with Kamae's namespace-import default.
+
+inputs:
+  prompt: |
+    Extend `src/domain/ids.ts` with a branded `DriverId` type and Zod schema.
+
+    Follow the repository's established coding and import conventions. Return
+    the complete updated file.
+  files:
+    - path: package.json
+    - path: src/domain/ids.ts
+
+expected:
+  outcomes:
+    - type: task_completed
+
+graders:
+  - type: text
+    name: preserves_established_zod_named_import
+    config:
+      regex_match:
+        - "(?m)^\\s*import\\s*\\{\\s*z\\s*\\}\\s*from\\s+[\\x22\\x27]zod[\\x22\\x27]\\s*;?\\s*$"
+      regex_not_match:
+        - "(?m)^\\s*import(?!\\s*\\{\\s*z\\s*\\}\\s*from\\s+[\\x22\\x27]zod[\\x22\\x27]\\s*;?\\s*$)\\s*(?:[^\\r\\n]*?\\s+from\\s*)?[\\x22\\x27]zod[\\x22\\x27][^\\r\\n]*$"
+        - "(?m)^[\\x20\\t]*import[\\x20\\t]*\\{[\\x20\\t]*z[\\x20\\t]*\\}[\\x20\\t]*from[\\x20\\t]+[\\x22\\x27]zod[\\x22\\x27][\\x20\\t]*;?[\\x20\\t]*$[\\s\\S]*^[\\x20\\t]*import[\\x20\\t]*\\{[\\x20\\t]*z[\\x20\\t]*\\}[\\x20\\t]*from[\\x20\\t]+[\\x22\\x27]zod[\\x22\\x27][\\x20\\t]*;?[\\x20\\t]*$"

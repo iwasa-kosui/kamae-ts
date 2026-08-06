@@ -9,7 +9,7 @@ nav_order: 1
 
 ## 基本API
 
-Kamae では Zod の標準的な名前空間 import を使用してください。
+リポジトリに確立された Zod の import スタイルがある場合は、それに従ってください。一貫したローカル規約がない場合は、Zod の標準的な名前空間 import を使用します。
 
 ```typescript
 import * as z from "zod";

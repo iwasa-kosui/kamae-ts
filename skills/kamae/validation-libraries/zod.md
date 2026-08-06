@@ -2,7 +2,7 @@
 
 ## Basic API
 
-Use Zod's canonical namespace import in Kamae.
+Follow the repository's established Zod import style. If no consistent local convention exists, use Zod's canonical namespace import:
 
 ```typescript
 import * as z from "zod";
