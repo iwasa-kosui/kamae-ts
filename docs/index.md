@@ -13,8 +13,9 @@ An extensible harness of skill plugins for designing and implementing robust ser
 ## 📦 Install / インストール
 
 ```bash
-# Install a single skill (interactive agent / scope selection)
+# Install both skills (interactive agent / scope selection)
 gh skill install iwasa-kosui/kamae-ts kamae
+gh skill install iwasa-kosui/kamae-ts kamae-review
 
 # Or install every skill in one shot (Anthropic's installer)
 npx skills add iwasa-kosui/kamae-ts
