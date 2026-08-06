@@ -13,15 +13,19 @@ nav_order: 0
 [`gh skill`](https://cli.github.com/manual/gh_skill) is the GitHub CLI's agent skills extension.
 
 ```bash
-# Install a single skill (interactive prompt for agent/scope)
+# Install both skills (interactive prompt for agent/scope)
 gh skill install iwasa-kosui/kamae-ts kamae
+gh skill install iwasa-kosui/kamae-ts kamae-review
 
-# Install non-interactively for Claude Code at user scope
+# Install both skills non-interactively for Claude Code at user scope
 gh skill install iwasa-kosui/kamae-ts kamae \
   --agent claude-code --scope user
+gh skill install iwasa-kosui/kamae-ts kamae-review \
+  --agent claude-code --scope user
 
-# Pin to a specific release
+# Pin both skills to a specific release
 gh skill install iwasa-kosui/kamae-ts kamae@v1.0.0
+gh skill install iwasa-kosui/kamae-ts kamae-review@v1.0.0
 ```
 
 ## Via `skills` CLI
@@ -43,7 +47,7 @@ This installs every skill the plugin provides at once.
 
 ## Verifying the installation
 
-After installing, your coding agent should see `kamae` (and optionally `kamae-review`) listed among available skills. Refer to your agent's documentation for how to confirm — for example, in Claude Code, run `/skills` and look for `kamae-ts:kamae` in the list.
+After installing, your coding agent should see both `kamae` and `kamae-review` listed among available skills. Refer to your agent's documentation for how to confirm — for example, in Claude Code, run `/skills` and look for both `kamae-ts:kamae` and `kamae-ts:kamae-review` in the list.
 
 ## Customization
 

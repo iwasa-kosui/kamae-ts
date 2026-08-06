@@ -13,15 +13,19 @@ nav_order: 0
 [`gh skill`](https://cli.github.com/manual/gh_skill) は GitHub CLI のエージェントスキル拡張です。
 
 ```bash
-# 単一スキルをインストール（エージェント／スコープを対話的に選択）
+# 両方のスキルをインストール（エージェント／スコープを対話的に選択）
 gh skill install iwasa-kosui/kamae-ts kamae
+gh skill install iwasa-kosui/kamae-ts kamae-review
 
-# Claude Code 向けに user スコープで非対話的にインストール
+# 両方のスキルを Claude Code の user スコープへ非対話的にインストール
 gh skill install iwasa-kosui/kamae-ts kamae \
   --agent claude-code --scope user
+gh skill install iwasa-kosui/kamae-ts kamae-review \
+  --agent claude-code --scope user
 
-# 特定のリリースに固定
+# 両方のスキルを特定のリリースに固定
 gh skill install iwasa-kosui/kamae-ts kamae@v1.0.0
+gh skill install iwasa-kosui/kamae-ts kamae-review@v1.0.0
 ```
 
 ## `skills` CLI を使う
@@ -43,7 +47,7 @@ npx skills add iwasa-kosui/kamae-ts
 
 ## インストールの確認
 
-インストール後、コーディングエージェントの利用可能スキル一覧に `kamae`（および `kamae-review`）が現れます。確認方法はエージェント側のドキュメントを参照してください。たとえば Claude Code では `/skills` を実行して `kamae-ts:kamae` が一覧に含まれていれば成功しています。
+インストール後、コーディングエージェントの利用可能スキル一覧に `kamae` と `kamae-review` の両方が現れます。確認方法はエージェント側のドキュメントを参照してください。たとえば Claude Code では `/skills` を実行して `kamae-ts:kamae` と `kamae-ts:kamae-review` の両方が一覧に含まれていれば成功しています。
 
 ## カスタマイズ
 

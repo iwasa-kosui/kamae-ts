@@ -29,15 +29,19 @@
 [`gh skill`](https://cli.github.com/manual/gh_skill)（GitHub CLI のエージェントスキル拡張）経由:
 
 ```bash
-# 単一スキルをインストール（エージェント/スコープは対話で選択）
+# 両方のスキルをインストール（エージェント／スコープを対話的に選択）
 gh skill install iwasa-kosui/kamae-ts kamae
+gh skill install iwasa-kosui/kamae-ts kamae-review
 
-# 非対話的に Claude Code のユーザースコープへインストール
+# 両方のスキルを Claude Code の user スコープへ非対話的にインストール
 gh skill install iwasa-kosui/kamae-ts kamae \
   --agent claude-code --scope user
+gh skill install iwasa-kosui/kamae-ts kamae-review \
+  --agent claude-code --scope user
 
-# 特定リリースを固定
+# 両方のスキルを特定のリリースに固定
 gh skill install iwasa-kosui/kamae-ts kamae@v1.0.0
+gh skill install iwasa-kosui/kamae-ts kamae-review@v1.0.0
 ```
 
 または [`skills` CLI](https://github.com/anthropics/skills) 経由:

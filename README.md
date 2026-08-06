@@ -29,15 +29,19 @@ The current stances focus on functional domain modeling; more will be added over
 Via [`gh skill`](https://cli.github.com/manual/gh_skill) (the GitHub CLI's agent skills extension):
 
 ```bash
-# Install a single skill (interactive prompt for agent/scope)
+# Install both skills (interactive prompt for agent/scope)
 gh skill install iwasa-kosui/kamae-ts kamae
+gh skill install iwasa-kosui/kamae-ts kamae-review
 
-# Install non-interactively for Claude Code at user scope
+# Install both skills non-interactively for Claude Code at user scope
 gh skill install iwasa-kosui/kamae-ts kamae \
   --agent claude-code --scope user
+gh skill install iwasa-kosui/kamae-ts kamae-review \
+  --agent claude-code --scope user
 
-# Pin to a specific release
+# Pin both skills to a specific release
 gh skill install iwasa-kosui/kamae-ts kamae@v1.0.0
+gh skill install iwasa-kosui/kamae-ts kamae-review@v1.0.0
 ```
 
 Or via [`skills` CLI](https://github.com/anthropics/skills):
