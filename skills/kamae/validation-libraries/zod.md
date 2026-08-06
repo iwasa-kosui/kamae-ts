@@ -2,8 +2,10 @@
 
 ## Basic API
 
+Follow the repository's established Zod import style. If no consistent local convention exists, use Zod's canonical namespace import:
+
 ```typescript
-import { z } from "zod";
+import * as z from "zod";
 ```
 
 | Function/Type | Description |

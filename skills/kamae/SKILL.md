@@ -35,6 +35,8 @@ If no rules are found, proceed with the plugin defaults already documented in [`
 
 See [`../../rules/README.md`](../../rules/README.md) for the rule format.
 
+Before applying the topic and library guides, inspect nearby files in the same package for an established, consistent coding and import style. Follow that local convention when it exists; use Kamae's guide conventions only when the repository does not establish one.
+
 ## Step 1: Detect project libraries
 
 Read `package.json` once. Note which Result library and validation library are present:

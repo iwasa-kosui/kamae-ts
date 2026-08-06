@@ -18,7 +18,7 @@ import { mapErrForResult } from "option-t/plain_result/map_err";
 import { orElseForResult } from "option-t/plain_result/or_else";
 ```
 
-Or with a namespace import:
+Or use the namespace-style API exposed through a named import:
 
 ```typescript
 import { Result } from "option-t/plain_result/namespace";
