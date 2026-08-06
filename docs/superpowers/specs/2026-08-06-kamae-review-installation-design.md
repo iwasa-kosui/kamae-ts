@@ -33,10 +33,12 @@ Update these five files in sync:
 - In both detailed installation pages and both READMEs, add matching
   `kamae-review` commands for interactive installation, non-interactive
   Claude Code user-scope installation, and release-pinned installation.
+- Update the comments that currently describe a "single skill" installation
+  so they describe installing both skills.
 - Preserve the existing explanation that `kamae-review` depends on `kamae`.
 - Update the detailed installation verification text to require both
-  `kamae-ts:kamae` and `kamae-ts:kamae-review` when review support is being
-  installed.
+  `kamae-ts:kamae` and `kamae-ts:kamae-review` after following either
+  documented full-install path.
 - Keep the English and Japanese guidance structurally equivalent.
 
 ## Verification
@@ -44,8 +46,10 @@ Update these five files in sync:
 - Run `git diff --check`.
 - Confirm all five public surfaces contain concrete install commands for both
   skills.
-- Review the five-file diff for matching interactive, non-interactive, and
-  release-pinned examples in English and Japanese.
+- Confirm the landing page has the paired interactive commands.
+- Confirm the detailed installation pages and READMEs have matching paired
+  interactive, non-interactive, and release-pinned examples in English and
+  Japanese.
 - Confirm the detailed verification instructions name both installed skills.
 
 No skill implementation or evaluation suite changes are required because this
