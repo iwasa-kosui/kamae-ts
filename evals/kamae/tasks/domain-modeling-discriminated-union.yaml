@@ -34,4 +34,4 @@ graders:
       regex_match:
         - "(?m)^\\s*import\\s+\\*\\s+as\\s+z\\s+from\\s+[\\x22\\x27]zod[\\x22\\x27]\\s*;?\\s*$"
       regex_not_match:
-        - "(?m)^\\s*import\\s*\\{\\s*z\\s*\\}\\s*from\\s+[\\x22\\x27]zod[\\x22\\x27]\\s*;?\\s*$"
+        - "(?m)^\\s*import(?!\\s*\\*\\s+as\\s+z\\s+from\\s+[\\x22\\x27]zod[\\x22\\x27]\\s*;?\\s*$)\\s*(?:[^\\r\\n]*?\\s+from\\s*)?[\\x22\\x27]zod[\\x22\\x27][^\\r\\n]*$"

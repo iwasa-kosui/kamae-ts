@@ -35,9 +35,9 @@
 - Consumes: the existing `kamae-domain-modeling-001` task and `compilePattern(pattern: string): RegExp` behavior in `evals/runner/regex.ts`.
 - Produces: a task-local `uses_zod_namespace_import` grader and synchronized source/public guidance for Zod and option-t imports.
 
-- [ ] **Step 1: Add the failing task-local grader**
+- [ ] **Step 1: Specify the tightened task-local grader**
 
-Append this top-level block to `evals/kamae/tasks/domain-modeling-discriminated-union.yaml`:
+Use this top-level block as the GREEN target for `evals/kamae/tasks/domain-modeling-discriminated-union.yaml`. Do not apply it until the existing narrow grader has failed the RED matrix in Step 2:
 
 ```yaml
 graders:
@@ -47,18 +47,20 @@ graders:
       regex_match:
         - "(?m)^\\s*import\\s+\\*\\s+as\\s+z\\s+from\\s+[\\x22\\x27]zod[\\x22\\x27]\\s*;?\\s*$"
       regex_not_match:
-        - "(?m)^\\s*import\\s*\\{\\s*z\\s*\\}\\s*from\\s+[\\x22\\x27]zod[\\x22\\x27]\\s*;?\\s*$"
+        - "(?m)^\\s*import(?!\\s*\\*\\s+as\\s+z\\s+from\\s+[\\x22\\x27]zod[\\x22\\x27]\\s*;?\\s*$)\\s*(?:[^\\r\\n]*?\\s+from\\s*)?[\\x22\\x27]zod[\\x22\\x27][^\\r\\n]*$"
 ```
 
-- [ ] **Step 2: Run the controlled RED check**
+- [ ] **Step 2: Run the controlled RED matrix, then tighten the grader**
 
 Run:
 
 ```bash
-bun -e 'import { parse } from "yaml"; import { compilePattern } from "./evals/runner/regex.ts"; const task=parse(await Bun.file("evals/kamae/tasks/domain-modeling-discriminated-union.yaml").text()); const config=task.graders.find((grader) => grader.name === "uses_zod_namespace_import").config; const text="import { z } from \"zod\";"; const passes=config.regex_match.every((pattern) => compilePattern(pattern).test(text)) && config.regex_not_match.every((pattern) => !compilePattern(pattern).test(text)); if (!passes) { console.error("FAIL: current named import is rejected"); process.exit(1); }'
+bun -e 'import { parse } from "yaml"; import { compilePattern } from "./evals/runner/regex.ts"; const task = parse(await Bun.file("evals/kamae/tasks/domain-modeling-discriminated-union.yaml").text()); const config = task.graders.find((grader) => grader.name === "uses_zod_namespace_import").config; const passes = (source) => config.regex_match.every((pattern) => compilePattern(pattern).test(source)) && config.regex_not_match.every((pattern) => !compilePattern(pattern).test(source)); const cases = [{ name: "canonical double quotes", source: "import * as z from \"zod\";", want: true }, { name: "canonical single quotes", source: "  import * as z from '\''zod'\''  ", want: true }, { name: "named only", source: "import { z } from \"zod\";", want: false }, { name: "default only", source: "import z from \"zod\";", want: false }, { name: "canonical plus named", source: "import * as z from \"zod\";\nimport { z } from \"zod\";", want: false }, { name: "canonical plus combined named bindings", source: "import * as z from \"zod\";\nimport { z, ZodError } from \"zod\";", want: false }, { name: "canonical plus default", source: "import * as z from \"zod\";\nimport zod from \"zod\";", want: false }, { name: "canonical plus named trailing comment", source: "import * as z from \"zod\";\nimport { z } from \"zod\"; // forbidden", want: false }, { name: "canonical trailing comment", source: "import * as z from \"zod\"; // forbidden", want: false }, { name: "canonical plus side-effect import", source: "import * as z from \"zod\";\nimport \"zod\";", want: false }]; const failures = []; for (const testCase of cases) { const actual = passes(testCase.source); console.log(`${actual === testCase.want ? "PASS" : "FAIL"}: ${testCase.name} expected=${testCase.want} actual=${actual}`); if (actual !== testCase.want) failures.push(testCase.name); } if (failures.length > 0) { console.error(`FAIL: ${failures.length} focused case(s) violated the canonical-only contract`); process.exit(1); }'
 ```
 
-Expected: exit code 1 with `FAIL: current named import is rejected`. This proves the new grader detects the current guide's import form.
+Expected before tightening the grader: exit code 1. The canonical-plus-combined-named, canonical-plus-default, canonical-plus-commented-named, and canonical-plus-side-effect cases report `actual=true`. This proves the previous negative regex allows forbidden imports whenever a canonical line is also present.
+
+After observing the expected failures, replace the existing grader with the Step 1 block. The positive regex requires a canonical import, while the negative regex rejects every other single-line static import from `zod`.
 
 - [ ] **Step 3: Update the Zod source guide and public documentation**
 
@@ -96,15 +98,15 @@ import { Result } from "option-t/plain_result/namespace";
 
 Delete `docs/superpowers/specs/2026-08-06-tree-shakable-imports-design.md`. It has no inbound repository references.
 
-- [ ] **Step 6: Run the controlled GREEN check**
+- [ ] **Step 6: Run the controlled GREEN matrix**
 
 Run:
 
 ```bash
-bun -e 'import { parse } from "yaml"; import { compilePattern } from "./evals/runner/regex.ts"; const task=parse(await Bun.file("evals/kamae/tasks/domain-modeling-discriminated-union.yaml").text()); const config=task.graders.find((grader) => grader.name === "uses_zod_namespace_import").config; const text="import * as z from \"zod\";"; const passes=config.regex_match.every((pattern) => compilePattern(pattern).test(text)) && config.regex_not_match.every((pattern) => !compilePattern(pattern).test(text)); if (!passes) { console.error("FAIL: namespace import is not accepted"); process.exit(1); } console.log("PASS: namespace import is accepted");'
+bun -e 'import { parse } from "yaml"; import { compilePattern } from "./evals/runner/regex.ts"; const task = parse(await Bun.file("evals/kamae/tasks/domain-modeling-discriminated-union.yaml").text()); const config = task.graders.find((grader) => grader.name === "uses_zod_namespace_import").config; const passes = (source) => config.regex_match.every((pattern) => compilePattern(pattern).test(source)) && config.regex_not_match.every((pattern) => !compilePattern(pattern).test(source)); const cases = [{ name: "canonical double quotes", source: "import * as z from \"zod\";", want: true }, { name: "canonical single quotes", source: "  import * as z from '\''zod'\''  ", want: true }, { name: "named only", source: "import { z } from \"zod\";", want: false }, { name: "default only", source: "import z from \"zod\";", want: false }, { name: "canonical plus named", source: "import * as z from \"zod\";\nimport { z } from \"zod\";", want: false }, { name: "canonical plus combined named bindings", source: "import * as z from \"zod\";\nimport { z, ZodError } from \"zod\";", want: false }, { name: "canonical plus default", source: "import * as z from \"zod\";\nimport zod from \"zod\";", want: false }, { name: "canonical plus named trailing comment", source: "import * as z from \"zod\";\nimport { z } from \"zod\"; // forbidden", want: false }, { name: "canonical trailing comment", source: "import * as z from \"zod\"; // forbidden", want: false }, { name: "canonical plus side-effect import", source: "import * as z from \"zod\";\nimport \"zod\";", want: false }]; const failures = []; for (const testCase of cases) { const actual = passes(testCase.source); console.log(`${actual === testCase.want ? "PASS" : "FAIL"}: ${testCase.name} expected=${testCase.want} actual=${actual}`); if (actual !== testCase.want) failures.push(testCase.name); } if (failures.length > 0) { console.error(`FAIL: ${failures.length} focused case(s) violated the canonical-only contract`); process.exit(1); }'
 ```
 
-Expected: exit code 0 with `PASS: namespace import is accepted`.
+Expected: exit code 0 with all ten cases reporting `PASS`. Only canonical namespace imports with quote and whitespace variations are accepted; named, default, combined, commented, duplicate-style, and side-effect imports from `zod` are rejected.
 
 - [ ] **Step 7: Run repository validation**
 
