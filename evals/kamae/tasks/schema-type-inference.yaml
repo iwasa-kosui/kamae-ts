@@ -30,7 +30,7 @@ graders:
     name: infers_type_from_zod_schema
     config:
       regex_match:
-        - '(?s)type\s+CreateTaskInput\s*=\s*z\.(?:infer|input|output)\s*<\s*typeof\s+CreateTaskInputSchema\s*>'
+        - '(?s)type\s+CreateTaskInput\s*=\s*(?:z\.(?:infer|input|output)\s*<\s*typeof\s+CreateTaskInputSchema\s*>|Readonly\s*<\s*z\.(?:infer|input|output)\s*<\s*typeof\s+CreateTaskInputSchema\s*>\s*>)'
   - type: text
     name: does_not_restate_schema_shape
     config:
