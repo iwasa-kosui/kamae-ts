@@ -27,3 +27,11 @@ inputs:
 expected:
   outcomes:
     - type: task_completed
+graders:
+  - type: text
+    name: uses_zod_namespace_import
+    config:
+      regex_match:
+        - "(?m)^\\s*import\\s+\\*\\s+as\\s+z\\s+from\\s+[\\x22\\x27]zod[\\x22\\x27]\\s*;?\\s*$"
+      regex_not_match:
+        - "(?m)^\\s*import\\s*\\{\\s*z\\s*\\}\\s*from\\s+[\\x22\\x27]zod[\\x22\\x27]\\s*;?\\s*$"

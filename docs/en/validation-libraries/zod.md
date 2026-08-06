@@ -9,8 +9,10 @@ nav_order: 1
 
 ## Core API
 
+Use Zod's canonical namespace import in Kamae.
+
 ```typescript
-import { z } from "zod";
+import * as z from "zod";
 ```
 
 | Function / Type | Description |

@@ -9,8 +9,10 @@ nav_order: 1
 
 ## 基本API
 
+Kamae では Zod の標準的な名前空間 import を使用してください。
+
 ```typescript
-import { z } from "zod";
+import * as z from "zod";
 ```
 
 | 関数/型 | 説明 |
