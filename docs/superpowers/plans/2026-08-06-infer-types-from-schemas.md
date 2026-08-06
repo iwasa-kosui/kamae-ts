@@ -167,7 +167,7 @@ bun run evals/runner/run.ts evals/kamae-review/eval.yaml --dry-run --output /tmp
 
 Expected: both commands exit `0`; every fixture path resolves and every regex compiles.
 
-- [ ] **Step 6: Run the unchanged skills and record RED**
+- [ ] **Step 6: Run the unchanged skills and record the baseline**
 
 Run:
 
@@ -176,7 +176,7 @@ bun run evals/runner/run.ts evals/kamae/eval.yaml --output /tmp/kamae-schema-inf
 bun run evals/runner/run.ts evals/kamae-review/eval.yaml --output /tmp/kamae-review-schema-inference-baseline.json
 ```
 
-Expected: at least one new task-specific grader fails for each affected skill. Record the failing grader names and the model's actual output in the task report. If a new task passes, tighten only the scenario pressure or grader coverage to expose the missing single-source-of-truth rule; do not encode the desired answer into the prompt.
+Expected: record the task-local grader results and the model's actual output for both skills. The review task must expose the missing Low-severity calibration. If the generation task already derives the type from the schema consistently, retain it as a regression guard for existing behavior and treat the prose change as an explicit user-requested rule rather than manufacturing a failure. Do not encode the desired answer into either prompt.
 
 - [ ] **Step 7: Commit the regression evaluations**
 
