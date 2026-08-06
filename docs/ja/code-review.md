@@ -110,13 +110,19 @@ declaration merging により型の形状が暗黙に変わる危険がありま
 
 兆候: エンティティ・値オブジェクト・ユースケース内の `throw`。`Result` 型への変更を提案します。許容するのは `assertNever` 内の throw（到達不能）と、インフラ層の予期しない障害です。
 
+`ResultAsync.fromSafePromise`（または他ライブラリの同等の「safe」ラッパー）で reject しうる Promise（DB 呼び出し、ネットワーク I/O、外部 API 呼び出し）をラップしている場合も指摘します。`fromSafePromise` は「この Promise は reject しない」という契約であり、違反すると Result のエラーチャネルを迂回してハンドルされない rejection が発生します。`fromPromise` と明示的なエラーマッパーへの変更を提案し、マッピング後のエラー型を関数のエラー union に含めるよう求めます。参照: [`./error-handling.md` §fromSafePromise の誤用](./error-handling.md)
+
 #### 3.2 エラー型が Discriminated Union になっているか
 
 兆候: `Error` のサブクラス、自由形式の `string` エラーコード、`Result<T, string>`。Discriminated Union（`{ kind: "DriverNotAvailable"; driverId } | { kind: "RequestAlreadyAssigned" }`）への変更を提案し、呼び出し元が網羅的に分岐できるようにします。
 
+エラー DU のバリアントで、コンテキストデータ（ID、コード、エラーの原因となった値）が `message: string` にしか存在せず、型付きフィールドとして公開されていない場合も指摘します。`message` フィールド自体はログや表示用に持っていて構いませんが、分岐やリトライに必要な値を message のパースで取得しなければならない状態は、型付きエラーの利点を失わせます。関連するコンテキストを `message` と並行して名前付きフィールドとして追加するよう提案します。参照: [`./error-handling.md` §エラー型の設計](./error-handling.md)
+
 #### 3.3 Result チェーンを使って合成しているか（即 unwrap していないか）
 
 プロジェクトに対応する Result ライブラリの API（`.map`、`.andThen`、`Result.do` など）でチェーン合成しているかを確認します。即 unwrap して if/else に展開している場合は、`./result-libraries/` 配下の該当ガイドを引用して適切なコンビネータを提案します。
+
+`andThen` / `map` のコールバックが約 5 行を超えていたり、複数分岐の if/else ロジックを含んでいたりする場合も指摘します。これは Result コンビネータで包んだ手続き的コードであり、Railway Oriented Programming ではありません。各論理ステップを名前付き関数に抽出し、チェーンがフラットなパイプラインとして読めるようにすることを提案します。参照: [`./error-handling.md` §処理の合成](./error-handling.md)
 
 ### 4. 境界の防御
 

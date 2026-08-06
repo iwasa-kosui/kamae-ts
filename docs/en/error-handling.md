@@ -11,15 +11,39 @@ has_children: true
 
 Use Result types to represent success and failure as values. Do not throw exceptions in the domain layer. For library-specific APIs, refer to the relevant guide under [result-libraries/](./result-libraries/).
 
-## Designing Error Types
+## fromSafePromise Misuse
 
-Define error types as Discriminated Unions so callers can handle them exhaustively.
+`ResultAsync.fromSafePromise` (neverthrow) and equivalent "safe" wrappers in other libraries assert that the wrapped Promise **never rejects**. Wrapping a Promise that can reject (database queries, HTTP calls, file I/O) violates that contract: on rejection the error bypasses the Result channel entirely and becomes an unhandled rejection.
 
 ```typescript
+// Bad: DB call can reject — fromSafePromise swallows that possibility
+ResultAsync.fromSafePromise(deps.getDriver(driverId))
+
+// Good: fromPromise with an explicit error mapper
+ResultAsync.fromPromise(
+  deps.getDriver(driverId),
+  (cause): RepositoryError => ({ kind: "RepositoryError", cause }),
+)
+```
+
+Use `fromSafePromise` only for Promises that are genuinely infallible — e.g. `Promise.resolve(value)`, in-memory lookups that never throw, or library calls documented to never reject.
+
+## Designing Error Types
+
+Define error types as Discriminated Unions so callers can handle them exhaustively. Each variant should expose contextual data as **typed fields**. A `message` field for logging or display is fine, but it must not be the only place where context values live — callers that need to branch or retry based on those values should not have to parse a string.
+
+```typescript
+// Good: context available as typed fields; message is optional and for display only
 type AssignDriverError =
   | Readonly<{ kind: "RequestNotFound"; requestId: RequestId }>
   | Readonly<{ kind: "InvalidState"; currentKind: string; expectedKind: "Waiting" }>
-  | Readonly<{ kind: "DriverNotAvailable"; driverId: DriverId }>;
+  | Readonly<{ kind: "DriverNotAvailable"; driverId: DriverId; message?: string }>;
+
+// Bad: driverId and zoneId exist only inside message — callers must parse to extract them
+type DriverNotAvailableError = Readonly<{
+  kind: "DriverNotAvailableError";
+  message: string; // "Driver drv-123 is not available in zone zone-A"
+}>;
 ```
 
 ### Error Type Granularity

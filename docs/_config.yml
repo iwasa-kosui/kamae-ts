@@ -36,5 +36,5 @@ include:
   - en/result-libraries
   - en/validation-libraries
 exclude:
-  - adr
   - superpowers
+  - adr
