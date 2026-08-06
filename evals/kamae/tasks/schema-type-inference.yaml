@@ -1,22 +1,21 @@
 id: kamae-schema-type-inference-001
-name: Derive a boundary input type from its existing schema
+name: Complete a boundary module with an existing public API
 description: |
-  Positive case. An existing Zod schema defines an HTTP request body. The
-  expected output derives the named TypeScript type from that schema instead
-  of restating the same object shape.
+  Positive case. An existing module exports an HTTP request body type and its
+  Zod schema. The completed module should preserve the API while remaining
+  maintainable as validation evolves.
 
 inputs:
   prompt: |
-    Implement server-side TypeScript code for creating a task.
+    Complete the provided server-side TypeScript module for creating a task.
 
-    An existing `CreateTaskInputSchema` validates the HTTP request body.
-    Provide:
-      1. A named `CreateTaskInput` type
-      2. A `parseCreateTaskInput(raw: unknown)` function
-      3. A `createTask(input: CreateTaskInput)` function
+    Preserve its exported API and add:
+      1. A `parseCreateTaskInput(raw: unknown)` function
+      2. A `createTask(input: CreateTaskInput)` function
 
-    Read the provided schema and package.json, and apply the conventions
-    appropriate to the project's dependencies. Return the implementation as
+    The module should remain easy to maintain as request validation evolves.
+    Read the provided module and package.json, and apply the conventions
+    appropriate to the project's dependencies. Return the complete module as
     TypeScript code.
   files:
     - path: package.json
