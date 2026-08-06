@@ -1,0 +1,39 @@
+id: kamae-schema-type-inference-001
+name: Derive a boundary input type from its existing schema
+description: |
+  Positive case. An existing Zod schema defines an HTTP request body. The
+  expected output derives the named TypeScript type from that schema instead
+  of restating the same object shape.
+
+inputs:
+  prompt: |
+    Implement server-side TypeScript code for creating a task.
+
+    An existing `CreateTaskInputSchema` validates the HTTP request body.
+    Provide:
+      1. A named `CreateTaskInput` type
+      2. A `parseCreateTaskInput(raw: unknown)` function
+      3. A `createTask(input: CreateTaskInput)` function
+
+    Read the provided schema and package.json, and apply the conventions
+    appropriate to the project's dependencies. Return the implementation as
+    TypeScript code.
+  files:
+    - path: package.json
+    - path: schemas/create-task-input.ts
+
+expected:
+  outcomes:
+    - type: task_completed
+
+graders:
+  - type: text
+    name: infers_type_from_zod_schema
+    config:
+      regex_match:
+        - '(?s)type\s+CreateTaskInput\s*=\s*z\.(?:infer|input|output)\s*<\s*typeof\s+CreateTaskInputSchema\s*>'
+  - type: text
+    name: does_not_restate_schema_shape
+    config:
+      regex_not_match:
+        - '(?s)(?:type\s+CreateTaskInput\s*=\s*(?:Readonly\s*<\s*)?\{|interface\s+CreateTaskInput\s*\{)'

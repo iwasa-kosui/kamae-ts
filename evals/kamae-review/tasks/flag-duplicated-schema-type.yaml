@@ -1,0 +1,36 @@
+id: kamae-review-schema-type-inference-001
+name: Flag a hand-written type that duplicates a schema
+description: |
+  Adversarial case. The fixture maintains a Zod schema and a matching
+  hand-written type as two sources of truth. The reviewer should explain the
+  drift risk and recommend deriving the type from the schema.
+
+inputs:
+  prompt: |
+    Review the attached TypeScript file as part of a pull request and report
+    findings against the kamae principles. Cite the relevant principle for
+    each finding and tag severity (High / Medium / Low / Suggestion).
+  files:
+    - path: violations/duplicated-schema-type.ts
+
+expected:
+  outcomes:
+    - type: task_completed
+
+graders:
+  - type: text
+    name: identifies_duplicated_schema_type
+    config:
+      regex_match:
+        - '(?i)duplicat(?:e|ed|ion)|two sources of truth|restate'
+        - '(?i)\bdrift(?:s|ed|ing)?\b|out of sync|single source of truth'
+  - type: text
+    name: recommends_schema_inference
+    config:
+      regex_match:
+        - '(?i)z\.(?:infer|input|output)\s*<'
+  - type: text
+    name: defaults_matching_definitions_to_low
+    config:
+      regex_match:
+        - '(?i)\bLow\b'
