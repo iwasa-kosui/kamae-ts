@@ -66,6 +66,8 @@ Treat errors as values via `Result`. Define error types as discriminated unions 
 
 Validate every external input (API requests, DB results, file/queue/env) with a schema at runtime. Trust types inside the domain. Do not use type assertions — `as const` and `as const satisfies Type` are the only allowed forms; when the type is unknown, parse through a validation-library schema instead. Apply `Sensitive<T>` to PII fields; the validation schema auto-wraps them.
 
+When a runtime schema already defines a boundary representation, derive its TypeScript type from the schema instead of restating the same shape.
+
 ### Declarative Style — [declarative-style.md](./declarative-style.md)
 
 Use `filter` / `map` / `reduce` with companion-object predicates instead of imperative loops. Model domain events as immutable records.

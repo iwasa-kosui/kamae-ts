@@ -12,3 +12,15 @@ The only permitted `as` forms are `as const` and `as const satisfies Type`. Flag
 - External or unknown-typed data: must be replaced by a validation-library schema parse. `as` does not give the guarantee its type claims.
 - `as` inside a Branded Type factory: tolerated only as a last-resort fallback when no validation library is present (`unique symbol` pattern). When flagged, recommend introducing a validation library and rewriting the brand with `z.brand()` / `v.brand()` / `.brand()` so the `as` can be removed.
 - Internal data: type inference should resolve it; if not, the type design is likely wrong.
+
+## 4.4 Are schema-backed types inferred from their schemas? — Low
+
+Flag a separate hand-written `type` or `interface` and runtime validation schema that are intended to represent the same boundary, whether their definitions still match or have already drifted. The duplicated boundary representations create two sources of truth. Recommend the library's inference API and show a concrete replacement when practical:
+
+```typescript
+type CreateTaskInput = z.infer<typeof CreateTaskInputSchema>;
+```
+
+Use Low only while the definitions still match. When actual drift exists, calibrate severity from its actual incorrect acceptance, rejection, or data-exposure impact, not hypothetical future risk.
+
+Exempt only a separate, semantically different domain type reached by an explicit parser or mapper; this does not exempt the boundary representation itself.
