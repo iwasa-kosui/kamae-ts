@@ -114,18 +114,18 @@ declaration merging により型の形状が暗黙に変わる危険がありま
 | --- | --- |
 | 想定されるバリデーション・業務状態の失敗を throw している | ユースケース固有の `Result` エラーを求める |
 | 回復方法が定義された外部障害を throw している | 名前付きの回復可能な失敗を `Result` でモデル化する |
-| 未分類の障害、設定不備、assertion を `cause: unknown` 付きの `RepositoryError` に変換している | 汎用的なドメインエラーにせず、アプリケーションのエラー境界まで伝播させる |
+| 予期しない停止・障害、設定不備、assertion を `cause: unknown` 付きの `RepositoryError` に変換している | 汎用的なドメインエラーにせず、アプリケーションのエラー境界まで伝播させる |
 | 非公開 sentinel が、`unknown` の判別後に対応する境界で catch され、それ以外の値がすべて再 throw される | 指摘なし |
 
 `assertNever` 内の `throw`、伝播する内部 assertion の失敗、アプリケーションのエラー境界へ到達する予期しない障害は指摘しません。その境界がログ記録と汎用的な運用レスポンスを所有します。非公開 sentinel は、狭い範囲に限定され、対応する catch 境界だけが識別し、それ以外をすべて再 throw し、想定されるドメイン失敗を表さない場合に限り許容します。assertion を汎用的な `Result` エラーに変換する実装は指摘対象です。
 
 #### 3.2 エラー型が Discriminated Union になっているか
 
-兆候: `Error` のサブクラス、自由形式の `string` エラーコード、`Result<T, string>`。Discriminated Union（`{ kind: "DriverNotAvailable"; driverId } | { kind: "RequestAlreadyAssigned" }`）への変更を提案し、呼び出し元が網羅的に分岐できるようにします。
+`Result` や公開された業務契約に含む想定エラーについて、`Error` のサブクラス、自由形式の `string` エラーコード、`Result<T, string>` を指摘します。Discriminated Union（`{ kind: "DriverNotAvailable"; driverId } | { kind: "RequestAlreadyAssigned" }`）への変更を提案し、呼び出し側が想定される結果を網羅的に分岐できるようにします。アプリケーションのエラー境界まで伝播する assertion や契約違反の例外には、このルールを適用しません。
 
-#### 3.3 Result チェーンを使って合成しているか（即 unwrap していないか）
+#### 3.3 Result 合成で不要な unwrap/re-wrap をしていないか
 
-プロジェクトに対応する Result ライブラリの API（`.map`、`.andThen`、`Result.do` など）でチェーン合成しているかを確認します。即 unwrap して if/else に展開している場合は、`./result-libraries/` 配下の該当ガイドを引用して適切なコンビネータを提案します。
+想定される判断の合成途中で、unwrap した直後に re-wrap する不要な実装だけを指摘します。その場合は `./result-libraries/` 配下の該当ガイドを引用し、対応するコンビネータを提案します。想定される判断が完了した後の明確な `if` や `match` は許容します。特に、reject を伝播させるべき通常の非同期永続化境界では適切です。option-t の公式レシピも、その境界で意図的に明示的な分岐を使っています。
 
 ### 4. 境界の防御
 
@@ -210,8 +210,8 @@ type TaskRepository = {
 | High | 意味の異なるプリミティブの Branded Types 不足 (1.7) | 異種 ID の取り違えがランタイムで発生 |
 | Medium | class 使用 (1.3) | 拡張時の型安全性低下 |
 | Medium | optional プロパティでの状態モデリング (1.1) | 不正な状態が表現可能になる |
-| Medium | ドメイン層での `throw` (3.1) | エラーハンドリングの一貫性欠如 |
-| Medium | 非 Discriminated Union のエラー型 (3.2) | 呼び出し元が網羅的に分岐できない |
+| Medium | 想定されるドメイン・業務・バリデーション失敗の `throw` (3.1) | 呼び出し側が想定される結果を明示的に扱えない |
+| Medium | `Result` または公開業務契約の想定エラーが非 Discriminated Union (3.2) | 呼び出し側が想定エラーを網羅的に分岐できない |
 | Medium | `assertNever` 不足 (2.2) | 新バリアント追加時の見落とし |
 | Medium | union 型を受ける状態遷移関数 (2.1) | 無効な遷移がコンパイルを通る |
 | Medium | catch-all 型ファイル (1.9) | 循環依存・型と振る舞いの分離 |

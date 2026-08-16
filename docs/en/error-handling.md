@@ -39,7 +39,7 @@ An unexpected rejection from `RequestStore.save`, such as a lost database connec
 
 ## Compose expected outcomes
 
-Each operation that can produce an expected domain failure returns a `Result`; composition stops at that expected outcome. The composition API differs by library (`.andThen()` in neverthrow/byethrow, `pipe` + `chain` in fp-ts, `flatMapForResult` in option-t).
+Each operation that can produce an expected domain failure returns a `Result`; composition stops at that expected outcome. The composition API differs by library: neverthrow uses `.andThen`, byethrow uses `Result.andThen`, fp-ts uses `E.chain` or `E.bind`, and option-t uses `andThenForResult`.
 
 ```typescript
 const ensureFound = <T>(id: RequestId) => (

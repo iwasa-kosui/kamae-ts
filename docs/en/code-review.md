@@ -114,18 +114,18 @@ Classify an observed `throw` or caught error before reporting it. Apply the deci
 | --- | --- |
 | Expected validation or business-state failure is thrown | Require a use-case-specific `Result` error |
 | External failure has documented recovery but is thrown | Model the named recoverable failure in `Result` |
-| Unknown outage, configuration defect, or assertion is wrapped as `RepositoryError` with `cause: unknown` | Allow propagation to the application error boundary instead of using a catch-all domain error |
+| Unexpected outage, configuration defect, or assertion is wrapped as `RepositoryError` with `cause: unknown` | Allow propagation to the application error boundary instead of using a catch-all domain error |
 | Private sentinel is caught by its associated boundary after discriminating `unknown`, and every other value is rethrown | No finding |
 
 Do not report `throw` inside `assertNever`, a failed internal assertion that propagates, or an unexpected fault that reaches the application error boundary. That boundary owns logging and the generic operational response. A private sentinel is acceptable only when it is tightly scoped, is recognized exclusively by its associated catch boundary, rethrows all other caught values, and does not represent an expected domain failure. Converting an assertion into a catch-all `Result` error is a finding.
 
 #### 3.2 Error types defined as Discriminated Unions
 
-Signal: `Error` subclasses, free-form `string` error codes, or `Result<T, string>`. Suggest a Discriminated Union (`{ kind: "DriverNotAvailable"; driverId } | { kind: "RequestAlreadyAssigned" }`) so callers can handle errors exhaustively.
+For expected errors exposed in a `Result` or another public business contract, flag `Error` subclasses, free-form `string` error codes, or `Result<T, string>`. Suggest a Discriminated Union (`{ kind: "DriverNotAvailable"; driverId } | { kind: "RequestAlreadyAssigned" }`) so callers can handle expected outcomes exhaustively. Do not apply this rule to assertion or contract-violation exceptions that propagate to the application error boundary.
 
-#### 3.3 Result chains used for composition (no premature unwrap)
+#### 3.3 Result composition avoids unnecessary unwrap/re-wrap
 
-Verify that the project's Result-library API (`.map`, `.andThen`, `Result.do`, etc.) is used for chained composition. If the code immediately unwraps into `if/else`, cite the relevant guide under `./result-libraries/` and suggest an appropriate combinator.
+Flag only an unnecessary unwrap followed by re-wrapping in the middle of composing expected decisions. In that case, cite the relevant guide under `./result-libraries/` and suggest the matching combinator. A clear `if` or `match` after the expected decision is complete is allowed, especially when crossing into native async persistence whose rejection must propagate. The official option-t recipe is intentionally explicit at that boundary.
 
 ### 4. Boundary Defense
 
@@ -210,8 +210,8 @@ type TaskRepository = {
 | [High] | Missing Branded Types for semantically distinct primitives (1.7) | Mixed-up IDs surface at runtime |
 | [Medium] | Use of `class` (1.3) | Degrades type safety during extension |
 | [Medium] | State modeled with optional properties (1.1) | Invalid states become representable |
-| [Medium] | `throw` in the domain layer (3.1) | Inconsistent error handling |
-| [Medium] | Error type not a Discriminated Union (3.2) | Callers cannot handle errors exhaustively |
+| [Medium] | Expected domain, business, or validation failure is thrown (3.1) | Callers cannot handle an expected outcome explicitly |
+| [Medium] | Expected error in a `Result` or public business contract is not a Discriminated Union (3.2) | Callers cannot handle expected errors exhaustively |
 | [Medium] | Missing `assertNever` (2.2) | New variants go undetected at compile time |
 | [Medium] | Transition function accepts the full union type (2.1) | Invalid transitions compile without error |
 | [Medium] | Catch-all type files (1.9) | Circular dependencies; type/behavior separation |

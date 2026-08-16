@@ -39,7 +39,7 @@ DB 接続断などで `RequestStore.save` が予期せず reject された場合
 
 ## 想定される結果を合成する
 
-想定されるドメイン失敗を生み得る各処理は `Result` を返し、その結果が生じた時点で合成を止めます。合成 API はライブラリごとに異なります（neverthrow/byethrow では `.andThen()`、fp-ts では `pipe` + `chain`、option-t では `flatMapForResult`）。
+想定されるドメイン失敗を生み得る各処理は `Result` を返し、その結果が生じた時点で合成を止めます。合成 API はライブラリごとに異なります。neverthrow は `.andThen`、byethrow は `Result.andThen`、fp-ts は `E.chain` または `E.bind`、option-t は `andThenForResult` を使います。
 
 ```typescript
 const ensureFound = <T>(id: RequestId) => (
