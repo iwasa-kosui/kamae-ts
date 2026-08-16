@@ -21,13 +21,22 @@ inputs:
     Express the union as
     `type AssignDriverError = RequestNotFound | InvalidState | DriverNotAvailable`.
 
-    Return a `Result<T, AssignDriverError>` for those three outcomes so callers
-    must branch on the failure exhaustively. Do not widen that `Result` error
-    type with any other member. An unclassified database timeout, configuration
-    defect, or unknown SDK failure is not a business error: let it propagate as
-    a thrown or rejected failure instead of representing it in any `Result`
-    error member. In particular, do not introduce a catch-all error variant
-    such as `RepositoryError`, `InfrastructureError`, or `UnknownFailure`.
+    Make the `assignDriver` public contract use this canonical shape:
+
+    ```ts
+    type AssignDriver = (command: AssignDriverCommand) => Promise<Result<AssignedDriver, AssignDriverError>>;
+    export const assignDriver: AssignDriver = async (command) => {
+      // ...
+    };
+    ```
+
+    Callers must branch on the `Result` failure exhaustively. Do not widen that
+    `Result` error type with any other member. An unclassified database timeout,
+    configuration defect, or unknown SDK failure is not a business error: let
+    it propagate as a thrown or rejected failure instead of representing it in
+    any `Result` error member. In particular, do not introduce a catch-all
+    error variant such as `RepositoryError`, `InfrastructureError`, or
+    `UnknownFailure`.
 
     Use the project's dependencies (see package.json).
   files:
@@ -43,7 +52,8 @@ graders:
     config:
       regex_match:
         - "(?m)type\\s+AssignDriverError\\s*=\\s*RequestNotFound\\s*\\|\\s*InvalidState\\s*\\|\\s*DriverNotAvailable\\s*;"
-        - "Result(?:\\.Result(?:Async)?|Async)?\\s*<[^,>]+,\\s*AssignDriverError\\s*>"
+        - "(?m)type\\s+AssignDriver\\s*=\\s*\\(\\s*command\\s*:\\s*AssignDriverCommand\\s*\\)\\s*=>\\s*Promise\\s*<\\s*Result\\s*<\\s*AssignedDriver\\s*,\\s*AssignDriverError\\s*>\\s*>\\s*;"
+        - "(?m)export\\s+const\\s+assignDriver\\s*:\\s*AssignDriver\\s*=\\s*async\\s*\\(\\s*command\\s*\\)\\s*=>"
       regex_not_match:
         - "RepositoryError"
         - "throw\\s+new\\s+\\w*Error\\b"
