@@ -105,7 +105,7 @@ const transitionToEnRoute =
     driverId,
   });
 
-// --- Use Case (pipeline composition with andThrough) ---
+// --- Use Case (expected-result pipeline with native async persistence) ---
 
 const assignDriverUseCase =
   (requestResolver: RequestResolver, requestStore: RequestStore) =>

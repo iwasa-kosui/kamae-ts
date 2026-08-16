@@ -195,15 +195,26 @@ type InvalidState = Readonly<{
   requestId: RequestId;
 }>;
 
-type AssignDriverError = RequestNotFound | InvalidState;
+type DriverNotAvailable = Readonly<{
+  kind: "DriverNotAvailable";
+  driverId: DriverId;
+}>;
+
+type AssignDriverDecisionError = InvalidState | DriverNotAvailable;
+type AssignDriverError = RequestNotFound | AssignDriverDecisionError;
 
 const assignDriver = (
   request: TaxiRequest,
   driverId: DriverId,
+  isDriverAvailable: boolean,
   assignedAt: Date,
-): Result<EnRoute, InvalidState> => {
+): Result<EnRoute, AssignDriverDecisionError> => {
   if (request.kind !== "Waiting") {
     return err({ kind: "InvalidState", requestId: request.requestId });
+  }
+
+  if (!isDriverAvailable) {
+    return err({ kind: "DriverNotAvailable", driverId });
   }
 
   return ok(TaxiRequest.assignDriver(request, driverId, assignedAt));
@@ -214,6 +225,7 @@ const assignDriverUseCase =
   async (
     requestId: RequestId,
     driverId: DriverId,
+    isDriverAvailable: boolean,
     now: Date,
   ): Promise<Result<EnRoute, AssignDriverError>> => {
     const request = await requestResolver.findById(requestId);
@@ -221,7 +233,7 @@ const assignDriverUseCase =
       return err({ kind: "RequestNotFound", requestId });
     }
 
-    const assignment = assignDriver(request, driverId, now);
+    const assignment = assignDriver(request, driverId, isDriverAvailable, now);
 
     return assignment.match(
       async (enRoute) => {
@@ -233,6 +245,6 @@ const assignDriverUseCase =
   };
 ```
 
-The use case returns `RequestNotFound` when the resolver finds no request; the pure `assignDriver` decision returns `InvalidState` when the request is no longer `Waiting`. Those are expected business outcomes in its `Result`. By contrast, an unexpected rejection from `findById` or `save` propagates to the application error boundary; do not turn it into a generic repository error.
+The use case returns `RequestNotFound` when the resolver finds no request; the pure `assignDriver` decision returns `InvalidState` when the request is no longer `Waiting` and `DriverNotAvailable` when the driver cannot be assigned. Those are expected business outcomes in its `Result`. By contrast, an unexpected rejection from `findById` or `save` propagates to the application error boundary; do not turn it into a generic repository error.
 
 `now` is injected as a parameter; never call `new Date()` inside the use case so tests can pin time deterministically.
