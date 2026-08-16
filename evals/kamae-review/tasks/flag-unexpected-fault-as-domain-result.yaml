@@ -11,6 +11,10 @@ inputs:
     Review the attached TypeScript file as part of a pull request and report
     findings against the kamae principles. Cite the relevant principle for
     each finding and tag severity (High / Medium / Low / Suggestion).
+    Include one finding bullet beginning `Medium:` or `[P2]` that, on the same
+    line, identifies `RepositoryError` or `cause: unknown`, explains that only
+    a named and recoverable external failure (or one with documented recovery)
+    belongs in `Result`, and requires the unknown fault to propagate.
   files:
     - path: violations/unexpected-fault-as-domain-result.ts
 
@@ -23,4 +27,4 @@ graders:
     name: reports_unexpected_fault_as_domain_result
     config:
       regex_match:
-        - "(?is)(?:\\bMedium\\b|\\[P2\\])(?=(?:(?!\\b(?:High|Medium|Low|Suggestion)\\b|\\[P[0-3]\\]).){0,800}?(?:RepositoryError|cause\\s*:\\s*unknown))(?=(?:(?!\\b(?:High|Medium|Low|Suggestion)\\b|\\[P[0-3]\\]).){0,800}?(?:named.{0,120}(?:recoverable|documented\\s+(?:\\w+\\s+){0,2}recovery)|(?:recoverable|documented\\s+(?:\\w+\\s+){0,2}recovery).{0,120}named))(?=(?:(?!\\b(?:High|Medium|Low|Suggestion)\\b|\\[P[0-3]\\]).){0,800}?\\bexternal\\b)(?=(?:(?!\\b(?:High|Medium|Low|Suggestion)\\b|\\[P[0-3]\\]).){0,800}?(?:\\b(?:belongs?|model(?:led)?)\\b.{0,120}\\bResult\\b|\\bResult\\b.{0,120}\\b(?:belongs?|contain|include|model)))(?=(?:(?!\\b(?:High|Medium|Low|Suggestion)\\b|\\[P[0-3]\\]).){0,800}?(?:unknown.{0,160}propagat|propagat.{0,160}unknown))(?:(?!\\b(?:High|Medium|Low|Suggestion)\\b|\\[P[0-3]\\]).){0,800}"
+        - "(?im)^\\s*(?:[-*]\\s+|\\d+[.)]\\s+)(?:\\*{1,2})?(?:Medium|\\[P2\\])(?:\\*{1,2})?(?:\\s*[:—-]\\s*)?(?=[^\\n]*(?:RepositoryError|cause\\s*:\\s*unknown))(?=[^\\n]*(?:named[^\\n]{0,120}recoverable|recoverable[^\\n]{0,120}named|documented\\s+(?:\\w+\\s+){0,2}recovery))(?=[^\\n]*\\bexternal\\b)(?=[^\\n]*\\bResult\\b)(?=[^\\n]*(?:unknown[^\\n]{0,160}propagat|propagat[^\\n]{0,160}unknown))[^\\n]*$"
