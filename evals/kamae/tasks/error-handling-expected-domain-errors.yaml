@@ -21,8 +21,10 @@ inputs:
 
     Return a `Result` for those three outcomes so callers must branch on the
     failure exhaustively. An unclassified database timeout, configuration
-    defect, or unknown SDK failure is not a business error: do not put any of
-    those failures in a `RepositoryError` member.
+    defect, or unknown SDK failure is not a business error: let it propagate as
+    a thrown or rejected failure instead of representing it in any `Result`
+    error member. In particular, do not introduce a catch-all error variant
+    such as `RepositoryError`, `InfrastructureError`, or `UnknownFailure`.
 
     Use the project's dependencies (see package.json).
   files:
@@ -42,3 +44,11 @@ graders:
       regex_not_match:
         - "RepositoryError"
         - "throw\\s+new\\s+\\w*Error\\b"
+  - type: text
+    name: unclassified_infrastructure_failures_propagate
+    config:
+      regex_match:
+        - "throw\\s+error"
+      regex_not_match:
+        - "(?i)(?:repository|infrastructure|unknown|unexpected)(?:_)?(?:error|failure)"
+        - "(?i)(?:database(?:_)?timeout|configuration(?:_)?(?:error|defect)|sdk(?:_)?(?:error|failure))"
