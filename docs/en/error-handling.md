@@ -56,7 +56,7 @@ Convert `AssignDriverError` into an HTTP response at the controller boundary by 
 
 `assertNever` and failed internal assertions represent contract or invariant violations. Let their exceptions reach the application error boundary; do not convert them into catch-all `Result` errors.
 
-A private control-flow sentinel is allowed only when all of these containment conditions hold:
+A private control-flow sentinel is allowed only when it is clearer than equivalent `Result` composition and all of these containment conditions hold. Prefer `Result` when the two forms are equally clear.
 
 - it is private to a tightly scoped local operation;
 - its catch boundary identifies only the sentinel it owns after discriminating `unknown`;

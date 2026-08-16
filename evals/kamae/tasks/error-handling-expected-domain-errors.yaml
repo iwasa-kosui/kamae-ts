@@ -32,11 +32,13 @@ inputs:
 
     Callers must branch on the `Result` failure exhaustively. Do not widen that
     `Result` error type with any other member. An unclassified database timeout,
-    configuration defect, or unknown SDK failure is not a business error: let
-    it propagate as a thrown or rejected failure instead of representing it in
-    any `Result` error member. In particular, do not introduce a catch-all
-    error variant such as `RepositoryError`, `InfrastructureError`, or
-    `UnknownFailure`.
+    configuration defect, or unknown SDK failure is not a business error. Model
+    repository operations that have no specified recovery as native rejecting
+    promises, and let failures propagate naturally through `await` instead of
+    catching them solely to convert them into the public `Result`. Do not
+    introduce a catch-all error variant such as `RepositoryError`,
+    `InfrastructureError`, or `UnknownFailure`. An explicit rethrow or
+    `Promise.reject` is not required.
 
     Use the project's dependencies (see package.json).
   files:
@@ -58,10 +60,11 @@ graders:
         - "RepositoryError"
         - "throw\\s+new\\s+\\w*Error\\b"
   - type: text
-    name: unclassified_infrastructure_failures_propagate
+    name: native_repository_rejections_are_not_converted
     config:
       regex_match:
-        - "(?:throw\\s+[A-Za-z_$][\\w$]*|Promise\\.reject\\s*\\(\\s*[A-Za-z_$][\\w$]*\\s*\\))"
+        - "\\bawait\\s+[A-Za-z_$][\\w$]*(?:\\.[A-Za-z_$][\\w$]*)+\\s*\\("
       regex_not_match:
         - "(?i)(?:repository|infrastructure|unknown|unexpected)(?:_)?(?:error|failure)"
         - "(?i)(?:database(?:_)?timeout|configuration(?:_)?(?:error|defect)|sdk(?:_)?(?:error|failure))"
+        - "(?is)\\bcatch\\s*\\([^)]*\\)\\s*\\{.{0,800}(?:return\\s+(?:err|failure|left|Result\\.(?:err|error|failure))\\s*\\(|return\\s*\\{.{0,240}(?:ok\\s*:\\s*false|error\\s*:)|RequestNotFound|InvalidState|DriverNotAvailable)"

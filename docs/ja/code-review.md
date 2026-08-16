@@ -114,14 +114,14 @@ declaration merging により型の形状が暗黙に変わる危険がありま
 | --- | --- |
 | 想定されるバリデーション・業務状態の失敗を throw している | ユースケース固有の `Result` エラーを求める |
 | 回復方法が定義された外部障害を throw している | 名前付きの回復可能な失敗を `Result` でモデル化する |
-| 予期しない停止・障害、設定不備、assertion を `cause: unknown` 付きの `RepositoryError` に変換している | 汎用的なドメインエラーにせず、アプリケーションのエラー境界まで伝播させる |
+| 任意の技術的障害を catch し、汎用エラーへラップまたは改名してドメインの `Result` union に追加している | 型名やフィールド名に関係なく、汎用的なドメインエラーにせずアプリケーションのエラー境界まで伝播させる |
 | 非公開 sentinel が、`unknown` の判別後に対応する境界で catch され、それ以外の値がすべて再 throw される | 指摘なし |
 
-`assertNever` 内の `throw`、伝播する内部 assertion の失敗、アプリケーションのエラー境界へ到達する予期しない障害は指摘しません。その境界がログ記録と汎用的な運用レスポンスを所有します。非公開 sentinel は、狭い範囲に限定され、対応する catch 境界だけが識別し、それ以外をすべて再 throw し、想定されるドメイン失敗を表さない場合に限り許容します。assertion を汎用的な `Result` エラーに変換する実装は指摘対象です。
+`assertNever` 内の `throw`、伝播する内部 assertion の失敗、アプリケーションのエラー境界へ到達する予期しない障害は指摘しません。その境界がログ記録と汎用的な運用レスポンスを所有します。非公開 sentinel は、同等の `Result` 合成より明確で、狭い範囲に限定され、対応する catch 境界だけが識別し、それ以外をすべて再 throw し、想定されるドメイン失敗を表さない場合に限り許容します。両者が同程度に明確なら `Result` を優先します。assertion や任意の技術的障害を汎用的な `Result` エラーに変換する実装は、ラッパーが `RepositoryError` 以外の名前で、ペイロードが `cause` 以外の名前でも指摘対象です。
 
 #### 3.2 エラー型が Discriminated Union になっているか
 
-`Result` や公開された業務契約に含む想定エラーについて、`Error` のサブクラス、自由形式の `string` エラーコード、`Result<T, string>` を指摘します。Discriminated Union（`{ kind: "DriverNotAvailable"; driverId } | { kind: "RequestAlreadyAssigned" }`）への変更を提案し、呼び出し側が想定される結果を網羅的に分岐できるようにします。アプリケーションのエラー境界まで伝播する assertion や契約違反の例外には、このルールを適用しません。
+`Result` や公開された業務契約に含む想定エラーについて、`Error` のサブクラス、自由形式の `string` エラーコード、`Result<T, string>` を指摘します。Discriminated Union（`{ kind: "DriverNotAvailable"; driverId } | { kind: "RequestAlreadyAssigned" }`）への変更を提案し、呼び出し側が想定される結果を網羅的に分岐できるようにします。アプリケーションのエラー境界まで伝播する予期しないインフラ障害、assertion、契約違反の例外には、このルールを適用しません。
 
 #### 3.3 Result 合成で不要な unwrap/re-wrap をしていないか
 

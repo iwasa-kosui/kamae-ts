@@ -34,7 +34,7 @@ type RequestStore = {
 
 ## Compose expected outcomes
 
-Each operation that can produce an expected domain failure returns a `Result`; composition stops at that expected outcome. The composition API differs by library (neverthrow/byethrow use `.andThen()`, fp-ts uses `pipe` + `chain`, option-t uses `flatMapForResult`).
+Each operation that can produce an expected domain failure returns a `Result`; composition stops at that expected outcome. The composition API differs by library: neverthrow uses `.andThen`, byethrow uses `Result.andThen`, fp-ts uses `E.chain` or `E.bind`, and option-t uses `andThenForResult`.
 
 ```typescript
 const ensureFound = <T>(id: RequestId) => (
@@ -51,7 +51,7 @@ Convert `AssignDriverError` into an HTTP response at the controller boundary by 
 
 `assertNever` remains appropriate for a contract or invariant violation: it detects a supposedly unreachable branch and lets the resulting exception reach the application error boundary. It must not turn expected domain outcomes into thrown errors.
 
-Private control-flow sentinels are also allowed for a tightly scoped local search. The catch boundary must identify the one sentinel it owns and rethrow every other error:
+Private control-flow sentinels are also allowed for a tightly scoped local search only when they are clearer than equivalent `Result` composition. Prefer `Result` when the two forms are equally clear. The catch boundary must identify the one sentinel it owns and rethrow every other error:
 
 ```typescript
 const foundDriver = Symbol("foundDriver");

@@ -114,14 +114,14 @@ Classify an observed `throw` or caught error before reporting it. Apply the deci
 | --- | --- |
 | Expected validation or business-state failure is thrown | Require a use-case-specific `Result` error |
 | External failure has documented recovery but is thrown | Model the named recoverable failure in `Result` |
-| Unexpected outage, configuration defect, or assertion is wrapped as `RepositoryError` with `cause: unknown` | Allow propagation to the application error boundary instead of using a catch-all domain error |
+| An arbitrary technical fault is caught, wrapped or renamed as a catch-all error, and added to a domain `Result` union | Allow propagation to the application error boundary instead of using a catch-all domain error, regardless of the type or field names |
 | Private sentinel is caught by its associated boundary after discriminating `unknown`, and every other value is rethrown | No finding |
 
-Do not report `throw` inside `assertNever`, a failed internal assertion that propagates, or an unexpected fault that reaches the application error boundary. That boundary owns logging and the generic operational response. A private sentinel is acceptable only when it is tightly scoped, is recognized exclusively by its associated catch boundary, rethrows all other caught values, and does not represent an expected domain failure. Converting an assertion into a catch-all `Result` error is a finding.
+Do not report `throw` inside `assertNever`, a failed internal assertion that propagates, or an unexpected fault that reaches the application error boundary. That boundary owns logging and the generic operational response. A private sentinel is acceptable only when it is clearer than equivalent `Result` composition, is tightly scoped, is recognized exclusively by its associated catch boundary, rethrows all other caught values, and does not represent an expected domain failure. Prefer `Result` when the two forms are equally clear. Converting an assertion or arbitrary technical fault into a catch-all `Result` error is a finding even when the wrapper is not named `RepositoryError` and its payload is not named `cause`.
 
 #### 3.2 Error types defined as Discriminated Unions
 
-For expected errors exposed in a `Result` or another public business contract, flag `Error` subclasses, free-form `string` error codes, or `Result<T, string>`. Suggest a Discriminated Union (`{ kind: "DriverNotAvailable"; driverId } | { kind: "RequestAlreadyAssigned" }`) so callers can handle expected outcomes exhaustively. Do not apply this rule to assertion or contract-violation exceptions that propagate to the application error boundary.
+For expected errors exposed in a `Result` or another public business contract, flag `Error` subclasses, free-form `string` error codes, or `Result<T, string>`. Suggest a Discriminated Union (`{ kind: "DriverNotAvailable"; driverId } | { kind: "RequestAlreadyAssigned" }`) so callers can handle expected outcomes exhaustively. Do not apply this rule to unexpected infrastructure faults, assertions, or contract-violation exceptions that propagate to the application error boundary.
 
 #### 3.3 Result composition avoids unnecessary unwrap/re-wrap
 

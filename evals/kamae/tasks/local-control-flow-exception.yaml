@@ -15,7 +15,9 @@ inputs:
     explicitly named `findAvailableDriver` search boundary and return
     `Option<Driver>` (or an equivalent public optional value). The sentinel is
     local control flow, not a business error, and must not appear in the public
-    return type. Rethrow unknown errors from the catch block with `throw error`.
+    return type. Define the sentinel as a non-exported symbol, discriminate the
+    caught `unknown` value before handling it, and rethrow every non-sentinel
+    value from the associated catch block with `throw error`.
 
     Use the project's dependencies (see package.json).
   files:
@@ -30,7 +32,12 @@ graders:
     name: contained_local_control_flow
     config:
       regex_match:
-        - "\\btry\\b"
-        - "\\bcatch\\b"
-        - "\\bthrow\\b"
+        - "(?m)^const\\s+[A-Za-z_$][\\w$]*\\s*=\\s*Symbol\\s*\\("
+        - "(?m)(?:export\\s+)?(?:const|function)\\s+findAvailableDriver\\b"
+        - "(?s)findAvailableDriver.{0,1200}\\btry\\b.{0,1600}\\bcatch\\s*\\(\\s*error\\s*:\\s*unknown\\s*\\)"
+        - "(?s)catch\\s*\\(\\s*error\\s*:\\s*unknown\\s*\\)\\s*\\{.{0,600}(?:is[A-Za-z_$][\\w$]*\\s*\\(\\s*error\\s*\\)|error\\s*===|===\\s*error).{0,600}throw\\s+error"
+        - "(?s)findAvailableDriver.{0,300}(?:Option\\s*<\\s*Driver\\s*>|Driver\\s*\\|\\s*(?:undefined|null))"
         - "throw\\s+error"
+      regex_not_match:
+        - "(?im)^export\\s+(?:const|type|interface|class)\\s+(?:Found[A-Za-z_$][\\w$]*|[A-Za-z_$][\\w$]*(?:sentinel|signal)[A-Za-z_$0-9]*)\\b"
+        - "(?is)findAvailableDriver.{0,300}(?:Found[A-Z]|Sentinel|Signal)"
