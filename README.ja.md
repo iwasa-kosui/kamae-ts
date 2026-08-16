@@ -29,15 +29,19 @@
 [`gh skill`](https://cli.github.com/manual/gh_skill)（GitHub CLI のエージェントスキル拡張）経由:
 
 ```bash
-# 単一スキルをインストール（エージェント/スコープは対話で選択）
+# 両方のスキルをインストール（エージェント／スコープを対話的に選択）
 gh skill install iwasa-kosui/kamae-ts kamae
+gh skill install iwasa-kosui/kamae-ts kamae-review
 
-# 非対話的に Claude Code のユーザースコープへインストール
+# 両方のスキルを Claude Code の user スコープへ非対話的にインストール
 gh skill install iwasa-kosui/kamae-ts kamae \
   --agent claude-code --scope user
+gh skill install iwasa-kosui/kamae-ts kamae-review \
+  --agent claude-code --scope user
 
-# 特定リリースを固定
+# 両方のスキルを特定のリリースに固定
 gh skill install iwasa-kosui/kamae-ts kamae@v1.0.0
+gh skill install iwasa-kosui/kamae-ts kamae-review@v1.0.0
 ```
 
 または [`skills` CLI](https://github.com/anthropics/skills) 経由:
@@ -74,14 +78,6 @@ frontmatter で `applies-to: kamae`, `applies-to: kamae-review`, あるいは `a
 rule のフォーマットと具体例は [`rules/README.md`](./rules/README.md) を参照。
 
 スキル全体を置き換えたい場合は、Claude Code 標準の skill path-shadowing（プロジェクトの `.claude/skills/kamae/SKILL.md` がインストール済みプラグインを上書きする）を使う。
-
-## 評価
-
-各スキルの品質を [`microsoft/waza`](https://github.com/microsoft/waza) で継続的に評価している。
-
-- スイートは [`evals/kamae/`](./evals/kamae/) と [`evals/kamae-review/`](./evals/kamae-review/) に配置
-- `pull_request` で `skills/**` / `evals/**` / `rules/**` / `.waza.yaml` のいずれかが変更された場合、[`.github/workflows/eval.yml`](./.github/workflows/eval.yml) が `copilot-sdk` executor で実行される
-- 採用の背景・前提条件は [ADR 0001](./docs/adr/0001-introduce-waza-for-skill-evals.md) を参照
 
 ## ドキュメント
 

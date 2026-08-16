@@ -119,13 +119,19 @@ declaration merging により型の形状が暗黙に変わる危険がありま
 
 `assertNever` 内の `throw`、伝播する内部 assertion の失敗、アプリケーションのエラー境界へ到達する予期しない障害は指摘しません。その境界がログ記録と汎用的な運用レスポンスを所有します。非公開 sentinel は、同等の `Result` 合成より明確で、狭い範囲に限定され、対応する catch 境界だけが識別し、それ以外をすべて再 throw し、想定されるドメイン失敗を表さない場合に限り許容します。両者が同程度に明確なら `Result` を優先します。assertion や任意の技術的障害を汎用的な `Result` エラーに変換する実装は、ラッパーが `RepositoryError` 以外の名前で、ペイロードが `cause` 以外の名前でも指摘対象です。
 
+`ResultAsync.fromSafePromise`（または他ライブラリの同等の「safe」ラッパー）で reject しうる Promise（DB 呼び出し、ネットワーク I/O、外部 API 呼び出し）をラップしている場合も指摘します。`fromSafePromise` は「この Promise は reject しない」という契約であり、違反すると Result のエラーチャネルを迂回してハンドルされない rejection が発生します。ワークフローに回復判断が定義されている場合だけ、名前付きエラーを伴う `fromPromise` への変更を提案します。それ以外では rejection をアプリケーションのエラー境界まで伝播させます。参照: [`./error-handling.md` §fromSafePromise の誤用](./error-handling.md)
+
 #### 3.2 エラー型が Discriminated Union になっているか
 
 `Result` や公開された業務契約に含む想定エラーについて、`Error` のサブクラス、自由形式の `string` エラーコード、`Result<T, string>` を指摘します。Discriminated Union（`{ kind: "DriverNotAvailable"; driverId } | { kind: "RequestAlreadyAssigned" }`）への変更を提案し、呼び出し側が想定される結果を網羅的に分岐できるようにします。アプリケーションのエラー境界まで伝播する予期しないインフラ障害、assertion、契約違反の例外には、このルールを適用しません。
 
+エラー DU のバリアントで、コンテキストデータ（ID、コード、エラーの原因となった値）が `message: string` にしか存在せず、型付きフィールドとして公開されていない場合も指摘します。`message` フィールド自体はログや表示用に持っていて構いませんが、分岐やリトライに必要な値を message のパースで取得しなければならない状態は、型付きエラーの利点を失わせます。関連するコンテキストを `message` と並行して名前付きフィールドとして追加するよう提案します。参照: [`./error-handling.md` §エラー型の設計](./error-handling.md)
+
 #### 3.3 Result 合成で不要な unwrap/re-wrap をしていないか
 
 想定される判断の合成途中で、unwrap した直後に re-wrap する不要な実装だけを指摘します。その場合は `./result-libraries/` 配下の該当ガイドを引用し、対応するコンビネータを提案します。想定される判断が完了した後の明確な `if` や `match` は許容します。特に、reject を伝播させるべき通常の非同期永続化境界では適切です。option-t の公式レシピも、その境界で意図的に明示的な分岐を使っています。
+
+`andThen` / `map` のコールバックが約 5 行を超えていたり、複数分岐の if/else ロジックを含んでいたりする場合も指摘します。これは Result コンビネータで包んだ手続き的コードであり、Railway Oriented Programming ではありません。各論理ステップを名前付き関数に抽出し、チェーンがフラットなパイプラインとして読めるようにすることを提案します。参照: [`./error-handling.md` §処理の合成](./error-handling.md)
 
 ### 4. 境界の防御
 

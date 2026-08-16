@@ -119,13 +119,19 @@ Classify an observed `throw` or caught error before reporting it. Apply the deci
 
 Do not report `throw` inside `assertNever`, a failed internal assertion that propagates, or an unexpected fault that reaches the application error boundary. That boundary owns logging and the generic operational response. A private sentinel is acceptable only when it is clearer than equivalent `Result` composition, is tightly scoped, is recognized exclusively by its associated catch boundary, rethrows all other caught values, and does not represent an expected domain failure. Prefer `Result` when the two forms are equally clear. Converting an assertion or arbitrary technical fault into a catch-all `Result` error is a finding even when the wrapper is not named `RepositoryError` and its payload is not named `cause`.
 
+Also flag: `ResultAsync.fromSafePromise` (or equivalent "safe" wrapper in other libraries) wrapping a Promise that can reject — database calls, network I/O, external API calls. `fromSafePromise` is a contract stating the Promise never rejects; violating it bypasses the Result error channel and produces an unhandled rejection at runtime. Suggest `fromPromise` with a named error only when the workflow specifies a recovery decision; otherwise let the rejection reach the application error boundary. Reference: [`./error-handling.md` §fromSafePromise Misuse](./error-handling.md)
+
 #### 3.2 Error types defined as Discriminated Unions
 
 For expected errors exposed in a `Result` or another public business contract, flag `Error` subclasses, free-form `string` error codes, or `Result<T, string>`. Suggest a Discriminated Union (`{ kind: "DriverNotAvailable"; driverId } | { kind: "RequestAlreadyAssigned" }`) so callers can handle expected outcomes exhaustively. Do not apply this rule to unexpected infrastructure faults, assertions, or contract-violation exceptions that propagate to the application error boundary.
 
+Also flag: error DU variants where contextual data (IDs, codes, values that caused the error) exists only in a `message: string` field and is not exposed as typed fields. A `message` field itself is fine for logging or display, but when callers must parse it to extract values for branching or retry logic, the typed error has lost its purpose. Suggest adding the relevant context as named fields alongside `message`. Reference: [`./error-handling.md` §Designing Error Types](./error-handling.md)
+
 #### 3.3 Result composition avoids unnecessary unwrap/re-wrap
 
 Flag only an unnecessary unwrap followed by re-wrapping in the middle of composing expected decisions. In that case, cite the relevant guide under `./result-libraries/` and suggest the matching combinator. A clear `if` or `match` after the expected decision is complete is allowed, especially when crossing into native async persistence whose rejection must propagate. The official option-t recipe is intentionally explicit at that boundary.
+
+Also flag: `andThen` / `map` callbacks exceeding ~5 lines or containing multi-branch if/else logic. This is procedural code wrapped in a Result combinator, not Railway Oriented Programming. Suggest extracting each logical step into a named function so the chain reads as a flat pipeline of operations. Reference: [`./error-handling.md` §Composing Operations](./error-handling.md)
 
 ### 4. Boundary Defense
 

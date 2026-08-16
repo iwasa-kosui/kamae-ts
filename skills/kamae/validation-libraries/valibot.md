@@ -77,6 +77,7 @@ const PatientSchema = v.object({
 
 ## Guidelines
 
+- When a schema defines a representation, derive its type with `v.InferInput<typeof Schema>` or `v.InferOutput<typeof Schema>` as appropriate; do not restate the shape in a separate `type` or `interface`.
 - Use `v.safeParse` over `v.parse` for Railway Oriented Programming integration (see [boundary-defense.md](../boundary-defense.md) for schema factory patterns)
 - The same schema factory works across all Standard Schema-compliant libraries — the schema factories in boundary-defense.md work with Valibot without modification
 - Valibot is tree-shakeable and significantly smaller than Zod, making it ideal for edge environments (Cloudflare Workers, etc.)

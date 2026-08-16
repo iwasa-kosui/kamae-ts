@@ -15,19 +15,47 @@ Use `Result` to make expected workflow outcomes explicit. Let the application er
 
 Define expected domain errors as discriminated unions so callers can handle them exhaustively. Keep each union specific to one use case instead of widening it into a catch-all application error type.
 
+## fromSafePromise Misuse
+
+`ResultAsync.fromSafePromise` (neverthrow) and equivalent "safe" wrappers in other libraries assert that the wrapped Promise **never rejects**. Wrapping a Promise that can reject (database queries, HTTP calls, file I/O) violates that contract: on rejection the error bypasses the Result channel entirely and becomes an unhandled rejection.
+
 ```typescript
+// Bad: DB call can reject — fromSafePromise swallows that possibility
+ResultAsync.fromSafePromise(deps.getDriver(driverId))
+
+// Good only when the workflow specifies how to recover from this failure
+ResultAsync.fromPromise(
+  deps.getDriver(driverId),
+  (cause): GetDriverError => ({ kind: "DriverLookupUnavailable", cause }),
+)
+```
+
+Use `fromSafePromise` only for Promises that are genuinely infallible — e.g. `Promise.resolve(value)`, in-memory lookups that never throw, or library calls documented to never reject. Use `fromPromise` only when its named error represents a documented recovery decision; otherwise await the operation and let its rejection reach the application error boundary.
+
+## Error Type Design
+
+Define errors as Discriminated Unions so that callers can handle them exhaustively. Each variant should expose contextual data as **typed fields**. A `message` field for logging or display is fine, but it must not be the only place where context values live — callers that need to branch or retry based on those values should not have to parse a string.
+
+```typescript
+// Good: context available as typed fields; message is optional and for display only
 type AssignDriverError =
-  | { readonly kind: "RequestNotFound"; readonly requestId: RequestId }
-  | { readonly kind: "InvalidState"; readonly requestId: RequestId }
-  | { readonly kind: "DriverNotAvailable"; readonly driverId: DriverId };
+  | Readonly<{ kind: "RequestNotFound"; requestId: RequestId }>
+  | Readonly<{ kind: "InvalidState"; currentKind: string; expectedKind: "Waiting" }>
+  | Readonly<{ kind: "DriverNotAvailable"; driverId: DriverId; message?: string }>;
 
 type AssignDriver = (
   command: AssignDriverCommand,
 ) => Promise<Result<AssignedDriver, AssignDriverError>>;
 
-type RequestStore = {
+type RequestStore = Readonly<{
   readonly save: (request: AssignedRequest) => Promise<void>;
-};
+}>;
+
+// Bad: driverId and zoneId exist only inside message — callers must parse to extract them
+type DriverNotAvailableError = Readonly<{
+  kind: "DriverNotAvailableError";
+  message: string; // "Driver drv-123 is not available in zone zone-A"
+}>;
 ```
 
 `RequestStore.save` may reject because of an unexpected infrastructure fault, such as a lost database connection; let that rejection reach the application error boundary. Add a named `ExternalServiceError` to `AssignDriverError` only when the workflow specifies a recovery decision, such as retrying, selecting a fallback provider, or asking the caller to try again.

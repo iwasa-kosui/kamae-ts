@@ -18,7 +18,7 @@ import { mapErrForResult } from "option-t/plain_result/map_err";
 import { orElseForResult } from "option-t/plain_result/or_else";
 ```
 
-または名前空間import:
+または、named import で公開される namespace-style API を使用します:
 
 ```typescript
 import { Result } from "option-t/plain_result/namespace";

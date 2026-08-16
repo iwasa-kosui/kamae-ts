@@ -92,6 +92,7 @@ if (result instanceof type.errors) {
 
 ## Guidelines
 
+- When a schema defines a representation, use `typeof Schema.infer` for output inference and `typeof Schema.inferIn` for input inference when morphs or defaults make them differ; do not restate the shape in a separate `type` or `interface`.
 - ArkType uses a call-based API (`schema(data)`) instead of `safeParse` — check `instanceof type.errors` for failure
 - The schema factories in [boundary-defense.md](../boundary-defense.md) use the Standard Schema interface and work with ArkType without modification
 - ArkType's type syntax mirrors TypeScript syntax (e.g., `"string | number"`, `"string[]"`) for a minimal learning curve

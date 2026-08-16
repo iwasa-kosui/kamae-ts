@@ -29,15 +29,19 @@ The current stances focus on functional domain modeling; more will be added over
 Via [`gh skill`](https://cli.github.com/manual/gh_skill) (the GitHub CLI's agent skills extension):
 
 ```bash
-# Install a single skill (interactive prompt for agent/scope)
+# Install both skills (interactive prompt for agent/scope)
 gh skill install iwasa-kosui/kamae-ts kamae
+gh skill install iwasa-kosui/kamae-ts kamae-review
 
-# Install non-interactively for Claude Code at user scope
+# Install both skills non-interactively for Claude Code at user scope
 gh skill install iwasa-kosui/kamae-ts kamae \
   --agent claude-code --scope user
+gh skill install iwasa-kosui/kamae-ts kamae-review \
+  --agent claude-code --scope user
 
-# Pin to a specific release
+# Pin both skills to a specific release
 gh skill install iwasa-kosui/kamae-ts kamae@v1.0.0
+gh skill install iwasa-kosui/kamae-ts kamae-review@v1.0.0
 ```
 
 Or via [`skills` CLI](https://github.com/anthropics/skills):
@@ -74,14 +78,6 @@ A rule applies to kamae-ts when its frontmatter declares `applies-to: kamae`, `a
 See [`rules/README.md`](./rules/README.md) for the rule format and concrete examples.
 
 For full skill replacement, use Claude Code's standard skill path-shadowing (`.claude/skills/kamae/SKILL.md` overrides the installed plugin's).
-
-## Evaluation
-
-Skill quality is continuously evaluated with [`microsoft/waza`](https://github.com/microsoft/waza).
-
-- Suites live under [`evals/kamae/`](./evals/kamae/) and [`evals/kamae-review/`](./evals/kamae-review/).
-- [`.github/workflows/eval.yml`](./.github/workflows/eval.yml) runs both suites on every `pull_request` that touches `skills/**`, `evals/**`, `rules/**`, or `.waza.yaml`, using the `copilot-sdk` executor.
-- See [ADR 0001](./docs/adr/0001-introduce-waza-for-skill-evals.md) for adoption rationale and preconditions.
 
 ## Documentation
 

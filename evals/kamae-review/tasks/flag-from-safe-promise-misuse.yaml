@@ -1,0 +1,18 @@
+id: kamae-review-safe-promise-001
+name: Flag fromSafePromise wrapping fallible Promises
+description: |
+  The fixture uses ResultAsync.fromSafePromise to wrap database calls and
+  network I/O that can reject. The reviewer should flag this as a 3.1 violation
+  (fromSafePromise misuse) and suggest fromPromise with an error mapper.
+
+inputs:
+  prompt: |
+    Review the attached TypeScript file as part of a pull request and report
+    findings against the kamae principles. Cite the relevant principle for
+    each finding and tag severity (High / Medium / Low / Suggestion).
+  files:
+    - path: violations/from-safe-promise-misuse.ts
+
+expected:
+  outcomes:
+    - type: task_completed

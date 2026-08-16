@@ -1,6 +1,6 @@
 {
   "name": "kamae-ts",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "Kamae (構え) — an extensible harness of skill plugins for designing and implementing robust server-side TypeScript applications",
   "license": "MIT",
   "repository": {
@@ -8,18 +8,12 @@
     "url": "https://github.com/iwasa-kosui/kamae-ts"
   },
   "scripts": {
-    "eval": "bun run evals/runner/run.ts",
     "gen:og-image": "bun run scripts/gen-og-image.ts",
     "gen:og-image-community": "bun run scripts/gen-og-image-community.ts"
-  },
-  "dependencies": {
-    "yaml": "^2.6.1"
   },
   "devDependencies": {
     "@fontsource/inter": "^5.2.8",
     "@resvg/resvg-js": "^2.6.2",
-    "@types/bun": "^1.1.14",
-    "satori": "^0.26.0",
-    "typescript": "^5.7.2"
+    "satori": "^0.26.0"
   }
 }

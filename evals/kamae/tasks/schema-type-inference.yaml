@@ -1,0 +1,38 @@
+id: kamae-schema-type-inference-001
+name: Complete a boundary module with an existing public API
+description: |
+  Positive case. An existing module exports an HTTP request body type and its
+  Zod schema. The completed module should preserve the API while remaining
+  maintainable as validation evolves.
+
+inputs:
+  prompt: |
+    Complete the provided server-side TypeScript module for creating a task.
+
+    Preserve its exported API and add:
+      1. A `parseCreateTaskInput(raw: unknown)` function
+      2. A `createTask(input: CreateTaskInput)` function
+
+    The module should remain easy to maintain as request validation evolves.
+    Read the provided module and package.json, and apply the conventions
+    appropriate to the project's dependencies. Return the complete module as
+    TypeScript code.
+  files:
+    - path: package.json
+    - path: schemas/create-task-input.ts
+
+expected:
+  outcomes:
+    - type: task_completed
+
+graders:
+  - type: text
+    name: infers_type_from_zod_schema
+    config:
+      regex_match:
+        - '(?s)type\s+CreateTaskInput\s*=\s*(?:z\.(?:infer|input|output)\s*<\s*typeof\s+CreateTaskInputSchema\s*>|Readonly\s*<\s*z\.(?:infer|input|output)\s*<\s*typeof\s+CreateTaskInputSchema\s*>\s*>)'
+  - type: text
+    name: does_not_restate_schema_shape
+    config:
+      regex_not_match:
+        - '(?s)(?:type\s+CreateTaskInput\s*=\s*(?:Readonly\s*<\s*)?\{|interface\s+CreateTaskInput\s*\{)'

@@ -24,14 +24,46 @@ has_children: true
 
 想定されるエラーは Discriminated Union で定義し、呼び出し側が網羅的に扱えるようにします。汎用的な `AppError` や `RepositoryError` に広げず、各 union をユースケース固有に保ちます。
 
+## fromSafePromise の誤用
+
+`ResultAsync.fromSafePromise`（neverthrow）や他ライブラリの同等の「safe」ラッパーは、渡された Promise が **reject しない** ことを前提にしています。reject しうる Promise（DB クエリ、HTTP 呼び出し、ファイル I/O など）をラップすると、reject 時にエラーが Result チャネルを迂回し、ハンドルされない rejection になります。
+
 ```typescript
+// Bad: DB呼び出しはrejectしうる — fromSafePromiseではその可能性が無視される
+ResultAsync.fromSafePromise(deps.getDriver(driverId))
+
+// Good: 回復方法がワークフローに定義されている場合だけfromPromiseで明示的にエラーをマッピング
+ResultAsync.fromPromise(
+  deps.getDriver(driverId),
+  (cause): GetDriverError => ({ kind: "DriverLookupUnavailable", cause }),
+)
+```
+
+`fromSafePromise` を使ってよいのは、本当に reject しない Promise だけです — `Promise.resolve(value)` やインメモリのルックアップ、reject しないことがドキュメントに明記されたライブラリ呼び出しなどが該当します。`fromPromise` は名前付きエラーが仕様化された回復判断を表す場合だけ使い、それ以外では操作を await して rejection をアプリケーションのエラー境界まで伝播させます。
+
+## エラー型の設計
+
+エラーも Discriminated Union で定義し、呼び出し元が網羅的にハンドルできるようにします。各バリアントは、コンテキストデータを **型付きフィールド** として公開します。ログや表示用の `message` フィールドを持つこと自体は問題ありませんが、コンテキストの値が `message` にしか存在しない状態は避けます。分岐やリトライに必要な値を文字列からパースしなければならなくなるためです。
+
+```typescript
+// Good: コンテキストが型付きフィールドとして利用可能。messageは表示用で省略可
 type AssignDriverError =
   | Readonly<{ kind: "RequestNotFound"; requestId: RequestId }>
   | Readonly<{ kind: "InvalidState"; currentKind: string; expectedKind: "Waiting" }>
-  | Readonly<{ kind: "DriverNotAvailable"; driverId: DriverId }>;
+  | Readonly<{ kind: "DriverNotAvailable"; driverId: DriverId; message?: string }>;
+
+type AssignDriver = (
+  command: AssignDriverCommand,
+) => Promise<Result<AssignedDriver, AssignDriverError>>;
 
 type RequestStore = Readonly<{
   save: (request: EnRoute) => Promise<void>;
+}>;
+
+// Bad: driverIdとzoneIdがmessageの中にしかない — 取り出すにはパースが必要
+type DriverNotAvailableError = Readonly<{
+  kind: "DriverNotAvailableError";
+  message: string; // "Driver drv-123 is not available in zone zone-A"
 }>;
 ```
 

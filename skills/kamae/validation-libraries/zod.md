@@ -2,8 +2,10 @@
 
 ## Basic API
 
+Follow the repository's established Zod import style. If no consistent local convention exists, use Zod's canonical namespace import:
+
 ```typescript
-import { z } from "zod";
+import * as z from "zod";
 ```
 
 | Function/Type | Description |
@@ -78,6 +80,7 @@ const PatientSchema = z.object({
 
 ## Guidelines
 
+- When a schema defines a representation, derive its type with `z.infer<typeof Schema>`. Use `z.input<typeof Schema>` and `z.output<typeof Schema>` explicitly when transforms or defaults make the input and output differ; do not restate the shape in a separate `type` or `interface`.
 - Use `safeParse` over `parse` for Railway Oriented Programming integration (see [boundary-defense.md](../boundary-defense.md) for schema factory patterns)
 - The same factory works across all Standard Schema-compliant libraries — the schema factories in boundary-defense.md work with Zod without modification
 - `z.brand()` eliminates the need for `as` casts on Branded Types

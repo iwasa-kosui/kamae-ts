@@ -40,6 +40,32 @@ const CreateRequestInput = z.object({
 type CreateRequestInput = z.infer<typeof CreateRequestInput>;
 ```
 
+### Infer Types from Schemas
+
+Treat a runtime validation schema as the single source of truth for the representation it validates. When a schema already defines a value's shape, derive its TypeScript type from the schema instead of restating the shape as a separate `type` or `interface`; duplicated definitions can drift apart.
+
+Use input or output inference intentionally when a schema transforms values or supplies defaults. Define a separate domain type only when it intentionally differs from the boundary representation, and make the conversion explicit in a parser or mapper.
+
+```typescript
+// Bad: the schema and type can drift apart
+type CreateRequestInput = Readonly<{
+  passengerId: string;
+}>;
+
+const CreateRequestInputSchema = z.object({
+  passengerId: z.string().uuid(),
+});
+
+// Good: the schema is the source of truth
+const CreateRequestInputSchema = z.object({
+  passengerId: z.string().uuid(),
+});
+
+type CreateRequestInput = z.infer<typeof CreateRequestInputSchema>;
+```
+
+With Zod, use `z.input<typeof Schema>` and `z.output<typeof Schema>` when input and output differ. For Valibot and ArkType syntax, use the detected library guide.
+
 ### Use `safeParse`
 
 `parse` throws an exception. For integration with Railway Oriented Programming, use `safeParse` and convert the result to a Result type.
