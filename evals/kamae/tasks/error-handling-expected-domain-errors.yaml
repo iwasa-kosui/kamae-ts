@@ -13,14 +13,17 @@ inputs:
       - taxiRequestId: TaxiRequestId (branded)
       - driverId: DriverId (branded)
 
-    Define a use-case-specific error discriminated union containing exactly
-    these expected business outcomes:
+    Define a closed use-case-specific `AssignDriverError` union with exactly
+    these named business-error members:
       - RequestNotFound
       - InvalidState
       - DriverNotAvailable
+    Express the union as
+    `type AssignDriverError = RequestNotFound | InvalidState | DriverNotAvailable`.
 
-    Return a `Result` for those three outcomes so callers must branch on the
-    failure exhaustively. An unclassified database timeout, configuration
+    Return a `Result<T, AssignDriverError>` for those three outcomes so callers
+    must branch on the failure exhaustively. Do not widen that `Result` error
+    type with any other member. An unclassified database timeout, configuration
     defect, or unknown SDK failure is not a business error: let it propagate as
     a thrown or rejected failure instead of representing it in any `Result`
     error member. In particular, do not introduce a catch-all error variant
@@ -39,8 +42,8 @@ graders:
     name: expected_business_errors_are_results
     config:
       regex_match:
-        - "(?i)Result"
-        - "RequestNotFound|InvalidState|DriverNotAvailable"
+        - "(?m)type\\s+AssignDriverError\\s*=\\s*RequestNotFound\\s*\\|\\s*InvalidState\\s*\\|\\s*DriverNotAvailable\\s*;"
+        - "Result(?:\\.Result(?:Async)?|Async)?\\s*<[^,>]+,\\s*AssignDriverError\\s*>"
       regex_not_match:
         - "RepositoryError"
         - "throw\\s+new\\s+\\w*Error\\b"
@@ -48,7 +51,7 @@ graders:
     name: unclassified_infrastructure_failures_propagate
     config:
       regex_match:
-        - "throw\\s+error"
+        - "(?:throw\\s+[A-Za-z_$][\\w$]*|Promise\\.reject\\s*\\(\\s*[A-Za-z_$][\\w$]*\\s*\\))"
       regex_not_match:
         - "(?i)(?:repository|infrastructure|unknown|unexpected)(?:_)?(?:error|failure)"
         - "(?i)(?:database(?:_)?timeout|configuration(?:_)?(?:error|defect)|sdk(?:_)?(?:error|failure))"
