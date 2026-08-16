@@ -1,0 +1,28 @@
+id: kamae-review-unexpected-fault-result-001
+name: Flag unexpected infrastructure faults as domain Results
+description: |
+  Adversarial case. A repository catches an arbitrary database failure and
+  adds a RepositoryError with an unknown cause to a domain Result union. Only
+  named, recoverable external failures belong in Result; unknown faults must
+  propagate to the application error boundary.
+
+inputs:
+  prompt: |
+    Review the attached TypeScript file as part of a pull request and report
+    findings against the kamae principles. Cite the relevant principle for
+    each finding and tag severity (High / Medium / Low / Suggestion).
+  files:
+    - path: violations/unexpected-fault-as-domain-result.ts
+
+expected:
+  outcomes:
+    - type: task_completed
+
+graders:
+  - type: text
+    name: reports_unexpected_fault_as_domain_result
+    config:
+      regex_match:
+        - "(?i)(Medium|\\[P2\\])"
+        - "(?i)(recoverable|named).{0,160}Result|Result.{0,160}(recoverable|named)"
+        - "(?i)(unknown|infrastructure|database).{0,160}(propagat|boundary)|(propagat|boundary).{0,160}(unknown|infrastructure|database)"

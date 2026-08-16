@@ -1,0 +1,25 @@
+id: kamae-review-contained-local-exception-001
+name: Allow a contained local-control-flow exception
+description: |
+  Negative-control case. A private sentinel is used only for local control
+  flow, caught by its associated boundary after discriminating unknown values,
+  and every other error is rethrown. It must receive no Medium finding.
+
+inputs:
+  prompt: |
+    Review the attached TypeScript file as part of a pull request and report
+    findings against the kamae principles. Cite the relevant principle for
+    each finding and tag severity (High / Medium / Low / Suggestion).
+  files:
+    - path: clean/contained-local-exception.ts
+
+expected:
+  outcomes:
+    - type: task_completed
+
+graders:
+  - type: text
+    name: does_not_flag_contained_sentinel
+    config:
+      regex_not_match:
+        - "(?is)(Medium|\\[P2\\]).{0,160}(sentinel|findFirstAvailable|throw)"

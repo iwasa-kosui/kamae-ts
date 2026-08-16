@@ -1,0 +1,27 @@
+id: kamae-review-thrown-business-error-001
+name: Flag thrown business failures in domain code
+description: |
+  Adversarial case. InvalidState and invalid input are expected failures that
+  must be returned as Result, not thrown as exceptions. The fixture also uses
+  `as` to cast at the boundary, which should remain a separate finding.
+
+inputs:
+  prompt: |
+    Review the attached TypeScript file as part of a pull request and report
+    findings against the kamae principles. Cite the relevant principle for
+    each finding and tag severity (High / Medium / Low / Suggestion).
+  files:
+    - path: violations/throw-domain-error.ts
+
+expected:
+  outcomes:
+    - type: task_completed
+
+graders:
+  - type: text
+    name: reports_thrown_business_error
+    config:
+      regex_match:
+        - "(?i)(Medium|\\[P2\\])"
+        - "(?i)(throw|exception)"
+        - "(?i)Result"
