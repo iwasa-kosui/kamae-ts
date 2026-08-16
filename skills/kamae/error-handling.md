@@ -1,80 +1,85 @@
 # Error Handling Detailed Guide
 
-## Railway Oriented Programming
+## Classify a failure before choosing its representation
 
-Use Result types to represent success and failure in the type system. Do not throw exceptions in the domain layer. For library-specific APIs, refer to the corresponding guide in [result-libraries/](./result-libraries/).
+Use `Result` to make expected workflow outcomes explicit. Let the application error boundary handle failures for which the workflow has no documented recovery. For library-specific APIs, refer to the corresponding guide in [result-libraries/](./result-libraries/).
 
-## Error Type Design
+| Category | Deciding question | Representation | Owner |
+| --- | --- | --- | --- |
+| Expected domain failure | Is this a business outcome the caller must choose how to handle? | A use-case-specific discriminated-union error in `Result` | The use case and its caller |
+| Recoverable external failure | Does the workflow document how to continue after this external failure? | A named error in that use case's `Result` | The use case and its caller |
+| Unexpected infrastructure fault | Is the dependency failure outside a documented recovery decision? | A rejected promise or exception that propagates | The application error boundary |
+| Contract or invariant violation | Did code reach a state that its types or contracts say is impossible? | An exception that propagates | The application error boundary and the developer who fixes the defect |
 
-Define errors as Discriminated Unions so that callers can handle them exhaustively.
+## Use-case-specific Result errors
+
+Define expected domain errors as discriminated unions so callers can handle them exhaustively. Keep each union specific to one use case instead of widening it into a catch-all application error type.
 
 ```typescript
 type AssignDriverError =
-  | Readonly<{ kind: "RequestNotFound"; requestId: RequestId }>
-  | Readonly<{ kind: "InvalidState"; currentKind: string; expectedKind: "Waiting" }>
-  | Readonly<{ kind: "DriverNotAvailable"; driverId: DriverId }>;
+  | { readonly kind: "RequestNotFound"; readonly requestId: RequestId }
+  | { readonly kind: "InvalidState"; readonly requestId: RequestId }
+  | { readonly kind: "DriverNotAvailable"; readonly driverId: DriverId };
+
+type AssignDriver = (
+  command: AssignDriverCommand,
+) => Promise<Result<AssignedDriver, AssignDriverError>>;
+
+type RequestStore = {
+  readonly save: (request: AssignedRequest) => Promise<void>;
+};
 ```
 
-### Error Type Granularity
+`RequestStore.save` may reject because of an unexpected infrastructure fault, such as a lost database connection; let that rejection reach the application error boundary. Add a named `ExternalServiceError` to `AssignDriverError` only when the workflow specifies a recovery decision, such as retrying, selecting a fallback provider, or asking the caller to try again.
 
-The error type returned by each use case should be specific to that use case. Stuffing everything into a common error type (`AppError`) makes it impossible for callers to determine from the type which errors can actually occur.
+## Compose expected outcomes
 
-```typescript
-// Good: use case-specific error types
-type AssignDriverError = RequestNotFoundError | InvalidStateError | DriverNotAvailableError;
-type StartTripError = RequestNotFoundError | InvalidStateError;
-
-// Bad: stuffing all errors into one type
-type AppError = RequestNotFoundError | InvalidStateError | DriverNotAvailableError | ...;
-```
-
-## Composing Operations
-
-Each step returns a Result type, and if an error occurs, subsequent steps are skipped. The composition API differs by library (neverthrow/byethrow use `.andThen()`, fp-ts uses `pipe` + `chain`, option-t uses `flatMapForResult`).
-
-### Helper Functions
-
-Extract common validation into small functions and use them as composition steps.
+Each operation that can produce an expected domain failure returns a `Result`; composition stops at that expected outcome. The composition API differs by library (neverthrow/byethrow use `.andThen()`, fp-ts uses `pipe` + `chain`, option-t uses `flatMapForResult`).
 
 ```typescript
-// Helper return values are Result types. The specific API (ok/err, right/left, etc.) depends on the library
 const ensureFound = <T>(id: RequestId) => (
   value: T | undefined,
-): Result<T, RequestNotFoundError> =>
+): Result<T, { readonly kind: "RequestNotFound"; readonly requestId: RequestId }> =>
   value !== undefined
-    ? success(value)   // ok(), right(), createOk(), etc.
+    ? success(value) // ok(), right(), createOk(), etc.
     : failure({ kind: "RequestNotFound", requestId: id });
-
-const ensureWaiting = (
-  request: TaxiRequest,
-): Result<Waiting, InvalidStateError> =>
-  request.kind === "Waiting"
-    ? success(request)
-    : failure({ kind: "InvalidState", currentKind: request.kind, expectedKind: "Waiting" });
 ```
 
-## Error Conversion in the Controller Layer
+Convert `AssignDriverError` into an HTTP response at the controller boundary by switching on `kind`. The controller owns status-code selection; the use case owns the set of expected errors.
 
-Converting domain errors to HTTP responses is the responsibility of the Controller layer. Determine the status code based on the domain error's `kind`.
+## Contract violations and local control flow
+
+`assertNever` remains appropriate for a contract or invariant violation: it detects a supposedly unreachable branch and lets the resulting exception reach the application error boundary. It must not turn expected domain outcomes into thrown errors.
+
+Private control-flow sentinels are also allowed for a tightly scoped local search. The catch boundary must identify the one sentinel it owns and rethrow every other error:
 
 ```typescript
-const toHttpResponse = (error: AssignDriverError): Response => {
-  switch (error.kind) {
-    case "RequestNotFound":
-      return notFound(`Request ${error.requestId} not found`);
-    case "InvalidState":
-      return conflict(`Expected ${error.expectedKind}, got ${error.currentKind}`);
-    case "DriverNotAvailable":
-      return unprocessableEntity(`Driver ${error.driverId} is not available`);
-    default:
-      return assertNever(error);
+const foundDriver = Symbol("foundDriver");
+
+type FoundDriver = {
+  readonly kind: typeof foundDriver;
+  readonly driver: Driver;
+};
+
+const isFoundDriver = (error: unknown): error is FoundDriver =>
+  typeof error === "object"
+  && error !== null
+  && "kind" in error
+  && error.kind === foundDriver;
+
+const findFirstAvailable = (drivers: readonly Driver[]): Option<Driver> => {
+  try {
+    drivers.forEach((driver) => {
+      if (driver.isAvailable) {
+        throw { kind: foundDriver, driver } satisfies FoundDriver;
+      }
+    });
+    return none;
+  } catch (error: unknown) {
+    if (isFoundDriver(error)) return some(error.driver);
+    throw error;
   }
 };
 ```
 
-## Where Exceptions Are Appropriate
-
-Do not throw exceptions in the domain layer, but exceptions are appropriate in these places:
-
-- `assertNever`: detecting unreachable code (programming bugs)
-- Unexpected infrastructure failures (e.g., DB connection loss) — delegate these to the framework's error handler
+Thrown validation errors, invalid state transitions, and other expected domain errors remain prohibited: model them as use-case-specific `Result` errors instead.
