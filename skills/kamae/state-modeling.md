@@ -156,14 +156,14 @@ The standard implementation is the **Outbox Pattern**: write the state row and t
 
 ```typescript
 type RequestResolver = Readonly<{
-  findById: (id: RequestId) => ResultAsync<Waiting | undefined, RepositoryError>;
+  findById: (id: RequestId) => Promise<TaxiRequest | undefined>;
 }>;
 
 type RequestStore = Readonly<{
   save: (
     state: EnRoute,
     events: readonly DriverAssignedEvent[],
-  ) => ResultAsync<void, RepositoryError>;
+  ) => Promise<void>;
 }>;
 ```
 
@@ -185,16 +185,54 @@ const buildDriverAssignedEvent =
     aggregateName: "TaxiRequest",
   });
 
+type RequestNotFound = Readonly<{
+  kind: "RequestNotFound";
+  requestId: RequestId;
+}>;
+
+type InvalidState = Readonly<{
+  kind: "InvalidState";
+  requestId: RequestId;
+}>;
+
+type AssignDriverError = RequestNotFound | InvalidState;
+
+const assignDriver = (
+  request: TaxiRequest,
+  driverId: DriverId,
+  assignedAt: Date,
+): Result<EnRoute, InvalidState> => {
+  if (request.kind !== "Waiting") {
+    return err({ kind: "InvalidState", requestId: request.requestId });
+  }
+
+  return ok(TaxiRequest.assignDriver(request, driverId, assignedAt));
+};
+
 const assignDriverUseCase =
   (requestResolver: RequestResolver, requestStore: RequestStore) =>
-  (requestId: RequestId, driverId: DriverId, now: Date) =>
-    requestResolver
-      .findById(requestId)
-      .andThen(validateWaiting)
-      .map(transitionToEnRoute(driverId))
-      .andThrough((enRoute) =>
-        requestStore.save(enRoute, [buildDriverAssignedEvent(now)(enRoute)]),
-      );
+  async (
+    requestId: RequestId,
+    driverId: DriverId,
+    now: Date,
+  ): Promise<Result<EnRoute, AssignDriverError>> => {
+    const request = await requestResolver.findById(requestId);
+    if (request === undefined) {
+      return err({ kind: "RequestNotFound", requestId });
+    }
+
+    const assignment = assignDriver(request, driverId, now);
+
+    return assignment.match(
+      async (enRoute) => {
+        await requestStore.save(enRoute, [buildDriverAssignedEvent(now)(enRoute)]);
+        return ok(enRoute);
+      },
+      err,
+    );
+  };
 ```
+
+The use case returns `RequestNotFound` when the resolver finds no request; the pure `assignDriver` decision returns `InvalidState` when the request is no longer `Waiting`. Those are expected business outcomes in its `Result`. By contrast, an unexpected rejection from `findById` or `save` propagates to the application error boundary; do not turn it into a generic repository error.
 
 `now` is injected as a parameter; never call `new Date()` inside the use case so tests can pin time deterministically.

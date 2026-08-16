@@ -48,7 +48,7 @@ pipe(
 
 ## Code Example: State Transition Pipeline
 
-Following Railway Oriented Programming principles, extract each step into an independent function, and let the use case simply compose them with `pipe` + `Do`/`bind`/`chainFirst`.
+Following Railway Oriented Programming principles, extract each expected business decision into an independent function, and compose those decisions with `pipe` + `Do`/`bind`. Run persistence after the decision succeeds so a rejected `Task` remains an unexpected failure.
 
 For the design of `RequestResolver` / `RequestStore` and how domain events are persisted atomically with state, see [state-modeling.md#domain-events](../state-modeling.md#domain-events).
 
@@ -86,21 +86,18 @@ type EnRoute = Readonly<{
 // --- Repository Types ---
 
 type RequestResolver = Readonly<{
-  findById: (id: RequestId) => TE.TaskEither<RepositoryError, Waiting | undefined>;
+  findById: (id: RequestId) => Task<Waiting | undefined>;
 }>;
 
 type RequestStore = Readonly<{
-  save: (state: EnRoute) => TE.TaskEither<RepositoryError, void>;
+  save: (state: EnRoute) => Task<void>;
 }>;
 
 // --- Error Types ---
 
 type AssignDriverError =
   | Readonly<{ kind: "RequestNotFound"; requestId: RequestId }>
-  | Readonly<{ kind: "DriverNotAvailable"; driverId: DriverId }>
-  | Readonly<{ kind: "RepositoryError"; cause: unknown }>;
-
-type RepositoryError = Readonly<{ kind: "RepositoryError"; cause: unknown }>;
+  | Readonly<{ kind: "DriverNotAvailable"; driverId: DriverId }>;
 
 // --- Domain Functions ---
 
@@ -136,23 +133,39 @@ const assignDriverUseCase =
     requestId: RequestId,
     driverId: DriverId,
     isDriverAvailable: boolean,
-  ): TE.TaskEither<AssignDriverError, EnRoute> =>
-    pipe(
-      TE.Do,
+  ): Task<E.Either<AssignDriverError, EnRoute>> =>
+  async () => {
+    const request = await requestResolver.findById(requestId)();
+    const assignment = pipe(
+      E.Do,
       // 1. Fetch request → verify existence
-      TE.bind("waiting", () =>
-        pipe(
-          requestResolver.findById(requestId),
-          TE.chainEitherK(ensureExists(requestId)),
-        ),
+      E.bind("waiting", () =>
+        ensureExists(requestId)(request),
       ),
       // 2. Check driver availability
-      TE.bind("driverId", () =>
-        TE.fromEither(ensureDriverAvailable(driverId, isDriverAvailable)()),
+      E.bind("driverId", () =>
+        ensureDriverAvailable(driverId, isDriverAvailable)(),
       ),
       // 3. State transition
-      TE.map(transitionToEnRoute),
-      // 4. Persist
-      TE.chainFirst(requestStore.save),
+      E.map(transitionToEnRoute),
     );
+
+    if (E.isLeft(assignment)) return assignment;
+
+    await requestStore.save(assignment.right)();
+    return assignment;
+  };
 ```
+
+## Recoverable External Failures
+
+Keep a named external error in `Either` only when the workflow can make a recovery decision:
+
+```typescript
+type PaymentAuthorizationError = {
+  readonly kind: "AuthorizationTemporarilyUnavailable";
+  readonly retryAfter: RetryAfter;
+};
+```
+
+For example, the caller can defer or retry authorization after this error. It is not a wrapper for arbitrary transport failures.
