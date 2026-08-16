@@ -3,7 +3,7 @@ name: Allow a contained local-control-flow exception
 description: |
   Negative-control case. A private sentinel is used only for local control
   flow, caught by its associated boundary after discriminating unknown values,
-  and every other error is rethrown. It must receive no Medium finding.
+  and every other error is rethrown. It must receive no finding.
 
 inputs:
   prompt: |
@@ -22,4 +22,5 @@ graders:
     name: does_not_flag_contained_sentinel
     config:
       regex_not_match:
-        - "(?is)(Medium|\\[P2\\]).{0,160}(sentinel|findFirstAvailable|throw)"
+        - "(?is)(?:\\b(?:High|Medium|Low|Suggestion)\\b|\\[P[0-3]\\]).{0,240}?(?:sentinel|findFirstAvailable)"
+        - "(?is)(?:sentinel|findFirstAvailable).{0,240}?(?:\\b(?:High|Medium|Low|Suggestion)\\b|\\[P[0-3]\\])"

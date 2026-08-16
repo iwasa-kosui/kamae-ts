@@ -23,6 +23,4 @@ graders:
     name: reports_unexpected_fault_as_domain_result
     config:
       regex_match:
-        - "(?i)(Medium|\\[P2\\])"
-        - "(?i)(recoverable|named).{0,160}Result|Result.{0,160}(recoverable|named)"
-        - "(?i)(unknown|infrastructure|database).{0,160}(propagat|boundary)|(propagat|boundary).{0,160}(unknown|infrastructure|database)"
+        - "(?is)(?:\\bMedium\\b|\\[P2\\])(?=(?:(?!\\b(?:High|Medium|Low|Suggestion)\\b|\\[P[0-3]\\]).){0,800}?(?:RepositoryError|cause\\s*:\\s*unknown))(?=(?:(?!\\b(?:High|Medium|Low|Suggestion)\\b|\\[P[0-3]\\]).){0,800}?(?:named.{0,120}(?:recoverable|documented\\s+(?:\\w+\\s+){0,2}recovery)|(?:recoverable|documented\\s+(?:\\w+\\s+){0,2}recovery).{0,120}named))(?=(?:(?!\\b(?:High|Medium|Low|Suggestion)\\b|\\[P[0-3]\\]).){0,800}?\\bexternal\\b)(?=(?:(?!\\b(?:High|Medium|Low|Suggestion)\\b|\\[P[0-3]\\]).){0,800}?(?:\\b(?:belongs?|model(?:led)?)\\b.{0,120}\\bResult\\b|\\bResult\\b.{0,120}\\b(?:belongs?|contain|include|model)))(?=(?:(?!\\b(?:High|Medium|Low|Suggestion)\\b|\\[P[0-3]\\]).){0,800}?(?:unknown.{0,160}propagat|propagat.{0,160}unknown))(?:(?!\\b(?:High|Medium|Low|Suggestion)\\b|\\[P[0-3]\\]).){0,800}"

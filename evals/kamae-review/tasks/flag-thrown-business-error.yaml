@@ -22,6 +22,9 @@ graders:
     name: reports_thrown_business_error
     config:
       regex_match:
-        - "(?i)(Medium|\\[P2\\])"
-        - "(?i)(throw|exception)"
-        - "(?i)Result"
+        - "(?is)(?:\\bMedium\\b|\\[P2\\])(?=(?:(?!\\b(?:High|Medium|Low|Suggestion)\\b|\\[P[0-3]\\]).){0,600}?(?:InvalidState|invalid\\s+input))(?=(?:(?!\\b(?:High|Medium|Low|Suggestion)\\b|\\[P[0-3]\\]).){0,600}?(?:throw(?:n|ing)?|exception))(?=(?:(?!\\b(?:High|Medium|Low|Suggestion)\\b|\\[P[0-3]\\]).){0,600}?\\bResult\\b)(?:(?!\\b(?:High|Medium|Low|Suggestion)\\b|\\[P[0-3]\\]).){0,600}"
+  - type: text
+    name: reports_boundary_cast_schema_validation_violation
+    config:
+      regex_match:
+        - "(?is)(?:\\b(?:High|Medium|Low|Suggestion)\\b|\\[P[0-3]\\])(?=(?:(?!\\b(?:High|Medium|Low|Suggestion)\\b|\\[P[0-3]\\]).){0,600}?(?:\\bas\\b|cast|type\\s+assertion))(?=(?:(?!\\b(?:High|Medium|Low|Suggestion)\\b|\\[P[0-3]\\]).){0,600}?(?:boundary|schema|validat))(?:(?!\\b(?:High|Medium|Low|Suggestion)\\b|\\[P[0-3]\\]).){0,600}"

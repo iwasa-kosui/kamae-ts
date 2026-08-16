@@ -18,7 +18,7 @@ Classify an observed `throw` or caught error before reporting it:
 | Unknown outage, config defect, or assertion is wrapped as RepositoryError | Medium: allow propagation instead of a catch-all domain error |
 | Private sentinel is caught by its associated boundary and rethrows unknown errors | No finding |
 
-Do not report `throw` inside `assertNever`, a failed internal assertion, or an unexpected fault that is allowed to reach the application error boundary.
+Do not report `throw` inside `assertNever`, a failed internal assertion that is allowed to propagate, or an unexpected fault that is allowed to reach the application error boundary. Converting an assertion into a catch-all `Result` error remains a Medium finding.
 
 ## 3.2 Are error types Discriminated Unions? — Medium
 
