@@ -27,11 +27,6 @@ graders:
     config:
       regex_not_match:
         - "(?m)^\\s*class\\s+\\w+"
-  - type: text
-    name: no_thrown_exceptions
-    config:
-      regex_not_match:
-        - "throw\\s+new\\s+\\w*Error\\b"
   - type: behavior
     name: lazy_loading
     config:

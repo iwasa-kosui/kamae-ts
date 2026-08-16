@@ -1,0 +1,36 @@
+id: kamae-local-control-flow-exception-001
+name: Contain a local-control-flow exception at a search boundary
+description: |
+  Positive case. Asks the agent to use a private sentinel exception solely to
+  exit a synchronous nested search early, then contain it at the public search
+  boundary.
+
+inputs:
+  prompt: |
+    Implement a synchronous TypeScript search for an available driver in a
+    tree or nested list of driver groups.
+
+    A nested helper should exit the traversal early by throwing a private
+    sentinel when it finds a matching driver. Catch that sentinel at an
+    explicitly named `findAvailableDriver` search boundary and return
+    `Option<Driver>` (or an equivalent public optional value). The sentinel is
+    local control flow, not a business error, and must not appear in the public
+    return type. Rethrow unknown errors from the catch block with `throw error`.
+
+    Use the project's dependencies (see package.json).
+  files:
+    - path: package.json
+
+expected:
+  outcomes:
+    - type: task_completed
+
+graders:
+  - type: text
+    name: contained_local_control_flow
+    config:
+      regex_match:
+        - "\\btry\\b"
+        - "\\bcatch\\b"
+        - "\\bthrow\\b"
+        - "throw\\s+error"

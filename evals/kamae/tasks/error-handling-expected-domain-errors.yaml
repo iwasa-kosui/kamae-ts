@@ -1,0 +1,44 @@
+id: kamae-error-handling-001
+name: Model expected domain errors as Results
+description: |
+  Positive case. Asks the agent to model expected business failures as a
+  use-case-specific discriminated union returned through Result, while keeping
+  unclassified infrastructure failures outside that union.
+
+inputs:
+  prompt: |
+    Implement an `assignDriver` use case in TypeScript.
+
+    Inputs:
+      - taxiRequestId: TaxiRequestId (branded)
+      - driverId: DriverId (branded)
+
+    Define a use-case-specific error discriminated union containing exactly
+    these expected business outcomes:
+      - RequestNotFound
+      - InvalidState
+      - DriverNotAvailable
+
+    Return a `Result` for those three outcomes so callers must branch on the
+    failure exhaustively. An unclassified database timeout, configuration
+    defect, or unknown SDK failure is not a business error: do not put any of
+    those failures in a `RepositoryError` member.
+
+    Use the project's dependencies (see package.json).
+  files:
+    - path: package.json
+
+expected:
+  outcomes:
+    - type: task_completed
+
+graders:
+  - type: text
+    name: expected_business_errors_are_results
+    config:
+      regex_match:
+        - "(?i)Result"
+        - "RequestNotFound|InvalidState|DriverNotAvailable"
+      regex_not_match:
+        - "RepositoryError"
+        - "throw\\s+new\\s+\\w*Error\\b"
