@@ -13,8 +13,9 @@ inputs:
     each finding and tag severity (High / Medium / Low / Suggestion).
     Include one finding bullet beginning `Medium:` or `[P2]` that, on the same
     line, identifies `RepositoryError` or `cause: unknown`, explains that only
-    a named and recoverable external failure (or one with documented recovery)
-    belongs in `Result`, and requires the unknown fault to propagate.
+    a named external failure is either recoverable or has documented recovery
+    before it belongs in `Result`, and requires the unknown fault to
+    propagate.
   files:
     - path: violations/unexpected-fault-as-domain-result.ts
 
@@ -27,4 +28,4 @@ graders:
     name: reports_unexpected_fault_as_domain_result
     config:
       regex_match:
-        - "(?im)^\\s*(?:[-*]\\s+|\\d+[.)]\\s+)(?:\\*{1,2})?(?:Medium|\\[P2\\])(?:\\*{1,2})?(?:\\s*[:—-]\\s*)?(?=[^\\n]*(?:RepositoryError|cause\\s*:\\s*unknown))(?=[^\\n]*(?:named[^\\n]{0,120}recoverable|recoverable[^\\n]{0,120}named|documented\\s+(?:\\w+\\s+){0,2}recovery))(?=[^\\n]*\\bexternal\\b)(?=[^\\n]*\\bResult\\b)(?=[^\\n]*(?:unknown[^\\n]{0,160}propagat|propagat[^\\n]{0,160}unknown))[^\\n]*$"
+        - "(?im)^\\s*(?:[-*]\\s+|\\d+[.)]\\s+)(?:\\*{1,2})?(?:Medium|\\[P2\\])(?:\\*{1,2})?(?:\\s*[:—-]\\s*)?(?=[^\\n]*(?:RepositoryError|cause\\s*:\\s*unknown))(?=[^\\n]*\\bnamed\\b)(?=[^\\n]*(?:\\brecoverable\\b|documented\\s+(?:\\w+\\s+){0,2}recovery))(?=[^\\n]*\\bexternal\\b)(?=[^\\n]*\\bResult\\b)(?=[^\\n]*(?:unknown[^\\n]{0,160}propagat|propagat[^\\n]{0,160}unknown))[^\\n]*$"
