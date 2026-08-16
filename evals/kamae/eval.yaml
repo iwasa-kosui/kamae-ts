@@ -2,8 +2,9 @@ name: kamae-eval
 description: |
   Evaluation suite for the kamae skill. Confirms that an agent applying the
   skill produces server-side TypeScript code that follows the kamae principles
-  (Discriminated Unions, Result types, no thrown exceptions, no class-based
-  domain models) and correctly recognises out-of-scope prompts as SKIP.
+  (Discriminated Unions, use-case-specific Result errors, explicit error
+  boundaries, no class-based domain models) and correctly recognises
+  out-of-scope prompts as SKIP.
 
 skill: kamae
 version: "1.0"
