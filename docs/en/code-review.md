@@ -106,9 +106,18 @@ Signal: a `switch` branching on `kind` without `default: return assertNever(x)`.
 
 Reference: [`./index.md` §3](./index.md), [`./error-handling.md`](./error-handling.md), and the project's Result-library guide ([`./result-libraries/`](./result-libraries/)).
 
-#### 3.1 No `throw` in the domain layer
+#### 3.1 Does each failure cross the boundary appropriately?
 
-Signal: `throw` inside an entity, value object, or use case. Suggest converting to a `Result` type. Acceptable exceptions: `throw` inside `assertNever` (unreachable), and unexpected infrastructure failures in the infrastructure layer.
+Classify an observed `throw` or caught error before reporting it. Apply the decision test: does a consumer have a specified domain decision for this failure?
+
+| Observed failure | Review action |
+| --- | --- |
+| Expected validation or business-state failure is thrown | Require a use-case-specific `Result` error |
+| External failure has documented recovery but is thrown | Model the named recoverable failure in `Result` |
+| Unknown outage, configuration defect, or assertion is wrapped as `RepositoryError` with `cause: unknown` | Allow propagation to the application error boundary instead of using a catch-all domain error |
+| Private sentinel is caught by its associated boundary after discriminating `unknown`, and every other value is rethrown | No finding |
+
+Do not report `throw` inside `assertNever`, a failed internal assertion that propagates, or an unexpected fault that reaches the application error boundary. That boundary owns logging and the generic operational response. A private sentinel is acceptable only when it is tightly scoped, is recognized exclusively by its associated catch boundary, rethrows all other caught values, and does not represent an expected domain failure. Converting an assertion into a catch-all `Result` error is a finding.
 
 #### 3.2 Error types defined as Discriminated Unions
 

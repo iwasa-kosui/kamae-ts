@@ -55,14 +55,14 @@ pipe(
 
 ## コード例: 状態遷移パイプライン
 
-Railway Oriented Programming の原則に従い、各処理を独立した関数に切り出し、ユースケースは `pipe` + `Do`/`bind`/`chainFirst` でそれらを合成するだけにします。
+Railway Oriented Programming の原則に従い、想定される各業務判断を独立した関数に切り出し、`pipe` + `Do`/`bind` で合成します。判断に成功した後で永続化し、reject された `Task` を予期しない障害のまま伝播させます。
 
 `RequestResolver` / `RequestStore` の設計と、状態とドメインイベントを同一トランザクションで永続化する方法は [state-modeling.md#ドメインイベント](../state-modeling.md#ドメインイベント) を参照してください。
 
 ```typescript
 import * as E from "fp-ts/Either";
-import * as TE from "fp-ts/TaskEither";
 import { pipe } from "fp-ts/function";
+import type { Task } from "fp-ts/Task";
 
 // --- Branded Types ---
 
@@ -93,21 +93,18 @@ type EnRoute = Readonly<{
 // --- Repository Types ---
 
 type RequestResolver = Readonly<{
-  findById: (id: RequestId) => TE.TaskEither<RepositoryError, Waiting | undefined>;
+  findById: (id: RequestId) => Task<Waiting | undefined>;
 }>;
 
 type RequestStore = Readonly<{
-  save: (state: EnRoute) => TE.TaskEither<RepositoryError, void>;
+  save: (state: EnRoute) => Task<void>;
 }>;
 
 // --- Error Types ---
 
 type AssignDriverError =
   | Readonly<{ kind: "RequestNotFound"; requestId: RequestId }>
-  | Readonly<{ kind: "DriverNotAvailable"; driverId: DriverId }>
-  | Readonly<{ kind: "RepositoryError"; cause: unknown }>;
-
-type RepositoryError = Readonly<{ kind: "RepositoryError"; cause: unknown }>;
+  | Readonly<{ kind: "DriverNotAvailable"; driverId: DriverId }>;
 
 // --- Domain Functions ---
 
@@ -143,23 +140,39 @@ const assignDriverUseCase =
     requestId: RequestId,
     driverId: DriverId,
     isDriverAvailable: boolean,
-  ): TE.TaskEither<AssignDriverError, EnRoute> =>
-    pipe(
-      TE.Do,
+  ): Task<E.Either<AssignDriverError, EnRoute>> =>
+  async () => {
+    const request = await requestResolver.findById(requestId)();
+    const assignment = pipe(
+      E.Do,
       // 1. リクエスト取得 → 存在確認
-      TE.bind("waiting", () =>
-        pipe(
-          requestResolver.findById(requestId),
-          TE.chainEitherK(ensureExists(requestId)),
-        ),
+      E.bind("waiting", () =>
+        ensureExists(requestId)(request),
       ),
       // 2. ドライバーの空き確認
-      TE.bind("driverId", () =>
-        TE.fromEither(ensureDriverAvailable(driverId, isDriverAvailable)()),
+      E.bind("driverId", () =>
+        ensureDriverAvailable(driverId, isDriverAvailable)(),
       ),
       // 3. 状態遷移
-      TE.map(transitionToEnRoute),
-      // 4. 永続化
-      TE.chainFirst(requestStore.save),
+      E.map(transitionToEnRoute),
     );
+
+    if (E.isLeft(assignment)) return assignment;
+
+    await requestStore.save(assignment.right)();
+    return assignment;
+  };
 ```
+
+## 回復可能な外部障害
+
+ワークフローが回復判断を行える場合に限り、名前付きの外部エラーを `Either` に含めます。
+
+```typescript
+type PaymentAuthorizationError = {
+  readonly kind: "AuthorizationTemporarilyUnavailable";
+  readonly retryAfter: RetryAfter;
+};
+```
+
+例えば、呼び出し側はこのエラー後に認可を延期または再試行できます。任意の通信障害を包むラッパーではありません。

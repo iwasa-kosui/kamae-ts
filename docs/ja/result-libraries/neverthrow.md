@@ -38,12 +38,12 @@ result
 
 ## コード例: 状態遷移パイプライン
 
-Railway Oriented Programming の原則に従い、各処理を独立した関数に切り出し、ユースケースはメソッドチェーンでそれらを合成するだけにします。`andThrough` で副作用を挟みつつ元の値を維持します。
+Railway Oriented Programming の原則に従い、想定される各業務判断を独立した関数に切り出し、メソッドチェーンで合成します。判断に成功した後でのみ永続化し、reject された Promise を予期しない障害のまま伝播させます。
 
 `RequestResolver` / `RequestStore` の設計と、状態とドメインイベントを同一トランザクションで永続化する方法は [state-modeling.md#ドメインイベント](../state-modeling.md#ドメインイベント) を参照してください。
 
 ```typescript
-import { ok, err, Result, ResultAsync } from "neverthrow";
+import { ok, err, Result } from "neverthrow";
 
 // --- Branded Types ---
 
@@ -74,21 +74,18 @@ type EnRoute = Readonly<{
 // --- Repository Types ---
 
 type RequestResolver = Readonly<{
-  findById: (id: RequestId) => ResultAsync<Waiting | undefined, RepositoryError>;
+  findById: (id: RequestId) => Promise<Waiting | undefined>;
 }>;
 
 type RequestStore = Readonly<{
-  save: (state: EnRoute) => ResultAsync<void, RepositoryError>;
+  save: (state: EnRoute) => Promise<void>;
 }>;
 
 // --- Error Types ---
 
 type AssignDriverError =
   | Readonly<{ kind: "RequestNotFound"; requestId: RequestId }>
-  | Readonly<{ kind: "DriverNotAvailable"; driverId: DriverId }>
-  | Readonly<{ kind: "RepositoryError"; cause: unknown }>;
-
-type RepositoryError = Readonly<{ kind: "RepositoryError"; cause: unknown }>;
+  | Readonly<{ kind: "DriverNotAvailable"; driverId: DriverId }>;
 
 // --- Domain Functions ---
 
@@ -115,19 +112,40 @@ const transitionToEnRoute =
     driverId,
   });
 
-// --- Use Case (andThrough によるパイプライン合成) ---
+// --- Use Case (想定される結果のパイプラインと通常の非同期永続化) ---
 
 const assignDriverUseCase =
   (requestResolver: RequestResolver, requestStore: RequestStore) =>
-  (
+  async (
     requestId: RequestId,
     driverId: DriverId,
     isDriverAvailable: boolean,
-  ): ResultAsync<EnRoute, AssignDriverError> =>
-    requestResolver
-      .findById(requestId)
+  ): Promise<Result<EnRoute, AssignDriverError>> => {
+    const request = await requestResolver.findById(requestId);
+    const assignment = ok(request)
       .andThen(ensureExists(requestId))
       .andThen(ensureDriverAvailable(driverId, isDriverAvailable))
-      .map(transitionToEnRoute(driverId))
-      .andThrough(requestStore.save);
+      .map(transitionToEnRoute(driverId));
+
+    return assignment.match(
+      async (enRoute) => {
+        await requestStore.save(enRoute);
+        return ok(enRoute);
+      },
+      err,
+    );
+  };
 ```
+
+## 回復可能な外部障害
+
+ワークフローが回復判断を行える場合に限り、名前付きの外部エラーを `Result` に含めます。
+
+```typescript
+type PaymentAuthorizationError = {
+  readonly kind: "AuthorizationTemporarilyUnavailable";
+  readonly retryAfter: RetryAfter;
+};
+```
+
+例えば、呼び出し側はこのエラー後に認可を延期または再試行できます。任意の通信障害を包むラッパーではありません。別の名前付き外部障害に回復方法が定義されている場合も、汎用エラーではなく正確な `ExternalServiceError` を使います。
