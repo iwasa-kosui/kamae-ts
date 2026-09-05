@@ -150,14 +150,14 @@ type TripCompletedEvent = DomainEvent<
 
 ### 状態とイベントは同一トランザクションで永続化する
 
-集約の状態とそれが発行するイベントは、必ず同一のトランザクション境界で永続化します。別ストアに分けて 2 段で書き込む素朴な実装は dual-write 問題を抱え、片方が成功してもう片方が失敗した瞬間に整合が壊れます。
+状態とイベントの両方を永続化する必要があるワークフローでは、同一のトランザクション境界で書き込みます。2 段に分けて書き込むと dual-write 問題を抱え、片方が成功してもう片方が失敗した瞬間に整合が壊れます。イベントだけを保存する処理に、この例に合わせるための状態の書き込みや resolver を追加する必要はありません。
 
 ```typescript
 // Bad — 状態とイベントが別 tx。途中で落ちると整合が壊れる
 saveRequest(entity).andThen(() => saveEvent(event));
 ```
 
-標準的な実装は **Outbox Pattern** です。状態テーブルへの UPDATE と outbox テーブルへの INSERT を同一 tx で行い、別プロセスが outbox 行をブローカーへリレーします。インタフェース上もこの不可分性を表現します。参照系（リード）は `RequestResolver` として書き込み系から切り出します（ISP）。
+状態更新と信頼性のあるイベント配送には **Outbox Pattern** を使います。状態テーブルへの UPDATE と outbox テーブルへの INSERT を同一 tx で行い、別プロセスが outbox 行をブローカーへリレーします。契約上もこの不可分性を表現します。`RequestResolver` と `RequestStore` はそれぞれ単一操作を公開し、両方が必要なオーケストレーションへ別々に注入します。別の検索や書き込みが必要になったら、これらを複数メソッドのインタフェースへ広げず、別の契約を定義します。
 
 ```typescript
 type RequestResolver = Readonly<{
@@ -172,17 +172,17 @@ type RequestStore = Readonly<{
 }>;
 ```
 
-`save` を 1 メソッドに閉じることで、呼び出し側が「状態は更新したがイベントは飛ばなかった」中途半端な状態を構造的に作れなくなります。
+一つの `save` メソッドにまとめることで、呼び出し側による二つの書き込みの調整を不要にします。ただし、型シグネチャだけでは原子性を保証できないため、アダプターがトランザクションを実装する必要があります。イベントを追記するだけの処理には、[domain-modeling.md](./domain-modeling.md#resolver-と-store-を操作ごとに分離する) の `TaskEventStore` のような単一メソッドのイベントストアを使えます。
 
 ### イベント生成の責務
 
-ユースケース層がイベントを生成し、`RequestStore.save` に状態と一緒に渡します。リポジトリがイベントを内部で生成する設計は、永続化と業務ルールが混ざって責務が肥大化します。
+純粋な判断関数とイベント生成関数が値を返し、ユースケースが入力の取得と、結果の状態・イベントを `RequestStore.save` へ渡す処理を組み立てます。業務イベントの生成を store のアダプターへ持ち込みません。時刻やイベント ID は値として渡し、純粋な関数の中で I/O や乱数生成を行いません。
 
 ```typescript
 const buildDriverAssignedEvent =
-  (now: Date) =>
+  (now: Date, eventId: string) =>
   (enRoute: EnRoute): DriverAssignedEvent => ({
-    eventId: crypto.randomUUID(),
+    eventId,
     eventAt: now,
     eventName: "DriverAssigned",
     payload: { driverId: enRoute.driverId, passengerId: enRoute.passengerId },
@@ -232,6 +232,7 @@ const assignDriverUseCase =
     driverId: DriverId,
     isDriverAvailable: boolean,
     now: Date,
+    eventId: string,
   ): Promise<Result<EnRoute, AssignDriverError>> => {
     const request = await requestResolver.findById(requestId);
     if (request === undefined) {
@@ -242,7 +243,7 @@ const assignDriverUseCase =
 
     return assignment.match(
       async (enRoute) => {
-        await requestStore.save(enRoute, [buildDriverAssignedEvent(now)(enRoute)]);
+        await requestStore.save(enRoute, [buildDriverAssignedEvent(now, eventId)(enRoute)]);
         return ok(enRoute);
       },
       err,
@@ -252,4 +253,4 @@ const assignDriverUseCase =
 
 リゾルバがリクエストを見つけられない場合、ユースケースは `RequestNotFound` を返します。純粋な `assignDriver` の判断は、リクエストが `Waiting` でない場合に `InvalidState`、ドライバーを割り当てられない場合に `DriverNotAvailable` を返します。これらは `Result` で表す想定済みの業務結果です。一方、`findById` や `save` から予期せず reject された場合は、アプリケーションのエラー境界まで伝播させ、汎用的なリポジトリエラーに変換しません。
 
-`now` は引数として注入します。テストで時刻を決定的に固定できるよう、ユースケース内で `new Date()` を呼び出しません。
+`now` と `eventId` は I/O の境界にいる呼び出し側が渡すため、テストで時刻と ID を固定できます。純粋な関数は clock、ID generator、resolver、store ではなく値を受け取ります。

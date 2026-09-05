@@ -1,0 +1,32 @@
+id: kamae-operation-scoped-dependencies-001
+name: Design dependencies for task workflows
+description: |
+  Check that independent reads and writes become separate single-operation
+  contracts, while an atomic state-and-events write stays one operation.
+
+inputs:
+  prompt: |
+    Use kamae to design dependency contracts and consumer signatures for a new
+    server-side TypeScript task service using zod and neverthrow. Assume all
+    domain types already exist and are imported. There is no project override.
+
+    completeTask loads a Task by TaskId, makes a pure completion decision, and
+    saves CompletedTask with its TaskCompletedEvent records in one transaction.
+    listAssignedTasks loads tasks by UserId. archiveTask persists ArchivedTask.
+    Show the dependency types each consumer receives and describe the I/O
+    boundaries. Do not implement adapters or add unused operations.
+  files: []
+
+expected:
+  outcomes:
+    - type: task_completed
+
+graders:
+  - type: text
+    name: shows_read_and_write_contracts
+    config:
+      regex_match:
+        - 'type\s+\w*Resolver\b'
+        - 'type\s+\w*Store\b'
+        - 'TaskCompletedEvent'
+        - 'ArchivedTask'

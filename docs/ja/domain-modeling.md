@@ -110,16 +110,14 @@ interface User {
 
 ```typescript
 // Good: 関数プロパティ記法 — パラメータはcontravariant
-type TaskRepository = {
+type TaskStore = {
   save: (task: Task) => Promise<void>;
-  findById: (id: TaskId) => Promise<Task | undefined>;
 };
 
 // Bad: メソッド記法 — パラメータがbivariantになり、
 // save(task: DoingTask) のような狭い実装が型チェックを通過してしまう
-type TaskRepository = {
+type TaskStore = {
   save(task: Task): Promise<void>;
-  findById(id: TaskId): Promise<Task | undefined>;
 };
 ```
 
@@ -180,9 +178,37 @@ type ProductId = string & { readonly [typeof ProductIdBrand]: never };
 
 barrel file（`index.ts`）は re-export のみに使い、型や関数を直接定義しないでください。
 
+## resolver と store を操作ごとに分離する
+
+読み取りの契約（resolver）と書き込みの契約（store）を分離します。それぞれ原則として単一メソッドとし、利用側が必要とする操作に合わせて名前と型を定義します。エンティティ単位の repository を出発点にしたり、CRUD を揃えるためにメソッドを追加したりしません。複数メソッドの reader と writer に分けるだけで終わらず、独立した検索や書き込みも別々の契約にします。
+
+```typescript
+type TaskByIdResolver = Readonly<{
+  findById: (id: TaskId) => Promise<Task | undefined>;
+}>;
+
+type TasksByAssigneeResolver = Readonly<{
+  findByAssignee: (assigneeId: UserId) => Promise<readonly Task[]>;
+}>;
+
+type TaskStore = Readonly<{
+  save: (task: Task) => Promise<void>;
+}>;
+
+type TaskEventStore = Readonly<{
+  append: (events: readonly TaskEvent[]) => Promise<void>;
+}>;
+```
+
+各契約はそれぞれの概念のファイルに配置します。イベントを追記するだけの利用側には `TaskEventStore` だけを渡し、resolver や状態の store を要求しません。タスクを取得して更新状態を保存する利用側には、`TaskByIdResolver` と `TaskStore` を別々に渡します。`findById`、`resolve`、`save`、`append` は、必要な操作を表していればいずれも有効な名前です。問題にするのは特定のメソッド名ではなく、契約が引き受ける責務の範囲です。
+
+I/O はワークフローの両端に置きます。必要な入力を取得し、その値を純粋な判断処理へ渡し、返された状態やイベントを保存します。時刻や生成済みの ID も値として渡します。I/O のインタフェースを DI しても、その関数が純粋になるわけではありません。判断結果によって次の I/O が決まる場合は、オーケストレーションが I/O と純粋な処理を明示的に交互に実行します。この構造は Scott Wlaschin の [dependency rejection](https://fsharpforfunandprofit.com/posts/dependencies/#approach-2-dependency-rejection) を参照してください。
+
+composition root で複数の契約を組み立てたり、アダプター間で DB クライアントやトランザクションを共有したりして構いません。各利用側には必要な契約だけを渡し、広い repository や service locator にまとめ直しません。状態とイベントの原子的な保存は一つの操作なので、一つの store メソッドにまとめます。詳細は [state-modeling.md](./state-modeling.md#状態とイベントは同一トランザクションで永続化する) を参照してください。既存の広い契約を使う明示的なプロジェクト要件がある場合は、その要件を尊重してトレードオフを説明し、慣習だけで不要な操作を追加しません。
+
 ## ポートは domain 層に配置する
 
-ポートは、ドメインやユースケースが必要とする依存先の契約です。リポジトリ、resolver、store、clock、ID generator などが該当します。契約を所有するのは domain 層です。既存の domain 内の構成と「1概念1ファイル」に従い、対象のドメイン概念のそばに配置します。「ポート」という呼び名のために別の層を設けず、トップレベル、`application/` 配下、`domain/` 配下のいずれにも専用の `port/` や `ports/` ディレクトリを作りません。
+ポートは、ドメインやユースケースが必要とする依存先の契約です。resolver、store、clock、ID generator などが該当します。契約を所有するのは domain 層です。既存の domain 内の構成と「1概念1ファイル」に従い、対象のドメイン概念のそばに配置します。「ポート」という呼び名のために別の層を設けず、トップレベル、`application/` 配下、`domain/` 配下のいずれにも専用の `port/` や `ports/` ディレクトリを作りません。
 
 ドメイン概念ごとにディレクトリを分ける構成の例です。
 
@@ -191,14 +217,16 @@ src/
   domain/task/
     task.ts
     task-id.ts
-    task-repository.ts       # Contract expressed in domain types
+    task-by-id-resolver.ts   # One read operation, expressed in domain types
+    task-store.ts            # One write operation, expressed in domain types
   application/
-    complete-task.ts         # Receives TaskRepository as a dependency
+    complete-task.ts         # Receives the resolver and store separately
   infrastructure/
-    postgres-task-repository.ts  # Implements the domain contract
+    postgres-task-by-id-resolver.ts  # Implements the read contract
+    postgres-task-store.ts          # Implements the write contract
   main.ts                   # Wires the adapter into the use case
 ```
 
-domain 内をフラットに構成している場合は `src/domain/task-repository.ts` とします。`src/ports/task-repository.ts` や `src/domain/ports/task-repository.ts` のような汎用的な置き場に集めず、それぞれの契約を所有する概念のそばに置きます。
+domain 内をフラットに構成している場合は `src/domain/task-store.ts` とします。`src/ports/task-store.ts` や `src/domain/ports/task-store.ts` のような汎用的な置き場に集めず、それぞれの契約を所有する概念のそばに置きます。
 
 ユースケースと具体的なアダプターは、domain 層から契約を import します。契約にはドメイン型を使い、アダプター、DB クライアント、外部 SDK の型を import しません。具体的な I/O と外部データの変換は infrastructure 層のアダプターに置き、composition root でユースケースへ実装を注入します。domain 層で契約を定義しても、純粋な状態遷移関数で I/O を実行するわけではありません。注入された依存先の呼び出しはユースケースが担当します。
