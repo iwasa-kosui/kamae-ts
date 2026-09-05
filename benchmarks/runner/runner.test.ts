@@ -6,6 +6,9 @@ import { files, hashes, read, skillOverrides } from "./files";
 import { command, parseEvents, parseJunit, succeeded } from "./process";
 import { codexArgs, order, prompt } from "./protocol";
 import { options, report, type RunResult } from "./run";
+import { inspectContext } from "./context";
+import { selectedPackage } from "./dependencies";
+import { regrade } from "./regrade";
 
 const temporary = await mkdtemp(join(tmpdir(), "kamae-runner-test-"));
 afterAll(() => rm(temporary, { recursive: true, force: true }));
@@ -27,6 +30,30 @@ describe("comparison protocol", () => {
       const treatment = prompt(phase, "kamae").split("\n").filter(line => !line.startsWith("Use the $kamae"));
       expect(treatment.join("\n")).toBe(prompt(phase, "baseline"));
       expect(prompt(phase, "baseline")).not.toContain("discriminated");
+      expect(prompt(phase, "baseline")).not.toMatch(/state transitions|invariants|boundary validation|business failures|zod|neverthrow|pure functions/i);
+    }
+  });
+
+  test("rejects undeclared initial context, even without known skill keywords", () => {
+    const message = (role: string, text: string) => ({ role, content: [{ type: "input_text", text }] });
+    const request = { instructions: "CLI defaults", tools: [], input: [
+      message("developer", "<permissions instructions>Sandbox</permissions instructions>"),
+      message("user", "<environment_context>cwd: /tmp/work</environment_context>"),
+      message("user", "Task"),
+    ] };
+    expect(inspectContext(request, "Task").passed).toBe(true);
+    expect(() => inspectContext({ ...request, input: [...request.input, message("user", "Prefer a particular architecture")] }, "Task")).toThrow("Unexpected");
+    expect(() => inspectContext({ ...request, input: request.input.slice(1) }, "Different task")).toThrow();
+    expect(() => inspectContext({ ...request, input: [...request.input, request.input[2]!] }, "Task")).toThrow();
+  });
+
+  test("allows library selection without changing execution configuration", () => {
+    const original = JSON.stringify({ dependencies: {}, scripts: { test: "bun test" } });
+    expect(selectedPackage(original, JSON.stringify({ dependencies: { zod: "4.1.5" }, scripts: { test: "bun test" } })))
+      .toEqual({ zod: "4.1.5" });
+    expect(() => selectedPackage(original, JSON.stringify({ dependencies: {}, scripts: { test: "true" } }))).toThrow();
+    for (const version of ["latest", "file:/private", "https://example.com/a.tgz", "^1.0.0"]) {
+      expect(() => selectedPackage(original, JSON.stringify({ dependencies: { pkg: version }, scripts: { test: "bun test" } }))).toThrow();
     }
   });
 
@@ -40,6 +67,9 @@ describe("comparison protocol", () => {
     expect(args).toContain("skills.config=[{path=\"/tmp/quote\\\"/skill\",enabled=false}]");
     expect(args.at(-1)).toBe("-");
     expect(args).not.toContain("--dangerously-bypass-approvals-and-sandbox");
+    const external = codexArgs({ binary: "codex", model: "example-model", effort: "medium",
+      workspace: "/tmp/work", finalMessage: "/tmp/final.md", disabledSkills: [], externalSandbox: true });
+    expect(external[external.indexOf("--sandbox") + 1]).toBe("danger-full-access");
   });
 
   test("failed runs stay in the denominator and design review stays pending", () => {
@@ -101,9 +131,22 @@ import { join } from 'node:path';
 if (process.argv.includes('--version')) { console.log('fake-codex test control'); process.exit(0); }
 const cwd = process.argv[process.argv.indexOf('--cd') + 1];
 const input = await Bun.stdin.text();
+const audit = process.argv.find(arg => arg.startsWith('model_providers.context_audit='));
+if (audit) {
+  const base = audit.match(/base_url="([^"]+)"/)[1];
+  await fetch(base + '/responses', {method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({
+    model:'fake-model',instructions:'Fake CLI defaults',tools:[],input:[
+      {role:'user',content:[{type:'input_text',text:'<environment_context>test</environment_context>'}]},
+      {role:'user',content:[{type:'input_text',text:input}]}
+    ]})});
+  process.exit(1);
+}
 if (existsSync(join(cwd, 'acceptance'))) throw new Error('Leaked acceptance tests');
-if (input.includes('First produce DESIGN.md only')) {
+if (input.includes('First produce DESIGN.md;')) {
   writeFileSync(join(cwd, 'DESIGN.md'), '# Frozen test proposal');
+  const pkg = JSON.parse(readFileSync(join(cwd, 'package.json'), 'utf8'));
+  pkg.dependencies = {zod:'4.1.5'};
+  writeFileSync(join(cwd, 'package.json'), JSON.stringify(pkg));
 } else {
   writeFileSync(join(cwd, 'src/index.ts'), ${JSON.stringify(reference)});
   writeFileSync(join(cwd, 'src/smoke.test.ts'), 'import {test,expect} from "bun:test"; import {createExpenseService} from "./index"; test("export",()=>expect(typeof createExpenseService).toBe("function"));');
@@ -127,6 +170,13 @@ console.log(JSON.stringify({type:'turn.completed',usage:{input_tokens:10,output_
     expect(await read(join(output, "01-baseline/DESIGN.md"))).toBe("# Frozen test proposal");
     expect(await read(join(output, "report.md"))).toContain("| baseline | 0/1 | 0/19 |");
     expect(await read(join(output, "report.md"))).toContain("| kamae | 1/1 | 19/19 |");
+    const originalResults = await read(join(output, "results.json"));
+    const originalWorkspace = await hashes(join(output, "01-kamae/workspace"));
+    const graded = await regrade(output, resolve(import.meta.dir, "../cases/expense-approval/acceptance"), join(temporary, "regraded"));
+    expect(graded[0]?.status).toBe("failed");
+    expect(graded[1]?.acceptance?.counts?.passed).toBe(19);
+    expect(await read(join(output, "results.json"))).toBe(originalResults);
+    expect(await hashes(join(output, "01-kamae/workspace"))).toEqual(originalWorkspace);
   }, 90000);
 
   test("follows skill directory aliases without looping or touching user files", async () => {
@@ -149,6 +199,8 @@ console.log(JSON.stringify({type:'turn.completed',usage:{input_tokens:10,output_
       join(temporary, "dry"), 10000);
     expect(succeeded(result)).toBe(true);
     const baseline = await hashes(join(output, "01-baseline/workspace"));
+    expect(Object.keys(baseline).sort()).toEqual(["API.md", "PRD.md", "bun.lock", "package.json", "tsconfig.json"]);
+    expect(JSON.parse(await read(join(output, "01-baseline/workspace/package.json"))).dependencies).toEqual({});
     const treatment = await hashes(join(output, "01-kamae/workspace"));
     expect(Object.fromEntries(Object.entries(treatment).filter(([path]) => !path.startsWith(".agents/"))))
       .toEqual(baseline);

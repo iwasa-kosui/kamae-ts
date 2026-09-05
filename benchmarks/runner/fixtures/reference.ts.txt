@@ -1,6 +1,11 @@
 // A small behavior control for testing the acceptance grader, never given to the model.
 import { z } from "zod";
-import type { Dependencies, ExpenseService } from "./contract";
+type Dependencies = {
+  repository: { get(id: string): Promise<unknown>; save(id: string, value: unknown): Promise<void> };
+  payment: { charge(input: { expenseId: string; amountCents: number; email: string; idempotencyKey: string }): Promise<unknown> };
+  logger: { info(event: unknown): void };
+};
+type ExpenseService = { handle(input: unknown): Promise<{ status: number; body: unknown }> };
 
 const id = z.string().min(1);
 const base = { id, ownerId: id, ownerEmail: z.email(), description: z.string().refine(s => s.trim().length > 0),
@@ -33,7 +38,7 @@ export const createExpenseService = (deps: Dependencies): ExpenseService => {
     deps.logger.info({ event: value.state, expenseId: value.id });
     return { status, body: view(value) };
   };
-  return { handle: async input => {
+  const handle: ExpenseService["handle"] = async input => {
     const parsed = command.safeParse(input);
     if (!parsed.success) return error(400);
     const cmd = parsed.data;
@@ -64,5 +69,9 @@ export const createExpenseService = (deps: Dependencies): ExpenseService => {
       amountCents: existing.amountCents, email: existing.ownerEmail, idempotencyKey: existing.id }));
     if (paid.kind === "declined") return error(422, "payment_declined");
     return save({ ...existing, state: "paid", receiptId: paid.receiptId });
+  };
+  return { handle: async input => {
+    try { return await handle(input); }
+    catch { return error(500, "unavailable"); }
   } };
 };

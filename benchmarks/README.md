@@ -1,133 +1,179 @@
 # PRD design and implementation benchmark
 
-Compare **the same model, reasoning effort, PRD, and starter project with and
-without the in-tree `kamae` skill**. Each condition proposes a design first, then
-implements it in a second fresh session. This measures the generation skill;
-`kamae-review` is neither the treatment nor an automatic judge.
+Compare the same model, reasoning effort, product requirements, and starting
+toolchain with and without the in-tree `kamae` skill. Each condition proposes a
+design and implements it in a fresh session. `kamae-review` is not an automatic judge.
+
+## Protocol v2: remove design priming
+
+The original protocol preinstalled Zod and neverthrow, supplied a TypeScript
+contract with readonly function properties, requested state/boundary/error design
+topics, and graded internal snapshot immutability and exception propagation.
+These choices overlapped with kamae. Those results cannot isolate its contribution.
+
+Version 2 starts with **no runtime dependencies and no TypeScript source**. The
+common prompt asks for a design and rationale without listing architectural
+techniques. The [PRD](cases/expense-approval/prd.md) states business needs;
+[API.md](cases/expense-approval/starter/API.md) defines the host integration format.
+Models choose storage format, organization, types, internal errors, and libraries.
+An HTTP-style 500 at the adapter does not prescribe internal error representation.
+
+The expense workflow and email privacy requirements are relevant to this skill.
+Selecting this case does not establish performance across arbitrary products.
+Shared requirements necessarily constrain behavior.
 
 ## Run
 
-Requires Bun 1.3.14+, Git, and an authenticated Codex CLI supporting `codex exec`,
-`--ignore-user-config`, `--ephemeral`, `--json`, and `skills.config` overrides.
-The selected model must be supported by your CLI/account. No API key is required
-when using your existing Codex login. Real runs consume the account's model usage.
+Requires Bun 1.3.14+, Git, and an authenticated Codex CLI supporting
+`codex exec --ignore-user-config --ephemeral --json` and custom Responses providers.
+The selected model must be supported by the account and CLI. Runs use the existing
+login and consume model usage. Harness tests require loopback HTTP and dependency
+installation; CI does not call a model.
 
 ```sh
 bun install --frozen-lockfile
-
-# Validate inputs and save both prompts/workspaces without calling a model.
+bun run benchmark:typecheck
+bun run benchmark:test
 bun run benchmark --dry-run --runs 1
 
-# One pair for a smoke test (4 model sessions: design + implementation per condition).
-bun run benchmark --model gpt-5.5 --runs 1
+# macOS: additionally block personal instructions and benchmark-source reads.
+bun run benchmark --model gpt-5.5 --runs 2 --isolation macos
 
-# Repeat the same comparison three times; choose your exact available model.
-bun run benchmark --model gpt-5.5 --runs 3 --reasoning-effort medium
-
-bun run benchmark:test
-bun run benchmark:typecheck
+# An already clean, disposable environment: audit every phase.
+bun run benchmark --model gpt-5.5 --runs 2 --isolation audit
 ```
-
-Options:
 
 | Flag | Default | Meaning |
 | --- | --- | --- |
-| `--model` | Required for real runs | Exact model ID, shared by both conditions |
-| `--case` | `expense-approval` | PRD under `benchmarks/cases/` |
+| `--model` | Required for real runs | Exact model ID shared by both conditions |
+| `--case` | `expense-approval` | Case under benchmarks/cases/ |
 | `--runs` | `3` | Number of pairs, 1–20 |
-| `--reasoning-effort` | `medium` | low, medium, high, or xhigh; must be supported by the model |
-| `--timeout-seconds` | `900` | Deadline for each design/implementation phase |
-| `--output` | `benchmarks/results/<timestamp>` | New directory; existing directories are refused |
-| `--codex-bin` | `codex` | CLI executable path; no shell command expansion |
-| `--dry-run` | Off | Prepare artifacts without model generation or grading |
+| `--reasoning-effort` | `medium` | low, medium, high, or xhigh |
+| `--timeout-seconds` | `900` | Deadline per generation phase |
+| `--output` | Timestamped benchmarks/results/ path | Existing directories refused |
+| `--codex-bin` | `codex` | Executable path, without shell expansion |
+| `--isolation` | `audit` | audit or macos; both require context preflight |
+| `--dry-run` | Off | Prepare without generation or grading |
 
-Exit code 1 means a setup/generation/integrity failure or a failed typecheck,
-self-test, or acceptance check. Per-condition failures do not prevent the other
-condition from running. Partial model logs and results are retained.
+## Generation and grading
 
-## What is compared
+1. Freeze the case, skill, rules, and hashes. Create a temporary workspace outside
+   the repository. Supply only PRD, API documentation, package manifest/lockfile,
+   and the TypeScript/Bun development toolchain. Treatment also receives kamae
+   and its default rules. The common prompt authorizes unattended design/library
+   choices; only treatment is instructed to read and apply the skill.
+2. Audit initial context, then generate DESIGN.md. The model may change only the
+   dependencies field of package.json, choosing exact registry versions. Reject
+   other supplied-input changes and implementation files.
+3. Install selected packages with lifecycle scripts disabled. Freeze package and
+   lockfile along with the design. Start a fresh session, audit context, implement
+   code/tests under src/, and require IMPLEMENTATION.md explaining deviations.
+4. Verify frozen files. Copy generated source and selected dependencies into a
+   clean grading project with trusted scripts and TypeScript configuration. Run
+   typechecking and generated tests, then introduce held-out acceptance tests.
+   Their output is never fed back to the model for repairs.
+5. Record every planned run, including failures. The 19 acceptance checks examine
+   product/API behavior with a JSON-round-tripping repository and fake gateway.
+   They do not inspect classes/functions, brands, Result types, schema libraries,
+   pure functions, or internal snapshot immutability.
 
-The initial case, [expense approval](cases/expense-approval/prd.md), exercises
-draft/submitted/approved/rejected/paid states, authorization, payment idempotency,
-recoverable declines, unexpected faults, runtime validation, and email privacy.
-The common adapter constrains observable behavior, leaving internal architecture
-and library use free. Both conditions receive identical pinned dependencies.
+Odd pairs run baseline first; even pairs run kamae first. Each phase has the same
+deadline and settings. No post-hoc retries or model substitution. Extra skill
+context and chosen dependencies are part of the treatment and its outcome.
+This is not a comparison at a fixed token budget.
 
-1. Create a fresh temporary workspace outside this repository. Copy only the
-   PRD and starter. `kamae` additionally receives a snapshot of `skills/kamae`
-   and `rules`, with an explicit instruction to apply the skill.
-2. Generate **DESIGN.md only**. Save its original bytes before implementation.
-3. Start a fresh session with the same model/settings, workspace, and proposal.
-   Implement code and tests under `src/`; record deviations in IMPLEMENTATION.md.
-4. Check that the proposal, PRD, starter contract/config, and supplied skill files
-   remain unchanged. Copy generated source into a clean grading project using
-   trusted starter configuration and dependencies.
-5. Run TypeScript, the generated tests, and 19 shared acceptance checks. Acceptance
-   test source is supplied only after generation, and its output is never fed
-   back for repairs. The model can repair its own tests during its initial session.
+## Context evidence and limits
 
-Odd repetitions run baseline first; even repetitions run kamae first. Each phase
-gets the same wall-clock deadline; additional skill context is part of the treatment.
-This is a context ablation, not a fixed-token comparison. There is no post-hoc
-retry of failed model generations or automatic model substitution.
+`--ignore-user-config` skips user configuration; `project_doc_max_bytes=0` does
+**not** suppress global AGENTS.md in the CLI version audited here. The v1 claim
+that these flags disabled all instructions was incorrect.
 
-## Read the results
+Every v2 phase first invokes the same exec command against an unauthenticated
+loopback receiver. It captures the initial request body and returns HTTP 400
+without forwarding anything or calling a model. Headers and credentials are not
+saved. Only the exact task prompt, environment message, and CLI permissions
+message are accepted; extra context fails before generation. CLI base instruction
+and tool-definition hashes must remain constant across phases.
 
-Open `report.md` in the output directory. It links each condition's frozen design,
-source, implementation notes, and review sheet. `results.json` records generation
-status separately from correctness, exact command outcomes, timing, and token
-usage when the CLI reports it. Unavailable usage is null, not zero. Input token
-counts may include cached tokens; this report does not estimate monetary cost.
+This preflight uses a different provider transport. It is **not a saved copy of
+the subsequent remote request**; provider-specific model metadata can differ.
+The installed CLI defaults are still instructions. Saved inputs show what was
+inspected, rather than claiming that flags alone prove isolation.
 
-`manifest.json` records the requested model/effort, CLI/Bun versions, Git revision,
-run order, disabled skill paths, and SHA-256 hashes of the case and skill/rules.
-The output includes their snapshots, exact phase prompts/argument arrays, final
-messages, raw JSONL events, stderr, and JUnit acceptance reports. Results and local
-machine paths are ignored by Git; inspect before sharing them publicly.
+The runner disables discovered global skills, plugins, hooks, apps, memories,
+web/skill search, and subagents. Treatment discovery is disabled too: the explicit
+prompt supplies its file path, so no extra catalog is injected. Only supplied
+default rules apply; personal preferences are not inputs.
 
-Generation failures and integrity violations stay in the aggregate acceptance
-denominator with zero credit. A completed generation can still fail typechecking
-or behavioral checks. Tests that fail to load, truncated reports, timeouts, and
-missing test counts cannot produce a passing score. Skipped tests receive no credit.
+On macOS, the recorded sandbox-exec profile denies personal agent/Claude
+instructions, config, rules, skills, plugins, memories, ancestor guidance, and
+benchmark source/result reads. Writes are limited to that run's workspace,
+artifacts, Codex internal state, and /dev/null; instruction paths remain denied.
+Authentication is untouched; no personal files or HOME/CODEX_HOME settings are
+changed by the runner. Each run first probes allowed workspace reads/writes and
+denied personal-instruction reads and outside writes, without calling a model.
 
-Architecture is evaluated separately using each run's `review.md`. Score eight
-dimensions from 0–2 with file/line evidence, comparing the design promise with the
-implementation. Unreviewed dimensions stay blank. The report does not fabricate
-a design score from prose keywords or reward class/function, Result, schema,
-branding, or file-count choices by themselves. A PRD pass rate is not a general
-measure of design quality, and one pair is not evidence of statistical superiority.
+Nested macOS sandboxes prevent tool execution in the audited CLI. Therefore macos
+mode supplies the external OS sandbox and passes `--sandbox danger-full-access`
+to Codex to avoid creating a second sandbox. This flag is used only behind the
+mandatory outer profile and successful probe. Audit mode retains Codex's own
+workspace-write sandbox. The external profile is not a container, permits network
+access for the CLI, and does not isolate every OS resource. Audit mode adds no
+filesystem restriction and is intended for an already clean environment.
 
-## Isolation and limits
+Generated code runs locally during grading; no real payment system is connected.
+Selected dependencies have exact registry versions and installation scripts
+disabled, but ordinary package runtime code still executes.
 
-The runner keeps the existing Codex login but ignores user config, suppresses
-AGENTS.md loading, disables discovered skills in `~/.agents/skills`,
-`$CODEX_HOME/skills` (default `~/.codex/skills`), `/etc/codex/skills`, and the
-temporary directory's `.agents/skills`, and disables plugins, hooks, apps, memory,
-web search, skill search, and subagents. It never rewrites user config or auth.
-The generation prompt permits only supplied workspace material, overriding the
-skill's usual instruction to look up user-global rules.
+## Results and interpretation
 
-These controls reduce context contamination; they are **not a hermetic security
-boundary**. Codex's workspace-write sandbox still permits filesystem reads, and
-admin requirements or CLI changes may affect execution. Confirm the recorded
-configuration and tool trace when making comparisons on a new machine/version.
-Use a disposable machine/container for stronger isolation. Acceptance runs execute
-generated code locally and use an in-memory fake gateway; they do not pay anyone.
+manifest.json records protocol version, settings, versions, revision, run order,
+and case/skill/rules/runner hashes. Runs include initial-context captures/audits,
+sandbox profile when used, prompts/commands, JSONL logs, frozen DESIGN.md,
+workspace, implementation notes, and grader output. Chosen dependencies are in
+results.json and package.json. Outputs include local paths and are ignored by Git;
+inspect before sharing.
+
+report.md separates generation completion from correctness. Failed runs stay in
+the denominator with zero credit. Missing/truncated reports, timeouts, and skipped
+tests cannot silently pass. Missing token usage is not zero. Cached input and
+wall time are not monetary cost. Dependency installation and context preflight
+are outside reported generation time.
+
+Use review.md for an evidence-based human comparison of design and code. Its seven
+dimensions cover requirements, correctness, reliability, privacy, maintainability,
+design fidelity, and tests. Unreviewed cells stay blank. Describe architecture
+separately; do not award points for patterns, libraries, keywords, or file counts.
+Small samples cannot establish statistical superiority. Compare v2 conditions
+with each other, not against v1 scores as if the PRD/grader were unchanged.
+
+If the grader needs correction, record the reason and preserve the original run.
+Regrade every completed generation with one common suite, without model calls or
+code repairs. The suite must retain the manifest's expected top-level test count:
+
+```sh
+bun run benchmark:regrade benchmarks/results/RUN \
+  benchmarks/cases/expense-approval/acceptance benchmarks/results/REGRADED
+```
+
+This writes a separate report with grader hashes and checks that original
+workspaces/results remain unchanged. Failed generations remain in the denominator.
+It refuses in-progress runs and existing output directories. Report original and
+corrected scores and explain any grader correction; do not silently replace scores.
+
+## Extend a case
+
+Add case.json (id/name/expectedTests), prd.md,
+starter/{API.md,package.json,bun.lock,tsconfig.json}, and acceptance tests importing
+../src/index under benchmarks/cases/<id>/. Do not supply domain types, reference
+implementations, architecture instructions, or runtime packages in the starter.
+Keep the development toolchain pinned. Document host behavior without prescribing
+internal design. Keep acceptance tests held out; add positive and deliberately
+broken controls and increment expectedTests for new top-level tests.
+
+Run a real comparison after changing common inputs, prompts, skill loading, or
+acceptance logic. CI checks the harness and dry runs without model calls.
 
 CLI references: [non-interactive execution](https://developers.openai.com/codex/noninteractive),
 [skill discovery](https://developers.openai.com/codex/skills), and
 [configuration](https://developers.openai.com/codex/config-reference).
-
-## Extend a case
-
-Add `benchmarks/cases/<id>/case.json` (`id`, `name`, `expectedTests`), `prd.md`,
-`starter/{package.json,bun.lock,tsconfig.json,src/contract.ts}`, and
-`acceptance/*.test.ts`. Tests import the observable adapter from `../src/index`.
-Keep business requirements independent of kamae-specific implementation choices.
-Pin starter dependencies and commit the lockfile. Increase `expectedTests` when
-adding a top-level test; nested loops intentionally remain one requirement check.
-
-Add a positive control and a deliberately broken implementation to the grader's
-tests so passing/failing is verified without a model. Run a real pair whenever
-changing the PRD, prompts, isolation, or acceptance logic. CI validates the harness,
-positive/negative grader controls, and dry-run artifacts without model calls.

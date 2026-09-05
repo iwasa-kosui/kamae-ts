@@ -9,6 +9,7 @@
   },
   "scripts": {
     "benchmark": "bun run benchmarks/runner/run.ts",
+    "benchmark:regrade": "bun run benchmarks/runner/regrade.ts",
     "benchmark:test": "bun test ./benchmarks/runner",
     "benchmark:typecheck": "tsc --project benchmarks/tsconfig.json",
     "gen:og-image": "bun run scripts/gen-og-image.ts",

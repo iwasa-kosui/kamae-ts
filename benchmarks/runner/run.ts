@@ -1,22 +1,24 @@
-import { cp, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { copyTree, files, hashes, json, read, skillOverrides } from "./files";
 import { command, interrupted, parseEvents, parseJunit, succeeded, type CommandResult } from "./process";
 import { codexArgs, order, prompt, rubric, type Phase, type Variant } from "./protocol";
+import { auditContext, isolationPrefix, verifySandbox, type Isolation } from "./context";
+import { selectedPackage } from "./dependencies";
 
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
 export function options(args: string[]) {
   const config = { case: "expense-approval", model: "", effort: "medium", runs: 3,
-    timeoutSeconds: 900, output: "", dryRun: false, binary: "codex" };
+    timeoutSeconds: 900, output: "", dryRun: false, binary: "codex", isolation: "audit" };
   for (let index = 0; index < args.length; index++) {
     const key = args[index];
     if (key === "--dry-run") { config.dryRun = true; continue; }
     const fields = { "--case": "case", "--model": "model", "--reasoning-effort": "effort",
       "--runs": "runs", "--timeout-seconds": "timeoutSeconds", "--output": "output",
-      "--codex-bin": "binary" } as const;
+      "--codex-bin": "binary", "--isolation": "isolation" } as const;
     const field = fields[key as keyof typeof fields];
     if (!field) throw new Error(`Unknown option: ${key}`);
     const value = args[++index];
@@ -26,6 +28,7 @@ export function options(args: string[]) {
   }
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(config.case)) throw new Error("Invalid case ID");
   if (!config.dryRun && !config.model.trim()) throw new Error("--model is required for real runs");
+  if (!["audit", "macos"].includes(config.isolation)) throw new Error("Invalid isolation mode");
   if (!["low", "medium", "high", "xhigh"].includes(config.effort)) throw new Error("Invalid reasoning effort");
   if (!Number.isInteger(config.runs) || config.runs < 1 || config.runs > 20) throw new Error("--runs must be 1–20");
   if (!Number.isInteger(config.timeoutSeconds) || config.timeoutSeconds < 1) throw new Error("Invalid timeout");
@@ -46,11 +49,13 @@ export type RunResult = {
   sourceFiles?: number;
   sourceLines?: number;
   designReview: "pending";
+  dependencies?: Record<string, string>;
+  contextAudits?: Partial<Record<Phase, Awaited<ReturnType<typeof auditContext>>>>;
 };
 
-export function report(results: RunResult[], dryRun: boolean, expectedTests: number): string {
+export function report(results: RunResult[], dryRun: boolean, expectedTests: number, artifactPrefix = ""): string {
   const rows = results.map(run => {
-    const path = run.id;
+    const path = artifactPrefix ? `${artifactPrefix}/${run.id}` : run.id;
     const counts = run.acceptance?.counts;
     const stages = Object.values(run.stages);
     const seconds = stages.length ? (stages.reduce((sum, stage) => sum + stage.durationMs, 0) / 1000).toFixed(1) : "—";
@@ -90,7 +95,7 @@ async function validateCase(caseRoot: string, caseId: string) {
   if (metadata.id !== caseId || !Number.isInteger(metadata.expectedTests) || metadata.expectedTests < 1) {
     throw new Error("Invalid case metadata");
   }
-  for (const name of ["prd.md", "starter/package.json", "starter/bun.lock", "starter/tsconfig.json", "starter/src/contract.ts"]) {
+  for (const name of ["prd.md", "starter/API.md", "starter/package.json", "starter/bun.lock", "starter/tsconfig.json"]) {
     if (!(await read(join(caseRoot, name))).trim()) throw new Error(`Missing case input: ${name}`);
   }
   const acceptance = await files(join(caseRoot, "acceptance"));
@@ -106,7 +111,7 @@ async function checkIntegrity(workspace: string, starterHashes: Record<string, s
 
 async function main() {
   if (process.argv.includes("--help")) {
-    console.log("bun run benchmark --model MODEL [--case expense-approval] [--runs 3] [--reasoning-effort medium] [--timeout-seconds 900] [--output DIR] [--dry-run] [--codex-bin PATH]");
+    console.log("bun run benchmark --model MODEL [--case expense-approval] [--runs 3] [--reasoning-effort medium] [--timeout-seconds 900] [--output DIR] [--dry-run] [--codex-bin PATH] [--isolation audit|macos]");
     return;
   }
   const config = options(process.argv.slice(2));
@@ -114,8 +119,9 @@ async function main() {
   const metadata = await validateCase(caseRoot, config.case);
   await mkdir(dirname(config.output), { recursive: true });
   await mkdir(config.output); // Refuse to overwrite an existing run, including interrupted runs.
-  const temporary = await mkdtemp(join(tmpdir(), "kamae-benchmark-"));
+  const temporary = await realpath(await mkdtemp(join(tmpdir(), "kamae-benchmark-")));
   const results: RunResult[] = [];
+  let contextSignature: string | undefined;
   const persist = async () => {
     await json(join(config.output, "results.json"), results);
     await writeFile(join(config.output, "report.md"), report(results, config.dryRun, metadata.expectedTests));
@@ -140,12 +146,12 @@ async function main() {
     await copyTree(join(repo, "skills/kamae"), join(frozenSkill, "skills/kamae"));
     await copyTree(join(repo, "rules"), join(frozenSkill, "rules"));
     await json(join(config.output, "manifest.json"), {
-      schemaVersion: 1, createdAt: new Date().toISOString(), ...config, case: metadata,
+      schemaVersion: 2, createdAt: new Date().toISOString(), ...config, case: metadata,
       codexVersion: (await read(join(config.output, "codex-version.stdout"))).trim(),
       bunVersion: Bun.version, revision: (await read(join(config.output, "revision.stdout"))).trim(),
       inputs: await hashes(frozenCase), skill: await hashes(join(frozenSkill, "skills/kamae")),
       rules: await hashes(join(frozenSkill, "rules")), runner: await hashes(join(repo, "benchmarks/runner")), disabledSkills,
-      isolation: "Fresh temporary workspaces, user config/instructions and discovered global skills disabled; plugins/hooks/memory/web/subagents disabled. Filesystem read access is not a security isolation boundary.",
+      contextPolicy: "Every phase must pass a loopback initial-context preflight. User config, discovered skills, plugins/hooks/memory/web/subagents disabled. macos additionally denies personal instruction reads. This is not a container or a capture of the actual remote request.",
       order: results.map(run => run.id),
     });
     const prepared = join(temporary, "dependencies");
@@ -161,26 +167,38 @@ async function main() {
       const artifact = join(config.output, run.id), workspace = join(temporary, run.id);
       await mkdir(artifact);
       await copyTree(prepared, workspace);
+      await mkdir(join(workspace, "src"), { recursive: true });
       await writeFile(join(workspace, "PRD.md"), await read(join(frozenCase, "prd.md")));
       if (run.variant === "kamae") {
         await copyTree(join(frozenSkill, "skills/kamae"), join(workspace, ".agents/skills/kamae"));
         await copyTree(join(frozenSkill, "rules"), join(workspace, ".agents/rules"));
       }
       // This also protects PRD and supplied skill/rule bytes from modification.
-      const original = await hashes(workspace);
+      let original = await hashes(workspace);
+      const originalPackage = await read(join(workspace, "package.json"));
       await writeFile(join(artifact, "review.md"), rubric);
       if (!config.dryRun) await cp(join(prepared, "node_modules"), join(workspace, "node_modules"), { recursive: true });
       console.log(`${run.id}: ${config.dryRun ? "preparing" : "running"}`);
       try {
         let design = "";
+        const prefix = await isolationPrefix(config.isolation as Isolation, artifact, workspace, [repo, config.output]);
+        if (!config.dryRun) await verifySandbox(prefix, workspace, artifact, join(temporary, `${run.id}-outside-probe`));
         for (const phase of ["design", "implementation"] as const) {
           const input = prompt(phase, run.variant);
           await writeFile(join(artifact, `${phase}.prompt.md`), input);
           const args = codexArgs({ binary: config.binary, model: config.model, effort: config.effort,
-            workspace, finalMessage: join(artifact, `${phase}.final.md`), disabledSkills });
-          await json(join(artifact, `${phase}.command.json`), args);
+            workspace, finalMessage: join(artifact, `${phase}.final.md`),
+            externalSandbox: config.isolation === "macos",
+            disabledSkills: [...disabledSkills, join(workspace, ".agents/skills/kamae"), join(workspace, ".agents/skills/kamae/SKILL.md")] });
+          await json(join(artifact, `${phase}.command.json`), [...prefix, ...args]);
           if (config.dryRun) continue;
-          const execution = await command(args, workspace, join(artifact, phase), config.timeoutSeconds * 1000, input);
+          run.contextAudits ??= {};
+          const audit = await auditContext(args, prefix, workspace, join(artifact, phase), input);
+          run.contextAudits[phase] = audit;
+          const signature = `${audit.instructionsSha256}:${audit.toolsSha256}`;
+          if (contextSignature && signature !== contextSignature) throw new Error("CLI base instructions or tool definitions changed between phases");
+          contextSignature = signature;
+          const execution = await command([...prefix, ...args], workspace, join(artifact, phase), config.timeoutSeconds * 1000, input);
           const events = parseEvents(await read(join(artifact, `${phase}.stdout`)));
           run.stages[phase] = { ...execution, ...events };
           if (!succeeded(execution) || !events.completed || events.failed || events.malformedLines) {
@@ -190,9 +208,15 @@ async function main() {
             design = await read(join(workspace, "DESIGN.md"));
             if (!design.trim()) throw new Error("Design phase produced no DESIGN.md");
             await writeFile(join(artifact, "DESIGN.md"), design);
-            if (!(await checkIntegrity(workspace, original, design))) throw new Error("Design changed supplied inputs");
+            const { "package.json": _, ...fixedInputs } = original;
+            if (!(await checkIntegrity(workspace, fixedInputs, design))) throw new Error("Design changed supplied inputs");
+            run.dependencies = selectedPackage(originalPackage, await read(join(workspace, "package.json")));
             const additions = (await files(workspace)).filter(path => !(path in original) && path !== "DESIGN.md");
             if (additions.length) throw new Error(`Design phase wrote implementation files: ${additions.join(", ")}`);
+            const install = await command(["bun", "install", "--ignore-scripts"], workspace,
+              join(artifact, "selected-dependencies"), 120000);
+            if (!succeeded(install)) throw new Error("Selected dependency installation failed");
+            original = await hashes(workspace);
           }
         }
         if (!config.dryRun) {
@@ -203,6 +227,11 @@ async function main() {
           // Grade in a clean directory, with trusted configuration and post-generation tests.
           const grading = join(temporary, `${run.id}-grading`);
           await cp(prepared, grading, { recursive: true });
+          await cp(join(workspace, "package.json"), join(grading, "package.json"));
+          await cp(join(workspace, "bun.lock"), join(grading, "bun.lock"));
+          const install = await command(["bun", "install", "--frozen-lockfile", "--ignore-scripts"], grading,
+            join(artifact, "grading-dependencies"), 120000);
+          if (!succeeded(install)) throw new Error("Grading dependency installation failed");
           await copyTree(join(workspace, "src"), join(grading, "src"));
           const sources = (await files(join(workspace, "src"))).filter(path => path.endsWith(".ts") && !/\.(test|spec)\.ts$/.test(path));
           run.sourceFiles = sources.length;

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { inspect } from "node:util";
 import { createExpenseService } from "../src/index";
-import type { Dependencies, ExpenseService } from "../src/contract";
+import type { Dependencies } from "./contract";
 
 const draft = {
   op: "create", id: "expense-1", ownerId: "alice",
@@ -13,14 +13,14 @@ function harness(overrides: Partial<Dependencies> = {}) {
   const writes: unknown[] = [], charges: unknown[] = [], logs: unknown[] = [];
   const dependencies: Dependencies = {
     repository: {
-      get: async (id) => records.get(id),
-      save: async (id, record) => { writes.push(record); records.set(id, record); },
+      get: async (id) => records.has(id) ? JSON.parse(JSON.stringify(records.get(id))) : undefined,
+      save: async (id, record) => { writes.push(record); records.set(id, JSON.parse(JSON.stringify(record))); },
     },
     payment: { charge: async (input) => { charges.push(input); return { kind: "paid", receiptId: "receipt-1" }; } },
     logger: { info: (event) => { logs.push(event); } },
     ...overrides,
   };
-  const service: ExpenseService = createExpenseService(dependencies);
+  const service = createExpenseService(dependencies);
   const step = (op: string, fields: Record<string, unknown> = {}) =>
     service.handle({ op, id: draft.id, actorId: "bob", ...fields });
   const approved = async () => {
@@ -28,14 +28,14 @@ function harness(overrides: Partial<Dependencies> = {}) {
     expect((await step("submit", { actorId: "alice" })).status).toBe(200);
     expect((await step("approve")).status).toBe(200);
   };
-  return { service, records, writes, charges, logs, step, approved };
+  return { service, dependencies, records, writes, charges, logs, step, approved };
 }
 
 describe("PRD acceptance", () => {
   test("R1 creates and retrieves a public draft view", async () => {
     const h = harness();
     const created = await h.service.handle(draft);
-    expect(created).toEqual({ status: 201, body: {
+    expect(created).toMatchObject({ status: 201, body: {
       id: draft.id, ownerId: "alice", description: draft.description,
       amountCents: 4200, state: "draft",
     } });
@@ -92,7 +92,7 @@ describe("PRD acceptance", () => {
       state: "rejected", reviewerId: "bob", reason: "No receipt",
     });
     for (const op of ["submit", "approve", "reject", "pay"]) {
-      expect((await h.step(op, { reason: "Still no" })).status).toBe(409);
+      expect((await h.step(op, { actorId: op === "submit" ? "alice" : "bob", reason: "Still no" })).status).toBe(409);
     }
     expect(h.charges).toHaveLength(0);
   });
@@ -113,7 +113,7 @@ describe("PRD acceptance", () => {
     expect(await h.step("pay")).toEqual(paid);
     expect(h.charges).toHaveLength(1); expect(h.writes).toHaveLength(count);
     for (const op of ["submit", "approve", "reject"]) {
-      expect((await h.step(op, { reason: "No" })).status).toBe(409);
+      expect((await h.step(op, { actorId: op === "submit" ? "alice" : "bob", reason: "No" })).status).toBe(409);
     }
   });
 
@@ -128,39 +128,46 @@ describe("PRD acceptance", () => {
     expect((await h.step("pay")).body).toMatchObject({ state: "paid", receiptId: "retry-receipt" });
   });
 
-  test("R5 thrown gateway faults propagate without writing", async () => {
+  test("R5 unavailable gateway returns 500 without writing", async () => {
     const h = harness({ payment: { charge: async () => { throw new Error("gateway offline"); } } });
     await h.approved(); const writes = h.writes.length;
-    await expect(h.step("pay")).rejects.toBeDefined();
+    expect((await h.step("pay")).status).toBe(500);
     expect(h.writes).toHaveLength(writes);
     expect((await h.step("get")).body).toMatchObject({ state: "approved" });
   });
 
-  test("R5 malformed gateway responses propagate without writing", async () => {
+  test("R5 unusable gateway receipts return 500 without writing", async () => {
     for (const response of [undefined, {}, { kind: "paid" }, { kind: "paid", receiptId: "" }, { kind: "other" }]) {
       const h = harness({ payment: { charge: async () => response } });
       await h.approved(); const writes = h.writes.length;
-      await expect(h.step("pay")).rejects.toBeDefined();
+      expect((await h.step("pay")).status).toBe(500);
       expect(h.writes).toHaveLength(writes);
     }
   });
 
-  test("R5 repository read and write failures propagate", async () => {
+  test("R5 unavailable storage returns 500", async () => {
     const h = harness({ repository: {
       get: async () => { throw new Error("read unavailable"); }, save: async () => {},
     } });
-    await expect(h.step("get")).rejects.toBeDefined();
+    expect((await h.step("get")).status).toBe(500);
     const writer = harness({ repository: {
       get: async () => undefined, save: async () => { throw new Error("write unavailable"); },
     } });
-    await expect(writer.service.handle(draft)).rejects.toBeDefined();
+    expect((await writer.service.handle(draft)).status).toBe(500);
   });
 
-  test("R5 malformed stored records are unexpected faults", async () => {
-    for (const record of [null, {}, { id: draft.id, state: "paid" }]) {
-      const h = harness(); h.records.set(draft.id, record);
-      await expect(h.step("get")).rejects.toBeDefined();
-    }
+  test("R7 storage and gateway errors do not expose email", async () => {
+    const h = harness({ payment: { charge: async () => { throw new Error(draft.ownerEmail); } } });
+    await h.approved();
+    const failed = await h.step("pay");
+    expect(failed.status).toBe(500);
+    expect(JSON.stringify([failed, h.logs])).not.toContain(draft.ownerEmail);
+    const storage = harness({ repository: {
+      get: async () => { throw new Error(draft.ownerEmail); }, save: async () => {},
+    } });
+    const missing = await storage.step("get");
+    expect(missing.status).toBe(500);
+    expect(JSON.stringify([missing, storage.logs])).not.toContain(draft.ownerEmail);
   });
 
   test("R6 missing IDs return 404", async () => {
@@ -176,17 +183,18 @@ describe("PRD acceptance", () => {
     await h.step("submit", { actorId: "alice" });
     expect((await h.step("pay")).status).toBe(409);
     await h.step("approve");
-    for (const op of ["submit", "approve", "reject"]) expect((await h.step(op, { reason: "No" })).status).toBe(409);
+    for (const op of ["submit", "approve", "reject"]) {
+      expect((await h.step(op, { actorId: op === "submit" ? "alice" : "bob", reason: "No" })).status).toBe(409);
+    }
     expect(h.charges).toHaveLength(0);
   });
 
-  test("R7 transitions do not mutate repository snapshots", async () => {
-    const h = harness(); await h.service.handle(draft);
-    for (const [op, fields] of [["submit", { actorId: "alice" }], ["approve", {}], ["pay", {}]] as const) {
-      const previous = h.records.get(draft.id); const before = inspect(previous, { depth: null });
-      await h.step(op, fields);
-      expect(inspect(previous, { depth: null })).toBe(before);
-    }
+  test("R4/R6 saved expenses survive service recreation", async () => {
+    const h = harness(); await h.approved(); const paid = await h.step("pay");
+    const recreated = createExpenseService(h.dependencies);
+    expect(await recreated.handle({ op: "get", id: draft.id })).toEqual(paid);
+    expect(await recreated.handle({ op: "pay", id: draft.id })).toEqual(paid);
+    expect(h.charges).toHaveLength(1);
   });
 
   test("R7 public output and success diagnostics contain no email", async () => {

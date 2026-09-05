@@ -1,5 +1,5 @@
 import { afterAll, expect, test } from "bun:test";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { copyTree, read } from "./files";
@@ -12,7 +12,11 @@ test("acceptance passes a behavioral control and detects a validation regression
   const caseRoot = resolve(import.meta.dir, "../cases/expense-approval");
   const workspace = join(temporary, "project");
   await copyTree(join(caseRoot, "starter"), workspace);
-  const install = await command(["bun", "install", "--frozen-lockfile", "--ignore-scripts"], workspace,
+  await mkdir(join(workspace, "src"), { recursive: true });
+  const pkg = JSON.parse(await read(join(workspace, "package.json")));
+  pkg.dependencies = { zod: "4.1.5" };
+  await writeFile(join(workspace, "package.json"), JSON.stringify(pkg));
+  const install = await command(["bun", "install", "--ignore-scripts"], workspace,
     join(temporary, "install"), 60000);
   expect(succeeded(install)).toBe(true);
   const control = await read(join(import.meta.dir, "fixtures/reference.ts.txt"));
