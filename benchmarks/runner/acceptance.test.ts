@@ -8,7 +8,7 @@ import { command, parseJunit, succeeded } from "./process";
 const temporary = await mkdtemp(join(tmpdir(), "kamae-acceptance-control-"));
 afterAll(() => rm(temporary, { recursive: true, force: true }));
 
-test("acceptance passes a behavioral control and detects a validation regression", async () => {
+test("acceptance passes a control and detects validation and create-response privacy regressions", async () => {
   const caseRoot = resolve(import.meta.dir, "../cases/expense-approval");
   const workspace = join(temporary, "project");
   await copyTree(join(caseRoot, "starter"), workspace);
@@ -38,4 +38,9 @@ test("acceptance passes a behavioral control and detects a validation regression
   expect(succeeded(broken.execution)).toBe(false);
   expect(broken.counts?.failures).toBeGreaterThan(0);
   expect(broken.counts?.passed).toBeLessThan(19);
+  await writeFile(join(workspace, "src/index.ts"), control.replace("body: view(value)",
+    "body: status === 201 ? { ...view(value), ownerEmail: value.ownerEmail } : view(value)"));
+  const leaked = await grade("privacy-mutant");
+  expect(succeeded(leaked.execution)).toBe(false);
+  expect(leaked.counts?.failures).toBeGreaterThan(0);
 }, 90000);

@@ -39,6 +39,7 @@ describe("PRD acceptance", () => {
       id: draft.id, ownerId: "alice", description: draft.description,
       amountCents: 4200, state: "draft",
     } });
+    expect(JSON.stringify(created)).not.toContain(draft.ownerEmail);
     expect(await h.step("get")).toEqual({ status: 200, body: created.body });
     expect(h.writes).toHaveLength(1);
   });
