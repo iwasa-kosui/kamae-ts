@@ -53,16 +53,22 @@ pipe(
 );
 ```
 
+## TaskEither Contract and Error Boundary
+
+`TaskEither<E, A>` is structurally the same type as `Task<Either<E, A>>`; spelling out the type does not change error handling. `Task` represents an asynchronous computation that never fails, and `TaskEither` represents failure as `Left` without rejecting its promise. See the [Task contract](https://gcanti.github.io/fp-ts/modules/Task.ts.html#task-overview) and [TaskEither definition](https://gcanti.github.io/fp-ts/modules/TaskEither.ts.html#taskeither-overview).
+
+Adapt I/O that can reject with `TE.tryCatch`. Do not pass it to `TE.fromTask` or rethrow inside a `tryCatch` error mapper. The example distinguishes business errors in `ExpectedFailure` from operational faults in `UnexpectedFault`. After the pipeline runs, `execute` returns the business `Either` or rethrows the original fault cause. This application boundary returns a native `Promise` that may reject; do not declare it as `Task` or `TaskEither`.
+
 ## Example: State-Transition Pipeline
 
-Following Railway Oriented Programming principles, extract each expected business decision into an independent function, and compose those decisions with `pipe` + `Do`/`bind`. Run persistence after the decision succeeds so a rejected `Task` remains an unexpected failure.
+Compose lookup, business decisions, and persistence with `TaskEither` and `pipe`. Use `bindW`, `chainEitherKW`, and `chainFirstW` when combining different error types. Keep unexpected faults outside the domain error union; a separate `ExecutionFailure` carries them to the application boundary.
 
 For the design of `RequestResolver` / `RequestStore` and how to persist state and domain events in a single transaction, see [state-modeling.md#domain-events](../state-modeling.md#domain-events).
 
 ```typescript
 import * as E from "fp-ts/Either";
+import * as TE from "fp-ts/TaskEither";
 import { pipe } from "fp-ts/function";
-import type { Task } from "fp-ts/Task";
 
 // --- Branded Types ---
 
@@ -90,21 +96,45 @@ type EnRoute = Readonly<{
   driverId: DriverId;
 }>;
 
-// --- Repository Types ---
-
-type RequestResolver = Readonly<{
-  findById: (id: RequestId) => Task<Waiting | undefined>;
-}>;
-
-type RequestStore = Readonly<{
-  save: (state: EnRoute) => Task<void>;
-}>;
-
-// --- Error Types ---
+// --- Domain Errors ---
 
 type AssignDriverError =
   | Readonly<{ kind: "RequestNotFound"; requestId: RequestId }>
   | Readonly<{ kind: "DriverNotAvailable"; driverId: DriverId }>;
+
+// --- Execution Failures (outside the domain error union) ---
+
+type ExpectedFailure<D> = Readonly<{ kind: "ExpectedFailure"; error: D }>;
+type UnexpectedFault = Readonly<{ kind: "UnexpectedFault"; cause: unknown }>;
+type ExecutionFailure<D> = ExpectedFailure<D> | UnexpectedFault;
+
+const expectedFailure = <D>(error: D): ExpectedFailure<D> =>
+  ({ kind: "ExpectedFailure", error });
+
+const unexpectedFault = (cause: unknown): UnexpectedFault =>
+  ({ kind: "UnexpectedFault", cause });
+
+// --- Repository Ports and I/O Adapters ---
+
+type RequestResolver = Readonly<{
+  findById: (id: RequestId) => TE.TaskEither<UnexpectedFault, Waiting | undefined>;
+}>;
+
+type RequestStore = Readonly<{
+  save: (state: EnRoute) => TE.TaskEither<UnexpectedFault, void>;
+}>;
+
+const createRequestResolver = (
+  findById: (id: RequestId) => Promise<Waiting | undefined>,
+): RequestResolver => ({
+  findById: (id) => TE.tryCatch(() => findById(id), unexpectedFault),
+});
+
+const createRequestStore = (
+  save: (state: EnRoute) => Promise<void>,
+): RequestStore => ({
+  save: (state) => TE.tryCatch(() => save(state), unexpectedFault),
+});
 
 // --- Domain Functions ---
 
@@ -132,7 +162,7 @@ const transitionToEnRoute = (ctx: {
   driverId: ctx.driverId,
 });
 
-// --- Use Case (full pipeline composition via Do + bind) ---
+// --- Use Case (full TaskEither pipeline) ---
 
 const assignDriverUseCase =
   (requestResolver: RequestResolver, requestStore: RequestStore) =>
@@ -140,33 +170,60 @@ const assignDriverUseCase =
     requestId: RequestId,
     driverId: DriverId,
     isDriverAvailable: boolean,
-  ): Task<E.Either<AssignDriverError, EnRoute>> =>
-  async () => {
-    const request = await requestResolver.findById(requestId)();
-    const assignment = pipe(
-      E.Do,
+  ): TE.TaskEither<ExecutionFailure<AssignDriverError>, EnRoute> =>
+    pipe(
+      TE.Do,
       // 1. Fetch request → verify existence
-      E.bind("waiting", () =>
-        ensureExists(requestId)(request),
+      TE.bindW("waiting", () =>
+        pipe(
+          requestResolver.findById(requestId),
+          TE.chainEitherKW((request) =>
+            pipe(ensureExists(requestId)(request), E.mapLeft(expectedFailure)),
+          ),
+        ),
       ),
       // 2. Check driver availability
-      E.bind("driverId", () =>
-        ensureDriverAvailable(driverId, isDriverAvailable)(),
+      TE.bindW("driverId", () =>
+        pipe(
+          ensureDriverAvailable(driverId, isDriverAvailable)(),
+          E.mapLeft(expectedFailure),
+          TE.fromEither,
+        ),
       ),
       // 3. State transition
-      E.map(transitionToEnRoute),
+      TE.map(transitionToEnRoute),
+      // 4. Persist, preserving the assigned state
+      TE.chainFirstW(requestStore.save),
     );
 
-    if (E.isLeft(assignment)) return assignment;
+// --- Application Execution Boundary ---
 
-    await requestStore.save(assignment.right)();
-    return assignment;
-  };
+const execute = async <D, A>(
+  task: TE.TaskEither<ExecutionFailure<D>, A>,
+): Promise<E.Either<D, A>> => {
+  const result = await task();
+  return pipe(
+    result,
+    E.match(
+      (failure): E.Either<D, A> => {
+        switch (failure.kind) {
+          case "ExpectedFailure":
+            return E.left(failure.error);
+          case "UnexpectedFault":
+            throw failure.cause;
+        }
+      },
+      (value) => E.right(value),
+    ),
+  );
+};
 ```
+
+At the application boundary, call `await execute(assignDriverUseCase(resolver, store)(requestId, driverId, true))`. The returned business `Either` still has only `AssignDriverError` on its error side. Do not expose `UnexpectedFault` as a business outcome; the outer error handler owns logging and the generic operational response.
 
 ## Recoverable External Failures
 
-Keep a named external error in `Either` only when the workflow can make a recovery decision:
+Add a named external error to the domain `Either` error union only when the workflow can make a recovery decision:
 
 ```typescript
 type PaymentAuthorizationError = {

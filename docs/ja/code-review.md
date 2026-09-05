@@ -117,9 +117,11 @@ declaration merging により型の形状が暗黙に変わる危険がありま
 | 任意の技術的障害を catch し、汎用エラーへラップまたは改名してドメインの `Result` union に追加している | 型名やフィールド名に関係なく、汎用的なドメインエラーにせずアプリケーションのエラー境界まで伝播させる |
 | 非公開 sentinel が、`unknown` の判別後に対応する境界で catch され、それ以外の値がすべて再 throw される | 指摘なし |
 
-`assertNever` 内の `throw`、伝播する内部 assertion の失敗、アプリケーションのエラー境界へ到達する予期しない障害は指摘しません。その境界がログ記録と汎用的な運用レスポンスを所有します。非公開 sentinel は、同等の `Result` 合成より明確で、狭い範囲に限定され、対応する catch 境界だけが識別し、それ以外をすべて再 throw し、想定されるドメイン失敗を表さない場合に限り許容します。両者が同程度に明確なら `Result` を優先します。assertion や任意の技術的障害を汎用的な `Result` エラーに変換する実装は、ラッパーが `RepositoryError` 以外の名前で、ペイロードが `cause` 以外の名前でも指摘対象です。
+`assertNever` 内の `throw`、伝播する内部 assertion の失敗、アプリケーションのエラー境界へ到達する予期しない障害は指摘しません。その境界がログ記録と汎用的な運用レスポンスを所有します。非公開 sentinel は、同等の `Result` 合成より明確で、狭い範囲に限定され、対応する catch 境界だけが識別し、それ以外をすべて再 throw し、想定されるドメイン失敗を表さない場合に限り許容します。両者が同程度に明確なら `Result` を優先します。assertion や任意の技術的障害を汎用的なドメインの `Result` エラーに変換する実装は、ラッパーが `RepositoryError` 以外の名前で、ペイロードが `cause` 以外の名前でも指摘対象です。
 
 `ResultAsync.fromSafePromise`（または他ライブラリの同等の「safe」ラッパー）で reject しうる Promise（DB 呼び出し、ネットワーク I/O、外部 API 呼び出し）をラップしている場合も指摘します。`fromSafePromise` は「この Promise は reject しない」という契約であり、違反すると Result のエラーチャネルを迂回してハンドルされない rejection が発生します。ワークフローに回復判断が定義されている場合だけ、名前付きエラーを伴う `fromPromise` への変更を提案します。それ以外では rejection をアプリケーションのエラー境界まで伝播させます。参照: [`./error-handling.md` §fromSafePromise の誤用](./error-handling.md)
+
+fp-ts では、内部の `TaskEither` が想定外障害を業務エラーとは別の実行用チャネルで運び、実行後の通常の `Promise` 境界が元の cause を再 throw する構成は指摘しません。業務エラー union へ追加することや、業務結果として公開することとは区別してください。reject しうる I/O を `Task` / `TE.fromTask` で扱う実装や、`TE.tryCatch` のエラーマッパー内で再 throw する実装は契約違反として指摘します。[fp-ts ガイド](./result-libraries/fp-ts.md) を参照してください。
 
 #### 3.2 エラー型が Discriminated Union になっているか
 

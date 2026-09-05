@@ -24,6 +24,8 @@ has_children: true
 
 想定されるエラーは Discriminated Union で定義し、呼び出し側が網羅的に扱えるようにします。汎用的な `AppError` や `RepositoryError` に広げず、各 union をユースケース固有に保ちます。
 
+fp-ts では `TaskEither` による非同期合成を維持します。reject しうる I/O を `Task` として扱わず、`TE.tryCatch` で接続してください。想定外障害は業務エラー union の外にある実行用チャネルで区別して運び、パイプライン実行後の通常の `Promise` 境界で元の cause を再 throw します。これは業務上の回復可能エラーへの変換ではありません。具体例は [fp-ts ガイド](./result-libraries/fp-ts.md) を参照してください。
+
 ## fromSafePromise の誤用
 
 `ResultAsync.fromSafePromise`（neverthrow）や他ライブラリの同等の「safe」ラッパーは、渡された Promise が **reject しない** ことを前提にしています。reject しうる Promise（DB クエリ、HTTP 呼び出し、ファイル I/O など）をラップすると、reject 時にエラーが Result チャネルを迂回し、ハンドルされない rejection になります。
@@ -71,7 +73,7 @@ DB 接続断などで `RequestStore.save` が予期せず reject された場合
 
 ## 想定される結果を合成する
 
-想定されるドメイン失敗を生み得る各処理は `Result` を返し、その結果が生じた時点で合成を止めます。合成 API はライブラリごとに異なります。neverthrow は `.andThen`、byethrow は `Result.andThen`、fp-ts は `E.chain` または `E.bind`、option-t は `andThenForResult` を使います。
+想定されるドメイン失敗を生み得る各処理は `Result` を返し、その結果が生じた時点で合成を止めます。合成 API はライブラリごとに異なります。neverthrow は `.andThen`、byethrow は `Result.andThen`、fp-ts は同期の判断に `E.chain` / `E.bind`、非同期パイプラインに `TE.chain` / `TE.bind`（またはエラー型を広げる `W` 付きの関数）、option-t は `andThenForResult` を使います。
 
 ```typescript
 const ensureFound = <T>(id: RequestId) => (

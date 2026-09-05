@@ -15,12 +15,14 @@ Classify an observed `throw` or caught error before reporting it:
 | --- | --- |
 | Expected validation or business-state failure is thrown | Medium: require a use-case-specific Result error |
 | External failure has a documented recovery but is thrown | Medium: model the named recoverable failure in Result |
-| Unknown outage, config defect, or assertion is wrapped in a catch-all technical error, whatever it is named | Medium: allow propagation instead of a catch-all domain error |
+| Unknown outage, config defect, or assertion is added to the domain error union as a catch-all technical error, whatever it is named | Medium: allow propagation instead of a catch-all domain error |
 | Private sentinel is caught by its associated boundary and rethrows unknown errors | No finding |
 
-Do not report `throw` inside `assertNever`, a failed internal assertion that is allowed to propagate, or an unexpected fault that is allowed to reach the application error boundary. Converting an assertion into a catch-all `Result` error remains a Medium finding.
+Do not report `throw` inside `assertNever`, a failed internal assertion that is allowed to propagate, or an unexpected fault that is allowed to reach the application error boundary. Converting an assertion into a catch-all domain `Result` error remains a Medium finding.
 
 Also flag: `ResultAsync.fromSafePromise` (or equivalent "safe" wrapper in other libraries) wrapping a Promise that can reject — database calls, network I/O, external API calls. `fromSafePromise` is a contract stating the Promise never rejects; violating it bypasses the Result error channel and produces an unhandled rejection at runtime. Suggest `fromPromise` with a named error only when the workflow specifies a recovery decision; otherwise let the rejection reach the application error boundary. See [`../../kamae/error-handling.md` §fromSafePromise Misuse](../../kamae/error-handling.md).
+
+For fp-ts, do not flag an internal `TaskEither` that carries unexpected faults in a distinct execution channel when a native `Promise` boundary rethrows the original cause after execution. Distinguish this transport from adding faults to the domain error union or exposing them as business outcomes. Flag rejecting I/O represented as `Task` / lifted with `TE.fromTask`, or a `TE.tryCatch` error mapper that rethrows, as contract violations. See the [fp-ts guide](../../kamae/result-libraries/fp-ts.md).
 
 ## 3.2 Are error types Discriminated Unions? — Medium
 

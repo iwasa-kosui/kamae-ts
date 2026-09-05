@@ -15,6 +15,8 @@ Use `Result` to make expected workflow outcomes explicit. Let the application er
 
 Define expected domain errors as discriminated unions so callers can handle them exhaustively. Keep each union specific to one use case instead of widening it into a catch-all application error type.
 
+For fp-ts, preserve asynchronous composition with `TaskEither`. Adapt I/O that can reject with `TE.tryCatch`, not `Task`. Carry unexpected faults in a distinct execution channel outside the domain error union, then rethrow the original cause at a native `Promise` boundary after running the pipeline. This transports the fault to its handler without treating it as a recoverable business error. See the [fp-ts guide](./result-libraries/fp-ts.md).
+
 ## fromSafePromise Misuse
 
 `ResultAsync.fromSafePromise` (neverthrow) and equivalent "safe" wrappers in other libraries assert that the wrapped Promise **never rejects**. Wrapping a Promise that can reject (database queries, HTTP calls, file I/O) violates that contract: on rejection the error bypasses the Result channel entirely and becomes an unhandled rejection.
@@ -62,7 +64,7 @@ type DriverNotAvailableError = Readonly<{
 
 ## Compose expected outcomes
 
-Each operation that can produce an expected domain failure returns a `Result`; composition stops at that expected outcome. The composition API differs by library: neverthrow uses `.andThen`, byethrow uses `Result.andThen`, fp-ts uses `E.chain` or `E.bind`, and option-t uses `andThenForResult`.
+Each operation that can produce an expected domain failure returns a `Result`; composition stops at that expected outcome. The composition API differs by library: neverthrow uses `.andThen`, byethrow uses `Result.andThen`, fp-ts uses `E.chain` / `E.bind` for synchronous decisions and `TE.chain` / `TE.bind` (or their widening variants) for asynchronous pipelines, and option-t uses `andThenForResult`.
 
 ```typescript
 const ensureFound = <T>(id: RequestId) => (
