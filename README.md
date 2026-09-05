@@ -79,6 +79,14 @@ See [`rules/README.md`](./rules/README.md) for the rule format and concrete exam
 
 For full skill replacement, use Claude Code's standard skill path-shadowing (`.claude/skills/kamae/SKILL.md` overrides the installed plugin's).
 
+## Benchmark
+
+Compare how the same model designs and implements the same PRD with and without
+`kamae`. The [benchmark harness](benchmarks/README.md) preserves the initial design,
+generated implementation, shared acceptance-test results, and a design review sheet.
+Run `bun run benchmark --dry-run --runs 1` to inspect the protocol, or
+`bun run benchmark --model <model-id> --runs 3` for a real comparison.
+
 ## Documentation
 
 A reading version of the principles is published at [https://iwasa-kosui.github.io/kamae-ts/](https://iwasa-kosui.github.io/kamae-ts/), in both [English (`/en/`)](https://iwasa-kosui.github.io/kamae-ts/en/) and [Japanese (`/ja/`)](https://iwasa-kosui.github.io/kamae-ts/ja/).
