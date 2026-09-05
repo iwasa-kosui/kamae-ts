@@ -20,7 +20,7 @@
 
 - **Discriminated Union** でドメインの状態を表現し、classを避ける
 - **純粋関数** で状態遷移を定義し、無効な遷移をコンパイルエラーにする
-- **Result型** (neverthrow / byethrow / fp-ts / option-t) でエラーを値として扱い、例外のthrowを避ける
+- 想定されるドメイン失敗は **Result型** (neverthrow / byethrow / fp-ts / option-t) で表現し、予期しない障害は例外として伝播させる
 - **スキーマバリデーション** (Zod / Valibot / ArkType) で外部境界をバリデーションし、ドメイン内部では型を信頼する
 - **Sensitive型** でPIIをランタイムレベルで保護する
 

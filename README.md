@@ -20,7 +20,7 @@ The current stances focus on functional domain modeling; more will be added over
 
 - Represent domain state with **Discriminated Unions**, avoiding classes
 - Define state transitions with **pure functions**, making invalid transitions compile errors
-- Handle errors as values with **Result types** (neverthrow / byethrow / fp-ts / option-t), avoiding thrown exceptions
+- Represent expected domain failures with **Result types** (neverthrow / byethrow / fp-ts / option-t), while allowing unexpected faults to propagate as exceptions
 - Validate external boundaries with **schema validation** (Zod / Valibot / ArkType), trusting types inside the domain
 - Protect PII at runtime with the **Sensitive type**
 

@@ -63,10 +63,7 @@ if (isOk(result)) {
 `RequestResolver` / `RequestStore` の設計と、状態とドメインイベントを同一トランザクションで永続化する方法は [state-modeling.md#ドメインイベント](../state-modeling.md#ドメインイベント) を参照してください。
 
 ```typescript
-import { createOk, createErr, isOk, isErr, type Result } from "option-t/plain_result";
-import { andThenForResult } from "option-t/plain_result/and_then";
-import { andThenAsyncForResult } from "option-t/plain_result/and_then_async";
-import { mapAsyncForResult } from "option-t/plain_result/map_async";
+import { createOk, createErr, isErr, type Result } from "option-t/plain_result";
 
 // --- Branded Types ---
 
@@ -97,21 +94,18 @@ type EnRoute = Readonly<{
 // --- Repository Types ---
 
 type RequestResolver = Readonly<{
-  findById: (id: RequestId) => Promise<Result<Waiting | undefined, RepositoryError>>;
+  findById: (id: RequestId) => Promise<Waiting | undefined>;
 }>;
 
 type RequestStore = Readonly<{
-  save: (state: EnRoute) => Promise<Result<void, RepositoryError>>;
+  save: (state: EnRoute) => Promise<void>;
 }>;
 
 // --- Error Types ---
 
 type AssignDriverError =
   | Readonly<{ kind: "RequestNotFound"; requestId: RequestId }>
-  | Readonly<{ kind: "DriverNotAvailable"; driverId: DriverId }>
-  | Readonly<{ kind: "RepositoryError"; cause: unknown }>;
-
-type RepositoryError = Readonly<{ kind: "RepositoryError"; cause: unknown }>;
+  | Readonly<{ kind: "DriverNotAvailable"; driverId: DriverId }>;
 
 // --- Use Case ---
 
@@ -122,13 +116,11 @@ const assignDriverUseCase =
     driverId: DriverId,
     isDriverAvailable: boolean,
   ): Promise<Result<EnRoute, AssignDriverError>> => {
-    const requestResult = await requestResolver.findById(requestId);
+    const request = await requestResolver.findById(requestId);
 
-    const waitingResult = andThenForResult(requestResult, (request) =>
-      request !== undefined
-        ? createOk(request)
-        : createErr({ kind: "RequestNotFound" as const, requestId }),
-    );
+    const waitingResult = request !== undefined
+      ? createOk(request)
+      : createErr({ kind: "RequestNotFound" as const, requestId });
 
     if (isErr(waitingResult)) return waitingResult;
 
@@ -145,9 +137,21 @@ const assignDriverUseCase =
       driverId,
     };
 
-    const saveResult = await requestStore.save(enRoute);
-    if (isErr(saveResult)) return saveResult;
+    await requestStore.save(enRoute);
 
     return createOk(enRoute);
   };
 ```
+
+## 回復可能な外部障害
+
+ワークフローが回復判断を行える場合に限り、名前付きの外部エラーを `Result` に含めます。
+
+```typescript
+type PaymentAuthorizationError = {
+  readonly kind: "AuthorizationTemporarilyUnavailable";
+  readonly retryAfter: RetryAfter;
+};
+```
+
+例えば、呼び出し側はこのエラー後に認可を延期または再試行できます。任意の通信障害を包むラッパーではありません。

@@ -56,10 +56,7 @@ if (isOk(result)) {
 For the design of `RequestResolver` / `RequestStore` and how domain events are persisted atomically with state, see [state-modeling.md#domain-events](../state-modeling.md#domain-events).
 
 ```typescript
-import { createOk, createErr, isOk, isErr, type Result } from "option-t/plain_result";
-import { andThenForResult } from "option-t/plain_result/and_then";
-import { andThenAsyncForResult } from "option-t/plain_result/and_then_async";
-import { mapAsyncForResult } from "option-t/plain_result/map_async";
+import { createOk, createErr, isErr, type Result } from "option-t/plain_result";
 
 // --- Branded Types ---
 
@@ -90,21 +87,18 @@ type EnRoute = Readonly<{
 // --- Repository Types ---
 
 type RequestResolver = Readonly<{
-  findById: (id: RequestId) => Promise<Result<Waiting | undefined, RepositoryError>>;
+  findById: (id: RequestId) => Promise<Waiting | undefined>;
 }>;
 
 type RequestStore = Readonly<{
-  save: (state: EnRoute) => Promise<Result<void, RepositoryError>>;
+  save: (state: EnRoute) => Promise<void>;
 }>;
 
 // --- Error Types ---
 
 type AssignDriverError =
   | Readonly<{ kind: "RequestNotFound"; requestId: RequestId }>
-  | Readonly<{ kind: "DriverNotAvailable"; driverId: DriverId }>
-  | Readonly<{ kind: "RepositoryError"; cause: unknown }>;
-
-type RepositoryError = Readonly<{ kind: "RepositoryError"; cause: unknown }>;
+  | Readonly<{ kind: "DriverNotAvailable"; driverId: DriverId }>;
 
 // --- Use Case ---
 
@@ -115,13 +109,11 @@ const assignDriverUseCase =
     driverId: DriverId,
     isDriverAvailable: boolean,
   ): Promise<Result<EnRoute, AssignDriverError>> => {
-    const requestResult = await requestResolver.findById(requestId);
+    const request = await requestResolver.findById(requestId);
 
-    const waitingResult = andThenForResult(requestResult, (request) =>
-      request !== undefined
-        ? createOk(request)
-        : createErr({ kind: "RequestNotFound" as const, requestId }),
-    );
+    const waitingResult = request !== undefined
+      ? createOk(request)
+      : createErr({ kind: "RequestNotFound" as const, requestId });
 
     if (isErr(waitingResult)) return waitingResult;
 
@@ -138,9 +130,21 @@ const assignDriverUseCase =
       driverId,
     };
 
-    const saveResult = await requestStore.save(enRoute);
-    if (isErr(saveResult)) return saveResult;
+    await requestStore.save(enRoute);
 
     return createOk(enRoute);
   };
 ```
+
+## Recoverable External Failures
+
+Keep a named external error in `Result` only when the workflow can make a recovery decision:
+
+```typescript
+type PaymentAuthorizationError = {
+  readonly kind: "AuthorizationTemporarilyUnavailable";
+  readonly retryAfter: RetryAfter;
+};
+```
+
+For example, the caller can defer or retry authorization after this error. It is not a wrapper for arbitrary transport failures.

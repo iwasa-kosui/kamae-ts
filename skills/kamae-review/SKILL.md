@@ -46,7 +46,7 @@ If no rules are found, proceed with all checks active. See [`../../rules/README.
 
    - [`checklist/domain-modeling.md`](./checklist/domain-modeling.md) — Discriminated Unions, Companion Objects, Branded Types, file structure (items 1.x)
    - [`checklist/state-transitions.md`](./checklist/state-transitions.md) — pure state transitions, exhaustiveness (items 2.x)
-   - [`checklist/error-handling.md`](./checklist/error-handling.md) — Result types, no thrown exceptions, DU error types (items 3.x)
+   - [`checklist/error-handling.md`](./checklist/error-handling.md) — Result types, error-boundary classification, DU error types (items 3.x)
    - [`checklist/boundary.md`](./checklist/boundary.md) — schema validation, no `as` assertions, schema-derived types (items 4.1, 4.2, 4.4)
    - [`checklist/pii-protection.md`](./checklist/pii-protection.md) — `Sensitive<T>` for PII (item 4.3)
    - [`checklist/declarative-and-tests.md`](./checklist/declarative-and-tests.md) — array operations, events, fixtures (items 5.x, 6.x)

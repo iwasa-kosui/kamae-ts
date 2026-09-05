@@ -98,28 +98,20 @@ type EnRoute = Readonly<{
 // --- Repository Types ---
 
 type RequestResolver = Readonly<{
-  findById: (id: RequestId) => Result.ResultAsync<Waiting | undefined, RepositoryError>;
+  findById: (id: RequestId) => Promise<Waiting | undefined>;
 }>;
 
 type RequestStore = Readonly<{
-  save: (state: EnRoute) => Result.ResultAsync<void, RepositoryError>;
+  save: (state: EnRoute) => Promise<void>;
 }>;
 
 // --- Error Types ---
 
 type AssignDriverError =
   | Readonly<{ kind: "RequestNotFound"; requestId: RequestId }>
-  | Readonly<{ kind: "DriverNotAvailable"; driverId: DriverId }>
-  | Readonly<{ kind: "RepositoryError"; cause: unknown }>;
-
-type RepositoryError = Readonly<{ kind: "RepositoryError"; cause: unknown }>;
+  | Readonly<{ kind: "DriverNotAvailable"; driverId: DriverId }>;
 
 // --- Domain Functions ---
-
-const findWaitingRequest =
-  (requestResolver: RequestResolver) =>
-  (requestId: RequestId): Result.ResultAsync<Waiting | undefined, AssignDriverError> =>
-    requestResolver.findById(requestId);
 
 const ensureExists =
   (requestId: RequestId) =>
@@ -149,19 +141,17 @@ const transitionToEnRoute = (ctx: {
 
 const assignDriverUseCase =
   (requestResolver: RequestResolver, requestStore: RequestStore) =>
-  (
+  async (
     requestId: RequestId,
     driverId: DriverId,
     isDriverAvailable: boolean,
-  ): Result.ResultAsync<EnRoute, AssignDriverError> =>
-    Result.pipe(
+  ): Promise<Result.Result<EnRoute, AssignDriverError>> => {
+    const request = await requestResolver.findById(requestId);
+    const assignment = Result.pipe(
       Result.do(),
       // 1. Fetch request → verify existence
       Result.bind("waiting", () =>
-        Result.pipe(
-          findWaitingRequest(requestResolver)(requestId),
-          Result.andThen(ensureExists(requestId)),
-        ),
+        ensureExists(requestId)(request),
       ),
       // 2. Check driver availability
       Result.bind("driverId", () =>
@@ -169,7 +159,24 @@ const assignDriverUseCase =
       ),
       // 3. State transition
       Result.map(transitionToEnRoute),
-      // 4. Persist
-      Result.andThrough(requestStore.save),
     );
+
+    if (!Result.isSuccess(assignment)) return assignment;
+
+    await requestStore.save(assignment.value);
+    return assignment;
+  };
 ```
+
+## Recoverable External Failures
+
+Keep a named external error in `Result` only when the workflow can make a recovery decision:
+
+```typescript
+type PaymentAuthorizationError = {
+  readonly kind: "AuthorizationTemporarilyUnavailable";
+  readonly retryAfter: RetryAfter;
+};
+```
+
+For example, the caller can defer or retry authorization after this error. It is not a wrapper for arbitrary transport failures.

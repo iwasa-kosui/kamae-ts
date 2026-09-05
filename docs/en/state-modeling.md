@@ -150,33 +150,34 @@ type TripCompletedEvent = DomainEvent<
 
 ### Persist state and events in the same transaction
 
-An aggregate's state and the events it emits must always be persisted within the same transaction boundary. A naive two-step write — state to one store, events to another — introduces the dual-write problem: if the first write succeeds and the second fails, consistency is broken.
+The aggregate state and the events it emits must be persisted within the same transaction boundary. The naive approach of writing them in two separate steps suffers from the dual-write problem: the moment one succeeds and the other fails, the system is inconsistent.
 
 ```typescript
-// Bad — state and events in separate transactions; a crash between writes breaks consistency
+// Bad — state and event are persisted in different transactions; a failure
+// between them leaves the aggregate inconsistent.
 saveRequest(entity).andThen(() => saveEvent(event));
 ```
 
-The standard solution is the **Outbox Pattern**: the state-table UPDATE and the outbox-table INSERT happen in the same transaction, and a separate process relays outbox rows to the message broker. Express this atomicity in the interface itself. Separate the read side (`RequestResolver`) from the write side to honor the Interface Segregation Principle.
+The standard implementation is the **Outbox Pattern**: write the state row and the outbox row atomically in the same DB transaction, and let a separate process relay outbox rows to the broker. Express this atomicity in the interface as well. Read-side concerns are split out as `RequestResolver` (ISP).
 
 ```typescript
 type RequestResolver = Readonly<{
-  findById: (id: RequestId) => ResultAsync<Waiting | undefined, RepositoryError>;
+  findById: (id: RequestId) => Promise<TaxiRequest | undefined>;
 }>;
 
 type RequestStore = Readonly<{
   save: (
     state: EnRoute,
     events: readonly DriverAssignedEvent[],
-  ) => ResultAsync<void, RepositoryError>;
+  ) => Promise<void>;
 }>;
 ```
 
-Enclosing everything in a single `save` method structurally prevents callers from reaching a half-written state where the aggregate was updated but no event was emitted.
+Closing `save` into a single method makes it structurally impossible for callers to produce a half-written aggregate where the state was updated but the event never fired.
 
-### Responsibility for event construction
+### Event generation responsibility
 
-The use-case layer constructs events and passes them to `RequestStore.save` alongside the state. Having the repository generate events internally conflates persistence with business rules and inflates its responsibility.
+The use case layer generates events and hands them to `RequestStore.save` together with the state. Letting the repository generate events internally bloats its responsibilities by mixing persistence with business rules.
 
 ```typescript
 const buildDriverAssignedEvent =
@@ -190,16 +191,66 @@ const buildDriverAssignedEvent =
     aggregateName: "TaxiRequest",
   });
 
+type RequestNotFound = Readonly<{
+  kind: "RequestNotFound";
+  requestId: RequestId;
+}>;
+
+type InvalidState = Readonly<{
+  kind: "InvalidState";
+  requestId: RequestId;
+}>;
+
+type DriverNotAvailable = Readonly<{
+  kind: "DriverNotAvailable";
+  driverId: DriverId;
+}>;
+
+type AssignDriverDecisionError = InvalidState | DriverNotAvailable;
+type AssignDriverError = RequestNotFound | AssignDriverDecisionError;
+
+const assignDriver = (
+  request: TaxiRequest,
+  driverId: DriverId,
+  isDriverAvailable: boolean,
+  assignedAt: Date,
+): Result<EnRoute, AssignDriverDecisionError> => {
+  if (request.kind !== "Waiting") {
+    return err({ kind: "InvalidState", requestId: request.requestId });
+  }
+
+  if (!isDriverAvailable) {
+    return err({ kind: "DriverNotAvailable", driverId });
+  }
+
+  return ok(TaxiRequest.assignDriver(request, driverId, assignedAt));
+};
+
 const assignDriverUseCase =
   (requestResolver: RequestResolver, requestStore: RequestStore) =>
-  (requestId: RequestId, driverId: DriverId, now: Date) =>
-    requestResolver
-      .findById(requestId)
-      .andThen(validateWaiting)
-      .map(transitionToEnRoute(driverId))
-      .andThrough((enRoute) =>
-        requestStore.save(enRoute, [buildDriverAssignedEvent(now)(enRoute)]),
-      );
+  async (
+    requestId: RequestId,
+    driverId: DriverId,
+    isDriverAvailable: boolean,
+    now: Date,
+  ): Promise<Result<EnRoute, AssignDriverError>> => {
+    const request = await requestResolver.findById(requestId);
+    if (request === undefined) {
+      return err({ kind: "RequestNotFound", requestId });
+    }
+
+    const assignment = assignDriver(request, driverId, isDriverAvailable, now);
+
+    return assignment.match(
+      async (enRoute) => {
+        await requestStore.save(enRoute, [buildDriverAssignedEvent(now)(enRoute)]);
+        return ok(enRoute);
+      },
+      err,
+    );
+  };
 ```
 
-`now` is injected as a use-case argument. Avoiding `new Date()` inside the use case makes it possible to inject any timestamp in tests.
+The use case returns `RequestNotFound` when the resolver finds no request; the pure `assignDriver` decision returns `InvalidState` when the request is no longer `Waiting` and `DriverNotAvailable` when the driver cannot be assigned. Those are expected business outcomes in its `Result`. By contrast, an unexpected rejection from `findById` or `save` propagates to the application error boundary; do not turn it into a generic repository error.
+
+`now` is injected as a parameter; never call `new Date()` inside the use case so tests can pin time deterministically.

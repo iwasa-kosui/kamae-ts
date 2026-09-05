@@ -7,9 +7,24 @@ has_children: true
 
 # エラーハンドリング詳細ガイド
 
-## Railway Oriented Programming
+## 表現方法を選ぶ前に失敗を分類する
 
-Result 型を使い、成功と失敗を型で表現します。例外の throw はドメイン層では使いません。ライブラリ固有の API については [result-libraries/](./result-libraries/) 内の該当ガイドを参照してください。
+想定されるワークフローの結果には `Result` を使います。判断基準は、**この失敗に対して、利用側が行うべきドメイン上の判断が定義されているか**です。定義されていれば、そのユースケースのエラー union に名前付きで表現します。定義されていなければ、アプリケーションのエラー境界まで伝播させます。
+
+ライブラリ固有の API は [result-libraries/](./result-libraries/) 内の該当ガイドを参照してください。
+
+| 分類 | 判断する質問 | 表現 | 責務の所有者 |
+| --- | --- | --- | --- |
+| 想定されるドメイン失敗 | 呼び出し側が扱い方を選ぶべき業務上の結果か | ユースケース固有の Discriminated Union エラーを `Result` で表現 | ユースケースと呼び出し側 |
+| 回復可能な外部障害 | その外部障害後の継続方法がワークフローに定義されているか | そのユースケースの `Result` に名前付きエラーを追加 | ユースケースと呼び出し側 |
+| 予期しないインフラ障害 | 依存先の障害が定義済みの回復判断の対象外か | reject された Promise または伝播する例外 | アプリケーションのエラー境界 |
+| 契約・不変条件違反 | 型や契約上あり得ない状態に到達したか | 伝播する例外 | アプリケーションのエラー境界と不具合を修正する開発者 |
+
+## ユースケース固有の Result エラー
+
+想定されるエラーは Discriminated Union で定義し、呼び出し側が網羅的に扱えるようにします。汎用的な `AppError` や `RepositoryError` に広げず、各 union をユースケース固有に保ちます。
+
+fp-ts では `TaskEither` による非同期合成を維持します。reject しうる I/O を `Task` として扱わず、`TE.tryCatch` で接続してください。想定外障害は業務エラー union の外にある実行用チャネルで区別して運び、パイプライン実行後の通常の `Promise` 境界で元の cause を再 throw します。これは業務上の回復可能エラーへの変換ではありません。具体例は [fp-ts ガイド](./result-libraries/fp-ts.md) を参照してください。
 
 ## fromSafePromise の誤用
 
@@ -19,14 +34,14 @@ Result 型を使い、成功と失敗を型で表現します。例外の throw 
 // Bad: DB呼び出しはrejectしうる — fromSafePromiseではその可能性が無視される
 ResultAsync.fromSafePromise(deps.getDriver(driverId))
 
-// Good: fromPromiseで明示的にエラーをマッピング
+// Good: 回復方法がワークフローに定義されている場合だけfromPromiseで明示的にエラーをマッピング
 ResultAsync.fromPromise(
   deps.getDriver(driverId),
-  (cause): RepositoryError => ({ kind: "RepositoryError", cause }),
+  (cause): GetDriverError => ({ kind: "DriverLookupUnavailable", cause }),
 )
 ```
 
-`fromSafePromise` を使ってよいのは、本当に reject しない Promise だけです — `Promise.resolve(value)` やインメモリのルックアップ、reject しないことがドキュメントに明記されたライブラリ呼び出しなどが該当します。
+`fromSafePromise` を使ってよいのは、本当に reject しない Promise だけです — `Promise.resolve(value)` やインメモリのルックアップ、reject しないことがドキュメントに明記されたライブラリ呼び出しなどが該当します。`fromPromise` は名前付きエラーが仕様化された回復判断を表す場合だけ使い、それ以外では操作を await して rejection をアプリケーションのエラー境界まで伝播させます。
 
 ## エラー型の設計
 
@@ -39,6 +54,14 @@ type AssignDriverError =
   | Readonly<{ kind: "InvalidState"; currentKind: string; expectedKind: "Waiting" }>
   | Readonly<{ kind: "DriverNotAvailable"; driverId: DriverId; message?: string }>;
 
+type AssignDriver = (
+  command: AssignDriverCommand,
+) => Promise<Result<AssignedDriver, AssignDriverError>>;
+
+type RequestStore = Readonly<{
+  save: (request: EnRoute) => Promise<void>;
+}>;
+
 // Bad: driverIdとzoneIdがmessageの中にしかない — 取り出すにはパースが必要
 type DriverNotAvailableError = Readonly<{
   kind: "DriverNotAvailableError";
@@ -46,66 +69,61 @@ type DriverNotAvailableError = Readonly<{
 }>;
 ```
 
-### エラー型の粒度
+DB 接続断などで `RequestStore.save` が予期せず reject された場合は、アプリケーションのエラー境界まで伝播させます。リトライ、フォールバック選択、再試行の依頼などの回復判断がワークフローに定義されている場合に限り、`AssignDriverError` へ名前付き外部エラーを追加します。
 
-各ユースケースが返すエラー型は、そのユースケース固有のものにします。共通のエラー型（`AppError`）にすべてを詰め込むと、呼び出し元が「実際にはどのエラーが起こりうるか」を型から判断できなくなります。
+## 想定される結果を合成する
 
-```typescript
-// Good: ユースケース固有のエラー型
-type AssignDriverError = RequestNotFoundError | InvalidStateError | DriverNotAvailableError;
-type StartTripError = RequestNotFoundError | InvalidStateError;
-
-// Bad: 全エラーを1つに詰め込む
-type AppError = RequestNotFoundError | InvalidStateError | DriverNotAvailableError | ...;
-```
-
-## 処理の合成
-
-各ステップが Result 型を返し、エラーが発生した時点で後続のステップはスキップされます。合成の API はライブラリごとに異なります（neverthrow/byethrow では `.andThen()`、fp-ts では `pipe` + `chain`、option-t では `flatMapForResult`）。
-
-### ヘルパー関数
-
-共通のバリデーションは小さな関数に切り出し、合成の各ステップとして使います。
+想定されるドメイン失敗を生み得る各処理は `Result` を返し、その結果が生じた時点で合成を止めます。合成 API はライブラリごとに異なります。neverthrow は `.andThen`、byethrow は `Result.andThen`、fp-ts は同期の判断に `E.chain` / `E.bind`、非同期パイプラインに `TE.chain` / `TE.bind`（またはエラー型を広げる `W` 付きの関数）、option-t は `andThenForResult` を使います。
 
 ```typescript
-// ヘルパーの戻り値はResult型。具体的なAPI（ok/err, right/left等）はライブラリに依存
 const ensureFound = <T>(id: RequestId) => (
   value: T | undefined,
-): Result<T, RequestNotFoundError> =>
+): Result<T, { readonly kind: "RequestNotFound"; readonly requestId: RequestId }> =>
   value !== undefined
-    ? success(value)   // ok(), right(), createOk() 等
+    ? success(value)
     : failure({ kind: "RequestNotFound", requestId: id });
-
-const ensureWaiting = (
-  request: TaxiRequest,
-): Result<Waiting, InvalidStateError> =>
-  request.kind === "Waiting"
-    ? success(request)
-    : failure({ kind: "InvalidState", currentKind: request.kind, expectedKind: "Waiting" });
 ```
 
-## Controller層でのエラー変換
+Controller 境界で `kind` を分岐し、`AssignDriverError` を HTTP レスポンスへ変換します。ステータスコードの選択は Controller、想定エラーの集合はユースケースが所有します。それとは別に、予期しない障害のログ記録と汎用的な運用レスポンスは、アプリケーションのエラー境界が担います。
 
-ドメインエラーを HTTP レスポンスに変換するのは Controller 層の責務です。ドメインエラーの kind に基づいてステータスコードを決定します。
+## 契約違反とローカル制御フロー
+
+`assertNever` や失敗した内部 assertion は、契約・不変条件違反を表します。その例外はアプリケーションのエラー境界まで伝播させ、汎用的な `Result` エラーへ変換しません。
+
+非公開の制御フロー sentinel は、同等の `Result` 合成より明確であり、かつ次の封じ込め条件をすべて満たす場合に限り許容します。両者が同程度に明確なら `Result` を優先します。
+
+- 狭いローカル操作の非公開実装である
+- catch 境界が `unknown` を判別し、自身が所有する sentinel だけを識別する
+- catch 境界がそれ以外の値をすべて再 throw する
+- バリデーション、無効な状態遷移、その他の想定されるドメイン結果を表さない
 
 ```typescript
-const toHttpResponse = (error: AssignDriverError): Response => {
-  switch (error.kind) {
-    case "RequestNotFound":
-      return notFound(`Request ${error.requestId} not found`);
-    case "InvalidState":
-      return conflict(`Expected ${error.expectedKind}, got ${error.currentKind}`);
-    case "DriverNotAvailable":
-      return unprocessableEntity(`Driver ${error.driverId} is not available`);
-    default:
-      return assertNever(error);
+const foundDriver = Symbol("foundDriver");
+
+type FoundDriver = {
+  readonly kind: typeof foundDriver;
+  readonly driver: Driver;
+};
+
+const isFoundDriver = (error: unknown): error is FoundDriver =>
+  typeof error === "object"
+  && error !== null
+  && "kind" in error
+  && error.kind === foundDriver;
+
+const findFirstAvailable = (drivers: readonly Driver[]): Option<Driver> => {
+  try {
+    drivers.forEach((driver) => {
+      if (driver.isAvailable) {
+        throw { kind: foundDriver, driver } satisfies FoundDriver;
+      }
+    });
+    return none;
+  } catch (error: unknown) {
+    if (isFoundDriver(error)) return some(error.driver);
+    throw error;
   }
 };
 ```
 
-## 例外を使うべき場所
-
-ドメイン層では例外をスローしませんが、以下の場所では例外が適切です。
-
-- `assertNever`: 到達不能コードの検出（プログラムのバグ）
-- インフラ層の予期しない障害（DB 接続断など）— これはフレームワークのエラーハンドラに任せます
+バリデーションエラー、無効な状態遷移、その他の想定されるドメインエラーの throw は禁止したままです。ユースケース固有の `Result` エラーとしてモデル化してください。

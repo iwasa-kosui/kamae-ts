@@ -161,14 +161,14 @@ saveRequest(entity).andThen(() => saveEvent(event));
 
 ```typescript
 type RequestResolver = Readonly<{
-  findById: (id: RequestId) => ResultAsync<Waiting | undefined, RepositoryError>;
+  findById: (id: RequestId) => Promise<TaxiRequest | undefined>;
 }>;
 
 type RequestStore = Readonly<{
   save: (
     state: EnRoute,
     events: readonly DriverAssignedEvent[],
-  ) => ResultAsync<void, RepositoryError>;
+  ) => Promise<void>;
 }>;
 ```
 
@@ -190,16 +190,66 @@ const buildDriverAssignedEvent =
     aggregateName: "TaxiRequest",
   });
 
+type RequestNotFound = Readonly<{
+  kind: "RequestNotFound";
+  requestId: RequestId;
+}>;
+
+type InvalidState = Readonly<{
+  kind: "InvalidState";
+  requestId: RequestId;
+}>;
+
+type DriverNotAvailable = Readonly<{
+  kind: "DriverNotAvailable";
+  driverId: DriverId;
+}>;
+
+type AssignDriverDecisionError = InvalidState | DriverNotAvailable;
+type AssignDriverError = RequestNotFound | AssignDriverDecisionError;
+
+const assignDriver = (
+  request: TaxiRequest,
+  driverId: DriverId,
+  isDriverAvailable: boolean,
+  assignedAt: Date,
+): Result<EnRoute, AssignDriverDecisionError> => {
+  if (request.kind !== "Waiting") {
+    return err({ kind: "InvalidState", requestId: request.requestId });
+  }
+
+  if (!isDriverAvailable) {
+    return err({ kind: "DriverNotAvailable", driverId });
+  }
+
+  return ok(TaxiRequest.assignDriver(request, driverId, assignedAt));
+};
+
 const assignDriverUseCase =
   (requestResolver: RequestResolver, requestStore: RequestStore) =>
-  (requestId: RequestId, driverId: DriverId, now: Date) =>
-    requestResolver
-      .findById(requestId)
-      .andThen(validateWaiting)
-      .map(transitionToEnRoute(driverId))
-      .andThrough((enRoute) =>
-        requestStore.save(enRoute, [buildDriverAssignedEvent(now)(enRoute)]),
-      );
+  async (
+    requestId: RequestId,
+    driverId: DriverId,
+    isDriverAvailable: boolean,
+    now: Date,
+  ): Promise<Result<EnRoute, AssignDriverError>> => {
+    const request = await requestResolver.findById(requestId);
+    if (request === undefined) {
+      return err({ kind: "RequestNotFound", requestId });
+    }
+
+    const assignment = assignDriver(request, driverId, isDriverAvailable, now);
+
+    return assignment.match(
+      async (enRoute) => {
+        await requestStore.save(enRoute, [buildDriverAssignedEvent(now)(enRoute)]);
+        return ok(enRoute);
+      },
+      err,
+    );
+  };
 ```
 
-`now` はユースケースの引数として外部から注入します。`new Date()` をユースケース内で呼ばないことで、テスト時に任意の時刻を注入できます。
+リゾルバがリクエストを見つけられない場合、ユースケースは `RequestNotFound` を返します。純粋な `assignDriver` の判断は、リクエストが `Waiting` でない場合に `InvalidState`、ドライバーを割り当てられない場合に `DriverNotAvailable` を返します。これらは `Result` で表す想定済みの業務結果です。一方、`findById` や `save` から予期せず reject された場合は、アプリケーションのエラー境界まで伝播させ、汎用的なリポジトリエラーに変換しません。
+
+`now` は引数として注入します。テストで時刻を決定的に固定できるよう、ユースケース内で `new Date()` を呼び出しません。

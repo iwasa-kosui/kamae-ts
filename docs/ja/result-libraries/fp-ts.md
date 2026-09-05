@@ -53,9 +53,15 @@ pipe(
 );
 ```
 
+## TaskEither の契約とエラー境界
+
+`TaskEither<E, A>` は `Task<Either<E, A>>` と構造的に同じ型です。型名を展開してもエラーの扱いは変わりません。`Task` は失敗しない非同期計算を表し、`TaskEither` は Promise を reject させず、失敗を `Left` で表します。[Task の契約](https://gcanti.github.io/fp-ts/modules/Task.ts.html#task-overview)、[TaskEither の定義](https://gcanti.github.io/fp-ts/modules/TaskEither.ts.html#taskeither-overview) を参照してください。
+
+reject しうる I/O は `TE.tryCatch` で接続します。`TE.fromTask` に渡したり、`tryCatch` のエラーマッパーで再 throw したりしないでください。以下の例では業務エラーを `ExpectedFailure`、想定外障害を `UnexpectedFault` として区別します。パイプラインの実行後に `execute` が業務上の `Either` を返し、想定外障害だけを元の cause のまま再 throw します。この `execute` は reject しうる通常の `Promise` を返すアプリケーション境界です。`Task` や `TaskEither` として宣言しません。
+
 ## コード例: 状態遷移パイプライン
 
-Railway Oriented Programming の原則に従い、各処理を独立した関数に切り出し、ユースケースは `pipe` + `Do`/`bind`/`chainFirst` でそれらを合成するだけにします。
+取得・業務判断・永続化を `TaskEither` と `pipe` で合成します。異なるエラー型を合成するときは `bindW`・`chainEitherKW`・`chainFirstW` を使います。想定外障害を業務エラー union に追加せず、実行用の `ExecutionFailure` で区別してアプリケーション境界へ渡します。
 
 `RequestResolver` / `RequestStore` の設計と、状態とドメインイベントを同一トランザクションで永続化する方法は [state-modeling.md#ドメインイベント](../state-modeling.md#ドメインイベント) を参照してください。
 
@@ -90,24 +96,45 @@ type EnRoute = Readonly<{
   driverId: DriverId;
 }>;
 
-// --- Repository Types ---
-
-type RequestResolver = Readonly<{
-  findById: (id: RequestId) => TE.TaskEither<RepositoryError, Waiting | undefined>;
-}>;
-
-type RequestStore = Readonly<{
-  save: (state: EnRoute) => TE.TaskEither<RepositoryError, void>;
-}>;
-
-// --- Error Types ---
+// --- Domain Errors ---
 
 type AssignDriverError =
   | Readonly<{ kind: "RequestNotFound"; requestId: RequestId }>
-  | Readonly<{ kind: "DriverNotAvailable"; driverId: DriverId }>
-  | Readonly<{ kind: "RepositoryError"; cause: unknown }>;
+  | Readonly<{ kind: "DriverNotAvailable"; driverId: DriverId }>;
 
-type RepositoryError = Readonly<{ kind: "RepositoryError"; cause: unknown }>;
+// --- Execution Failures (outside the domain error union) ---
+
+type ExpectedFailure<D> = Readonly<{ kind: "ExpectedFailure"; error: D }>;
+type UnexpectedFault = Readonly<{ kind: "UnexpectedFault"; cause: unknown }>;
+type ExecutionFailure<D> = ExpectedFailure<D> | UnexpectedFault;
+
+const expectedFailure = <D>(error: D): ExpectedFailure<D> =>
+  ({ kind: "ExpectedFailure", error });
+
+const unexpectedFault = (cause: unknown): UnexpectedFault =>
+  ({ kind: "UnexpectedFault", cause });
+
+// --- Repository Ports and I/O Adapters ---
+
+type RequestResolver = Readonly<{
+  findById: (id: RequestId) => TE.TaskEither<UnexpectedFault, Waiting | undefined>;
+}>;
+
+type RequestStore = Readonly<{
+  save: (state: EnRoute) => TE.TaskEither<UnexpectedFault, void>;
+}>;
+
+const createRequestResolver = (
+  findById: (id: RequestId) => Promise<Waiting | undefined>,
+): RequestResolver => ({
+  findById: (id) => TE.tryCatch(() => findById(id), unexpectedFault),
+});
+
+const createRequestStore = (
+  save: (state: EnRoute) => Promise<void>,
+): RequestStore => ({
+  save: (state) => TE.tryCatch(() => save(state), unexpectedFault),
+});
 
 // --- Domain Functions ---
 
@@ -135,7 +162,7 @@ const transitionToEnRoute = (ctx: {
   driverId: ctx.driverId,
 });
 
-// --- Use Case (Do + bind による完全パイプライン合成) ---
+// --- Use Case (full TaskEither pipeline) ---
 
 const assignDriverUseCase =
   (requestResolver: RequestResolver, requestStore: RequestStore) =>
@@ -143,23 +170,66 @@ const assignDriverUseCase =
     requestId: RequestId,
     driverId: DriverId,
     isDriverAvailable: boolean,
-  ): TE.TaskEither<AssignDriverError, EnRoute> =>
+  ): TE.TaskEither<ExecutionFailure<AssignDriverError>, EnRoute> =>
     pipe(
       TE.Do,
-      // 1. リクエスト取得 → 存在確認
-      TE.bind("waiting", () =>
+      // 1. Fetch request → verify existence
+      TE.bindW("waiting", () =>
         pipe(
           requestResolver.findById(requestId),
-          TE.chainEitherK(ensureExists(requestId)),
+          TE.chainEitherKW((request) =>
+            pipe(ensureExists(requestId)(request), E.mapLeft(expectedFailure)),
+          ),
         ),
       ),
-      // 2. ドライバーの空き確認
-      TE.bind("driverId", () =>
-        TE.fromEither(ensureDriverAvailable(driverId, isDriverAvailable)()),
+      // 2. Check driver availability
+      TE.bindW("driverId", () =>
+        pipe(
+          ensureDriverAvailable(driverId, isDriverAvailable)(),
+          E.mapLeft(expectedFailure),
+          TE.fromEither,
+        ),
       ),
-      // 3. 状態遷移
+      // 3. State transition
       TE.map(transitionToEnRoute),
-      // 4. 永続化
-      TE.chainFirst(requestStore.save),
+      // 4. Persist, preserving the assigned state
+      TE.chainFirstW(requestStore.save),
     );
+
+// --- Application Execution Boundary ---
+
+const execute = async <D, A>(
+  task: TE.TaskEither<ExecutionFailure<D>, A>,
+): Promise<E.Either<D, A>> => {
+  const result = await task();
+  return pipe(
+    result,
+    E.match(
+      (failure): E.Either<D, A> => {
+        switch (failure.kind) {
+          case "ExpectedFailure":
+            return E.left(failure.error);
+          case "UnexpectedFault":
+            throw failure.cause;
+        }
+      },
+      (value) => E.right(value),
+    ),
+  );
+};
 ```
+
+アプリケーション側では `await execute(assignDriverUseCase(resolver, store)(requestId, driverId, true))` と実行します。呼び出し側が受け取る `Either` のエラー型は `AssignDriverError` のままです。`UnexpectedFault` は業務結果として公開せず、上位のエラーハンドラーがログ記録と汎用的な障害レスポンスを担います。
+
+## 回復可能な外部障害
+
+ワークフローが回復判断を行える場合に限り、名前付きの外部エラーをドメインの `Either` エラー union に含めます。
+
+```typescript
+type PaymentAuthorizationError = {
+  readonly kind: "AuthorizationTemporarilyUnavailable";
+  readonly retryAfter: RetryAfter;
+};
+```
+
+例えば、呼び出し側はこのエラー後に認可を延期または再試行できます。任意の通信障害を包むラッパーではありません。

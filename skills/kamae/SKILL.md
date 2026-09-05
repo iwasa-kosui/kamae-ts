@@ -60,7 +60,10 @@ Express transitions with pure functions. Argument types constrain valid source s
 
 ### Error Handling — [error-handling.md](./error-handling.md)
 
-Treat errors as values via `Result`. Define error types as discriminated unions so callers branch exhaustively. Do not throw exceptions in domain code.
+- Model expected business failures as use-case-specific `Result` error unions.
+- Include an external failure in the domain `Result` error union only when the workflow has a documented recovery decision.
+- Let unexpected infrastructure failures and contract/invariant violations reach the application error boundary. Preserve library contracts: fp-ts uses a separate execution failure channel inside `TaskEither` and rethrows unexpected faults at a native `Promise` boundary; see the [fp-ts guide](./result-libraries/fp-ts.md).
+- A private control-flow sentinel is allowed when its associated boundary catches only that sentinel and rethrows all other errors.
 
 ### Boundary Defense — [boundary-defense.md](./boundary-defense.md)
 

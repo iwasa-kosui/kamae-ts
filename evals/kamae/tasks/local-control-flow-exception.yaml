@@ -1,0 +1,43 @@
+id: kamae-local-control-flow-exception-001
+name: Contain a local-control-flow exception at a search boundary
+description: |
+  Positive case. Asks the agent to use a private sentinel exception solely to
+  exit a synchronous nested search early, then contain it at the public search
+  boundary.
+
+inputs:
+  prompt: |
+    Implement a synchronous TypeScript search for an available driver in a
+    tree or nested list of driver groups.
+
+    A nested helper should exit the traversal early by throwing a private
+    sentinel when it finds a matching driver. Catch that sentinel at an
+    explicitly named `findAvailableDriver` search boundary and return
+    `Option<Driver>` (or an equivalent public optional value). The sentinel is
+    local control flow, not a business error, and must not appear in the public
+    return type. Define the sentinel as a non-exported symbol, discriminate the
+    caught `unknown` value before handling it, and rethrow every non-sentinel
+    value from the associated catch block with `throw error`.
+
+    Use the project's dependencies (see package.json).
+  files:
+    - path: package.json
+
+expected:
+  outcomes:
+    - type: task_completed
+
+graders:
+  - type: text
+    name: contained_local_control_flow
+    config:
+      regex_match:
+        - "(?m)^const\\s+[A-Za-z_$][\\w$]*\\s*=\\s*Symbol\\s*\\("
+        - "(?m)(?:export\\s+)?(?:const|function)\\s+findAvailableDriver\\b"
+        - "(?s)findAvailableDriver.{0,1200}\\btry\\b.{0,1600}\\bcatch\\s*\\(\\s*error\\s*:\\s*unknown\\s*\\)"
+        - "(?s)catch\\s*\\(\\s*error\\s*:\\s*unknown\\s*\\)\\s*\\{.{0,600}(?:is[A-Za-z_$][\\w$]*\\s*\\(\\s*error\\s*\\)|error\\s*===|===\\s*error).{0,600}throw\\s+error"
+        - "(?s)findAvailableDriver.{0,300}(?:Option\\s*<\\s*Driver\\s*>|Driver\\s*\\|\\s*(?:undefined|null))"
+        - "throw\\s+error"
+      regex_not_match:
+        - "(?im)^export\\s+(?:const|type|interface|class)\\s+(?:Found[A-Za-z_$][\\w$]*|[A-Za-z_$][\\w$]*(?:sentinel|signal)[A-Za-z_$0-9]*)\\b"
+        - "(?is)findAvailableDriver.{0,300}(?:Found[A-Z]|Sentinel|Signal)"
