@@ -1,0 +1,77 @@
+// A small behavior control for testing the acceptance grader, never given to the model.
+import { z } from "zod";
+type Dependencies = {
+  repository: { get(id: string): Promise<unknown>; save(id: string, value: unknown): Promise<void> };
+  payment: { charge(input: { expenseId: string; amountCents: number; email: string; idempotencyKey: string }): Promise<unknown> };
+  logger: { info(event: unknown): void };
+};
+type ExpenseService = { handle(input: unknown): Promise<{ status: number; body: unknown }> };
+
+const id = z.string().min(1);
+const base = { id, ownerId: id, ownerEmail: z.email(), description: z.string().refine(s => s.trim().length > 0),
+  amountCents: z.number().int().min(1).max(1000000) };
+const record = z.discriminatedUnion("state", [
+  z.object({ ...base, state: z.literal("draft") }),
+  z.object({ ...base, state: z.literal("submitted") }),
+  z.object({ ...base, state: z.literal("approved"), reviewerId: id }),
+  z.object({ ...base, state: z.literal("rejected"), reviewerId: id, reason: z.string().min(1) }),
+  z.object({ ...base, state: z.literal("paid"), reviewerId: id, receiptId: id }),
+]);
+const command = z.discriminatedUnion("op", [
+  z.object({ ...base, op: z.literal("create") }),
+  z.object({ op: z.literal("get"), id }),
+  z.object({ op: z.literal("pay"), id }),
+  z.object({ op: z.literal("submit"), id, actorId: id }),
+  z.object({ op: z.literal("approve"), id, actorId: id }),
+  z.object({ op: z.literal("reject"), id, actorId: id, reason: z.string().refine(s => s.trim().length > 0) }),
+]);
+const payment = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("paid"), receiptId: id }), z.object({ kind: z.literal("declined") }),
+]);
+type RecordValue = z.infer<typeof record>;
+const view = ({ ownerEmail, ...publicFields }: RecordValue) => publicFields;
+const error = (status: number, code = "business_error") => ({ status, body: { code } });
+
+export const createExpenseService = (deps: Dependencies): ExpenseService => {
+  const save = async (value: RecordValue, status = 200) => {
+    await deps.repository.save(value.id, value);
+    deps.logger.info({ event: value.state, expenseId: value.id });
+    return { status, body: view(value) };
+  };
+  const handle: ExpenseService["handle"] = async input => {
+    const parsed = command.safeParse(input);
+    if (!parsed.success) return error(400);
+    const cmd = parsed.data;
+    const stored = await deps.repository.get(cmd.id);
+    const existing = stored === undefined ? undefined : record.parse(stored);
+    if (cmd.op === "create") {
+      if (existing) return error(409);
+      const { op, ...data } = cmd;
+      return save({ ...data, state: "draft" }, 201);
+    }
+    if (!existing) return error(404);
+    if (cmd.op === "get") return { status: 200, body: view(existing) };
+    if (cmd.op === "submit") {
+      if (existing.state !== "draft") return error(409);
+      if (cmd.actorId !== existing.ownerId) return error(403);
+      return save({ ...existing, state: "submitted" });
+    }
+    if (cmd.op === "approve" || cmd.op === "reject") {
+      if (existing.state !== "submitted") return error(409);
+      if (cmd.actorId === existing.ownerId) return error(403);
+      return cmd.op === "approve"
+        ? save({ ...existing, state: "approved", reviewerId: cmd.actorId })
+        : save({ ...existing, state: "rejected", reviewerId: cmd.actorId, reason: cmd.reason });
+    }
+    if (existing.state === "paid") return { status: 200, body: view(existing) };
+    if (existing.state !== "approved") return error(409);
+    const paid = payment.parse(await deps.payment.charge({ expenseId: existing.id,
+      amountCents: existing.amountCents, email: existing.ownerEmail, idempotencyKey: existing.id }));
+    if (paid.kind === "declined") return error(422, "payment_declined");
+    return save({ ...existing, state: "paid", receiptId: paid.receiptId });
+  };
+  return { handle: async input => {
+    try { return await handle(input); }
+    catch { return error(500, "unavailable"); }
+  } };
+};

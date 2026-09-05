@@ -1,0 +1,46 @@
+import { afterAll, expect, test } from "bun:test";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+import { copyTree, read } from "./files";
+import { command, parseJunit, succeeded } from "./process";
+
+const temporary = await mkdtemp(join(tmpdir(), "kamae-acceptance-control-"));
+afterAll(() => rm(temporary, { recursive: true, force: true }));
+
+test("acceptance passes a control and detects validation and create-response privacy regressions", async () => {
+  const caseRoot = resolve(import.meta.dir, "../cases/expense-approval");
+  const workspace = join(temporary, "project");
+  await copyTree(join(caseRoot, "starter"), workspace);
+  await mkdir(join(workspace, "src"), { recursive: true });
+  const pkg = JSON.parse(await read(join(workspace, "package.json")));
+  pkg.dependencies = { zod: "4.1.5" };
+  await writeFile(join(workspace, "package.json"), JSON.stringify(pkg));
+  const install = await command(["bun", "install", "--ignore-scripts"], workspace,
+    join(temporary, "install"), 60000);
+  expect(succeeded(install)).toBe(true);
+  const control = await read(join(import.meta.dir, "fixtures/reference.ts.txt"));
+  await writeFile(join(workspace, "src/index.ts"), control);
+  await copyTree(join(caseRoot, "acceptance"), join(workspace, "acceptance"));
+  const typecheck = await command(["bun", "run", "typecheck"], workspace, join(temporary, "typecheck"), 30000);
+  expect(succeeded(typecheck)).toBe(true);
+  const grade = async (name: string) => {
+    const xml = join(temporary, `${name}.xml`);
+    const execution = await command(["bun", "test", "./acceptance", "--reporter=junit", `--reporter-outfile=${xml}`],
+      workspace, join(temporary, name), 30000);
+    return { execution, counts: parseJunit(await read(xml), 19) };
+  };
+  const good = await grade("control");
+  expect(good.counts).toMatchObject({ tests: 19, passed: 19, failures: 0 });
+  expect(succeeded(good.execution)).toBe(true);
+  await writeFile(join(workspace, "src/index.ts"), control.replace(".min(1).max(1000000)", ".max(1000000)"));
+  const broken = await grade("mutant");
+  expect(succeeded(broken.execution)).toBe(false);
+  expect(broken.counts?.failures).toBeGreaterThan(0);
+  expect(broken.counts?.passed).toBeLessThan(19);
+  await writeFile(join(workspace, "src/index.ts"), control.replace("body: view(value)",
+    "body: status === 201 ? { ...view(value), ownerEmail: value.ownerEmail } : view(value)"));
+  const leaked = await grade("privacy-mutant");
+  expect(succeeded(leaked.execution)).toBe(false);
+  expect(leaked.counts?.failures).toBeGreaterThan(0);
+}, 90000);

@@ -79,6 +79,14 @@ rule のフォーマットと具体例は [`rules/README.md`](./rules/README.md)
 
 スキル全体を置き換えたい場合は、Claude Code 標準の skill path-shadowing（プロジェクトの `.claude/skills/kamae/SKILL.md` がインストール済みプラグインを上書きする）を使う。
 
+## ベンチマーク
+
+同じモデル・同じPRDで、`kamae` の有無による設計と実装の違いを比較できます。
+[ベンチマークランナー](benchmarks/README.md) は、最初の設計書、生成コード、
+共通の受け入れテスト結果、設計レビュー表を保存します。
+`bun run benchmark --dry-run --runs 1` で比較条件を確認し、
+`bun run benchmark --model <model-id> --runs 3` で実モデルによる比較を実行できます。
+
 ## ドキュメント
 
 読み物版は [https://iwasa-kosui.github.io/kamae-ts/](https://iwasa-kosui.github.io/kamae-ts/) に公開されており、[英語版（`/en/`）](https://iwasa-kosui.github.io/kamae-ts/en/) と [日本語版（`/ja/`）](https://iwasa-kosui.github.io/kamae-ts/ja/) の両方を提供している。
