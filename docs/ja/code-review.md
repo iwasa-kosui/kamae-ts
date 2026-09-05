@@ -88,6 +88,14 @@ declaration merging により型の形状が暗黙に変わる危険がありま
 
 兆候: `types.ts`、`models.ts`、`domain.ts` のような catch-all ファイルに多数のドメイン型が集約されている、特に companion object が別ファイルにある場合。barrel file（`index.ts`）は re-export のみにしてください。
 
+#### 1.10 ドメイン向けのポートを domain 層が所有しているか
+
+参照: [「ポートは domain 層に配置する」](./domain-modeling.md#ポートは-domain-層に配置する)
+
+兆候: リポジトリ、resolver、store などのドメイン向けの依存契約が domain 層の外にある、または `domain/ports/` を含む専用の `port/` や `ports/` ディレクトリに集められている。各契約を対象のドメイン概念のそば（例: `src/domain/task/task-repository.ts`）へ移すよう提案します。ユースケースとアダプターは domain 層が所有する契約を import し、具体的な I/O の実装は infrastructure 層に残します。
+
+配置だけの問題は Low とします。domain の契約が infrastructure の実装、DB クライアント、外部 SDK の型を import している場合は、その依存を示して Medium とします。ディレクトリ名だけで依存方向の違反やランタイム障害を推測しません。infrastructure 層に正しく配置されたリポジトリアダプターは、配置を誤ったポートではありません。契約の定義か実装かを確認し、明示的なプロジェクトの上書きルールを尊重します。
+
 ### 2. 関数による状態遷移
 
 参照: [`./index.md` §2](./index.md) および [`./state-modeling.md`](./state-modeling.md)
@@ -193,7 +201,7 @@ fp-ts では、内部の `TaskEither` が想定外障害を業務エラーとは
 ```
 ### メソッド記法の使用
 
-`src/repository/task-repository.ts:15`
+`src/domain/task/task-repository.ts:15`
 
 `save(task: Task): Promise<void>` はメソッド記法です。
 [`./index.md` §1「関数プロパティ記法を使う」](./index.md)
@@ -224,6 +232,8 @@ type TaskRepository = {
 | Medium | union 型を受ける状態遷移関数 (2.1) | 無効な遷移がコンパイルを通る |
 | Medium | catch-all 型ファイル (1.9) | 循環依存・型と振る舞いの分離 |
 | Medium | Companion Object パターン違反・スキーマ単独 export (1.4) | 実装詳細の漏洩 |
+| Medium | domain の契約が infrastructure の型に依存 (1.10) | ドメインが具体的な実装と結合する |
+| Low | 外向きの依存を伴わないポートの配置違反 (1.10) | 契約が所有元のドメイン概念から離れる |
 | Low | メソッド記法 (1.6) | 特定条件下でのみ問題顕在化 |
 | Low | ドメイン型の `interface` 使用 (1.5) | declaration merging 事故は稀 |
 | Low | `Readonly<>` 未使用のドメイン型 (1.8) | mutation はレビューで気付ける場合が多い |

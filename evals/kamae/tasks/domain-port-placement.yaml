@@ -1,0 +1,40 @@
+id: kamae-domain-port-placement-001
+name: Lay out a task service with replaceable dependencies
+description: |
+  Generation case. Dependency contracts should be colocated with their domain
+  concepts, while concrete I/O adapters and composition stay outside domain.
+
+inputs:
+  prompt: |
+    Use kamae to propose a module layout for a new server-side TypeScript task
+    service. Its package.json dependencies are zod and neverthrow. There is no
+    existing source layout or project override.
+
+    The service needs a Task model, TaskId, a TaskRepository contract, a
+    Postgres implementation, and a completeTask use case. It also needs a
+    Clock dependency so completion timestamps can be controlled in tests.
+    Choose file locations and explain the import direction and wiring.
+    Return full src/... file paths, one per line, followed by a short
+    explanation. Use task-repository.ts for the contract, clock.ts for the
+    clock contract, and postgres-task-repository.ts for the adapter. Do not
+    implement the service or list alternative layouts.
+  files: []
+
+expected:
+  outcomes:
+    - type: task_completed
+
+graders:
+  - type: text
+    name: contracts_live_in_domain
+    config:
+      regex_match:
+        - 'src/domain/(?:[\w-]+/)*task-repository\.ts'
+        - 'src/domain/(?:[\w-]+/)*clock\.ts'
+        - 'src/infrastructure/(?:[\w-]+/)*postgres-task-repository\.ts'
+  - type: text
+    name: avoids_dedicated_port_directories
+    config:
+      regex_not_match:
+        - 'src/(?:[\w-]+/)*ports?/'
+        - 'src/domain/(?:[\w-]+/)*postgres-task-repository\.ts'

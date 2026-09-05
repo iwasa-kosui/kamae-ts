@@ -1,0 +1,30 @@
+id: kamae-review-domain-owned-port-001
+name: Review task service contracts and adapters
+description: |
+  Negative control. The contract is beside its domain concept and the
+  implementation is in infrastructure. Neither should be reported or moved.
+
+inputs:
+  prompt: |
+    Use kamae-review to review the attached module snapshot for dependency
+    contract ownership, file placement, and import direction only. Report
+    findings with locations and severity (High / Medium / Low), explain the
+    impact, and give concrete destination paths for any suggested moves.
+    Do not review omitted implementations or previously reviewed concerns.
+    If this scope has no violations, say "No findings".
+  files:
+    - path: architecture/task-service-c.md
+
+expected:
+  outcomes:
+    - type: task_completed
+
+graders:
+  - type: text
+    name: accepts_domain_contract_and_infrastructure_adapter
+    config:
+      regex_match:
+        - '(?i)\bno findings\b'
+      regex_not_match:
+        - 'src/(?:[\w-]+/)*ports?/'
+        - 'src/domain/(?:[\w-]+/)*postgres-task-repository\.ts'

@@ -1,0 +1,31 @@
+id: kamae-review-nested-port-directory-001
+name: Review task service domain organization
+description: |
+  A contract is inside domain but isolated in domain/ports. The reviewer
+  should recommend colocation with Task as a Low placement finding.
+
+inputs:
+  prompt: |
+    Use kamae-review to review the attached module snapshot for dependency
+    contract ownership, file placement, and import direction only. Report
+    findings with locations and severity (High / Medium / Low), explain the
+    impact, and give concrete destination paths for any suggested moves.
+    Do not review omitted implementations or previously reviewed concerns.
+    If this scope has no violations, say "No findings".
+  files:
+    - path: architecture/task-service-b.md
+
+expected:
+  outcomes:
+    - type: task_completed
+
+graders:
+  - type: text
+    name: colocates_contract_with_task
+    config:
+      regex_match:
+        - 'src/domain/ports/task-repository\.ts'
+        - 'src/domain/task/task-repository\.ts'
+        - '\bLow\b'
+      regex_not_match:
+        - 'src/domain/(?:[\w-]+/)*postgres-task-repository\.ts'
