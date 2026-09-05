@@ -40,3 +40,9 @@ Flag: domain object types defined without `Readonly<…>` (or `readonly` per-pro
 ## 1.9 Is the "one concept per file" rule followed? — Medium
 
 Flag: catch-all files (`types.ts`, `models.ts`, `domain.ts`) aggregating many domain types, especially when companion objects live elsewhere. Barrel files (`index.ts`) must only re-export.
+
+## 1.10 Are domain-facing ports owned by the domain layer? — Low / Medium
+
+Flag: repository, resolver, store, or other domain-facing dependency contracts defined outside the domain layer or collected in a dedicated `port/` or `ports/` directory, including `domain/ports/`. Recommend placing each contract beside the domain concept it serves (for example, `src/domain/task/task-repository.ts`). Use cases and adapters should import that domain-owned contract; concrete I/O implementations remain in infrastructure.
+
+Treat placement alone as Low. Raise to Medium when the domain contract imports an infrastructure implementation, database client, or external SDK type, and cite that dependency. Do not infer a dependency violation or runtime failure from a directory name alone. A concrete repository adapter correctly placed in infrastructure is not a misplaced port; inspect whether the file defines the contract or implements it. Respect explicit project overrides loaded in Step 0.

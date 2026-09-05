@@ -88,6 +88,14 @@ Reference: [`./index.md` §1 "File layout: one concept per file"](./index.md)
 
 Signal: catch-all files such as `types.ts`, `models.ts`, or `domain.ts` that aggregate many domain types, especially when companion objects live in separate files. Barrel files (`index.ts`) should contain re-exports only.
 
+#### 1.10 Domain-facing ports owned by the domain layer
+
+Reference: ["Place Ports in the Domain Layer"](./domain-modeling.md#place-ports-in-the-domain-layer)
+
+Signal: repository, resolver, store, or other domain-facing dependency contracts defined outside the domain layer or collected in a dedicated `port/` or `ports/` directory, including `domain/ports/`. Recommend placing each contract beside the domain concept it serves (for example, `src/domain/task/task-repository.ts`). Use cases and adapters should import that domain-owned contract; concrete I/O implementations remain in infrastructure.
+
+Treat placement alone as Low. Raise to Medium when the domain contract imports an infrastructure implementation, database client, or external SDK type, and cite that dependency. Do not infer a dependency violation or runtime failure from a directory name alone. A concrete repository adapter correctly placed in infrastructure is not a misplaced port; inspect whether the file defines the contract or implements it. Respect explicit project overrides.
+
 ### 2. State Transitions via Pure Functions
 
 Reference: [`./index.md` §2](./index.md) and [`./state-modeling.md`](./state-modeling.md)
@@ -193,7 +201,7 @@ Each finding should include:
 ```
 ### Method notation used
 
-`src/repository/task-repository.ts:15`
+`src/domain/task/task-repository.ts:15`
 
 `save(task: Task): Promise<void>` uses method notation.
 Per [`./index.md` §1 "Use function-property notation"](./index.md),
@@ -224,6 +232,8 @@ type TaskRepository = {
 | [Medium] | Transition function accepts the full union type (2.1) | Invalid transitions compile without error |
 | [Medium] | Catch-all type files (1.9) | Circular dependencies; type/behavior separation |
 | [Medium] | Companion Object pattern violated; schema exported standalone (1.4) | Leaks implementation details |
+| [Medium] | Domain contract imports infrastructure types (1.10) | Couples the domain to a concrete implementation |
+| [Low] | Misplaced domain-facing port without an outward dependency (1.10) | Separates the contract from its owning domain concept |
 | [Low] | Method notation (1.6) | Only problematic under specific conditions |
 | [Low] | `interface` for domain types (1.5) | Declaration-merging accidents are rare |
 | [Low] | Domain types missing `Readonly<>` (1.8) | Mutations are often caught in review |

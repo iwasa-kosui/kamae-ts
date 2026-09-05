@@ -179,3 +179,26 @@ Place each domain concept (type + companion object) in its own dedicated file. C
 ```
 
 Barrel files (`index.ts`) are for re-exports only; do not define types or functions directly inside them.
+
+## Place Ports in the Domain Layer
+
+A port is a contract for a dependency needed by the domain or its use cases, such as a repository, resolver, store, clock, or ID generator. The domain owns that contract. Place it beside the domain concept it serves, following the package's existing domain organization and one-concept-per-file rule. Calling a type a "port" does not introduce another layer: do not create a dedicated `port/` or `ports/` directory at the top level, under `application/`, or even under `domain/`.
+
+For example, in a package organized by domain concept:
+
+```text
+src/
+  domain/task/
+    task.ts
+    task-id.ts
+    task-repository.ts       # Contract expressed in domain types
+  application/
+    complete-task.ts         # Receives TaskRepository as a dependency
+  infrastructure/
+    postgres-task-repository.ts  # Implements the domain contract
+  main.ts                   # Wires the adapter into the use case
+```
+
+A flat domain layout can use `src/domain/task-repository.ts` instead. Keep each contract with its owning concept, not in a generic `src/ports/task-repository.ts` or `src/domain/ports/task-repository.ts` collection.
+
+Use cases and concrete adapters import the contract from the domain. The contract uses domain types and does not import the adapter, database client, or external SDK types. Keep concrete I/O and external-data mapping in the infrastructure adapter, and wire implementations at the composition root. Defining a contract in the domain does not put I/O into pure domain transitions; the use case invokes the injected dependency.

@@ -179,3 +179,26 @@ type ProductId = string & { readonly [typeof ProductIdBrand]: never };
 ```
 
 barrel file（`index.ts`）は re-export のみに使い、型や関数を直接定義しないでください。
+
+## ポートは domain 層に配置する
+
+ポートは、ドメインやユースケースが必要とする依存先の契約です。リポジトリ、resolver、store、clock、ID generator などが該当します。契約を所有するのは domain 層です。既存の domain 内の構成と「1概念1ファイル」に従い、対象のドメイン概念のそばに配置します。「ポート」という呼び名のために別の層を設けず、トップレベル、`application/` 配下、`domain/` 配下のいずれにも専用の `port/` や `ports/` ディレクトリを作りません。
+
+ドメイン概念ごとにディレクトリを分ける構成の例です。
+
+```text
+src/
+  domain/task/
+    task.ts
+    task-id.ts
+    task-repository.ts       # Contract expressed in domain types
+  application/
+    complete-task.ts         # Receives TaskRepository as a dependency
+  infrastructure/
+    postgres-task-repository.ts  # Implements the domain contract
+  main.ts                   # Wires the adapter into the use case
+```
+
+domain 内をフラットに構成している場合は `src/domain/task-repository.ts` とします。`src/ports/task-repository.ts` や `src/domain/ports/task-repository.ts` のような汎用的な置き場に集めず、それぞれの契約を所有する概念のそばに置きます。
+
+ユースケースと具体的なアダプターは、domain 層から契約を import します。契約にはドメイン型を使い、アダプター、DB クライアント、外部 SDK の型を import しません。具体的な I/O と外部データの変換は infrastructure 層のアダプターに置き、composition root でユースケースへ実装を注入します。domain 層で契約を定義しても、純粋な状態遷移関数で I/O を実行するわけではありません。注入された依存先の呼び出しはユースケースが担当します。

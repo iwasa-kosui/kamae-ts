@@ -44,7 +44,7 @@ If no rules are found, proceed with all checks active. See [`../../rules/README.
 
 3. **Walk the checklist.** Read each checklist sub-file in order; match findings to its items.
 
-   - [`checklist/domain-modeling.md`](./checklist/domain-modeling.md) — Discriminated Unions, Companion Objects, Branded Types, file structure (items 1.x)
+   - [`checklist/domain-modeling.md`](./checklist/domain-modeling.md) — Discriminated Unions, Companion Objects, Branded Types, file structure, domain-owned ports (items 1.x)
    - [`checklist/state-transitions.md`](./checklist/state-transitions.md) — pure state transitions, exhaustiveness (items 2.x)
    - [`checklist/error-handling.md`](./checklist/error-handling.md) — Result types, error-boundary classification, DU error types (items 3.x)
    - [`checklist/boundary.md`](./checklist/boundary.md) — schema validation, no `as` assertions, schema-derived types (items 4.1, 4.2, 4.4)
@@ -63,15 +63,15 @@ If no rules are found, proceed with all checks active. See [`../../rules/README.
 Each checklist item is tagged High / Medium / Low.
 
 - **High** — direct cause of runtime errors or compliance violations (`as`, missing PII protection, missing schema validation, missing Branded Types on semantically distinct primitives).
-- **Medium** — invalid state representation, inconsistent error handling, missing exhaustiveness, catch-all type files, classes for domain models.
-- **Low** — stylistic, readability, edge-case correctness (method notation, `interface` for domain types, missing `Readonly<>`, non-`kind` discriminants, imperative array loops, fixtures without `as const satisfies`, matching schema/type duplication). An existing schema/type mismatch is raised according to its incorrect acceptance, rejection, or data-exposure impact.
+- **Medium** — invalid state representation, inconsistent error handling, missing exhaustiveness, catch-all type files, classes for domain models, domain contracts coupled to infrastructure types.
+- **Low** — stylistic, readability, edge-case correctness (method notation, `interface` for domain types, missing `Readonly<>`, non-`kind` discriminants, imperative array loops, fixtures without `as const satisfies`, matching schema/type duplication, misplaced ports without an outward dependency). An existing schema/type mismatch is raised according to its incorrect acceptance, rejection, or data-exposure impact.
 
 ## Example Finding
 
 ```
 ### Use of method notation
 
-`src/repository/task-repository.ts:15`
+`src/domain/task/task-repository.ts:15`
 
 `save(task: Task): Promise<void>` uses method notation. Per
 [`../kamae/SKILL.md` §1 "Use function property notation"](../kamae/SKILL.md),

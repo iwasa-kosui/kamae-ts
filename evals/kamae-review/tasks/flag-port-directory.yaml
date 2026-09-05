@@ -1,0 +1,32 @@
+id: kamae-review-port-directory-001
+name: Review task service module ownership
+description: |
+  A domain-facing contract sits in a top-level ports directory. The reviewer
+  should recommend moving it beside Task without alleging an outward import
+  or moving the concrete Postgres adapter into domain.
+
+inputs:
+  prompt: |
+    Use kamae-review to review the attached module snapshot for dependency
+    contract ownership, file placement, and import direction only. Report
+    findings with locations and severity (High / Medium / Low), explain the
+    impact, and give concrete destination paths for any suggested moves.
+    Do not review omitted implementations or previously reviewed concerns.
+    If this scope has no violations, say "No findings".
+  files:
+    - path: architecture/task-service-a.md
+
+expected:
+  outcomes:
+    - type: task_completed
+
+graders:
+  - type: text
+    name: relocates_contract_to_owning_domain
+    config:
+      regex_match:
+        - 'src/ports/task-repository\.ts'
+        - 'src/domain/task/task-repository\.ts'
+        - '\bLow\b'
+      regex_not_match:
+        - 'src/domain/(?:[\w-]+/)*postgres-task-repository\.ts'

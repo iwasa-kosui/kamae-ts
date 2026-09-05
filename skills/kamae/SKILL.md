@@ -54,6 +54,8 @@ Each topic below is one file. Read it lazily — only the file(s) you need for t
 
 Represent states with discriminated unions using `kind` as the unified discriminant. Use `type` (not `interface`), Companion Object pattern, branded types via the project's validation library, `Readonly<>`, function property notation, and one-concept-per-file structure.
 
+Place domain-facing ports (repository, resolver, store, and other dependency contracts) beside the concepts they serve in the domain layer. Do not introduce a dedicated `port/` or `ports/` directory, including inside `domain/`. Keep concrete I/O adapters outside the domain; use cases and adapters import the domain-owned contracts. Read the domain-modeling guide when defining dependency contracts or choosing their file locations.
+
 ### State Transitions — [state-modeling.md](./state-modeling.md)
 
 Express transitions with pure functions. Argument types constrain valid source states; return types make targets explicit. Invalid transitions become compile errors. Use `assertNever` for exhaustiveness.
