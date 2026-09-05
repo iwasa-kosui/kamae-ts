@@ -110,16 +110,14 @@ Write functions inside type definitions using function-property notation rather 
 
 ```typescript
 // Good: function-property notation — parameters are contravariant
-type TaskRepository = {
+type TaskStore = {
   save: (task: Task) => Promise<void>;
-  findById: (id: TaskId) => Promise<Task | undefined>;
 };
 
 // Bad: method notation — parameters become bivariant, so a narrower
 // implementation like save(task: DoingTask) passes the type checker
-type TaskRepository = {
+type TaskStore = {
   save(task: Task): Promise<void>;
-  findById(id: TaskId): Promise<Task | undefined>;
 };
 ```
 
@@ -180,9 +178,37 @@ Place each domain concept (type + companion object) in its own dedicated file. C
 
 Barrel files (`index.ts`) are for re-exports only; do not define types or functions directly inside them.
 
-## Place Ports in the Domain Layer
+## Separate resolvers and stores by operation
 
-A port is a contract for a dependency needed by the domain or its use cases, such as a repository, resolver, store, clock, or ID generator. The domain owns that contract. Place it beside the domain concept it serves, following the package's existing domain organization and one-concept-per-file rule. Calling a type a "port" does not introduce another layer: do not create a dedicated `port/` or `ports/` directory at the top level, under `application/`, or even under `domain/`.
+Keep read contracts (resolvers) separate from write contracts (stores). Prefer one method per resolver or store, named and typed for the operation its consumer needs. Do not start with an entity-wide repository or add methods to complete a CRUD interface. Splitting a repository into one multi-method reader and one multi-method writer is only a first step; split independent lookups and writes into their own contracts as well.
+
+```typescript
+type TaskByIdResolver = Readonly<{
+  findById: (id: TaskId) => Promise<Task | undefined>;
+}>;
+
+type TasksByAssigneeResolver = Readonly<{
+  findByAssignee: (assigneeId: UserId) => Promise<readonly Task[]>;
+}>;
+
+type TaskStore = Readonly<{
+  save: (task: Task) => Promise<void>;
+}>;
+
+type TaskEventStore = Readonly<{
+  append: (events: readonly TaskEvent[]) => Promise<void>;
+}>;
+```
+
+These declarations belong in separate concept files. A consumer that only appends events receives `TaskEventStore`; it needs neither a resolver nor a state store. A consumer that reads a task and saves its updated state receives `TaskByIdResolver` and `TaskStore` separately. `findById`, `resolve`, `save`, and `append` are all valid names when they describe the required operation; the concern is the scope of the contract, not a particular method name.
+
+Keep I/O at the workflow edges: resolve required inputs, pass values into pure decisions, then persist the returned state or events. Pass time and generated IDs as values too. Injecting an I/O interface into a function does not make that function pure. If later I/O depends on a decision, let the orchestration alternate explicit I/O and pure steps. See Scott Wlaschin's [dependency rejection](https://fsharpforfunandprofit.com/posts/dependencies/#approach-2-dependency-rejection) for this workflow structure.
+
+The composition root may assemble several contracts, and adapters may share a database client or transaction. Each consumer still receives only its required contracts; do not recombine them into a broad repository or service locator. One atomic write of state and its events is one operation and belongs in one store method; see [state-modeling.md](./state-modeling.md#persist-state-and-events-in-the-same-transaction). Respect an explicit project requirement for a broader existing contract, and explain the trade-off instead of adding unrelated operations by convention.
+
+## Place ports in the domain layer
+
+A port is a contract for a dependency needed by a workflow, such as a resolver, store, clock, or ID generator. The domain owns that contract. Place it beside the domain concept it serves, following the package's existing domain organization and one-concept-per-file rule. Calling a type a "port" does not introduce another layer: do not create a dedicated `port/` or `ports/` directory at the top level, under `application/`, or even under `domain/`.
 
 For example, in a package organized by domain concept:
 
@@ -191,14 +217,16 @@ src/
   domain/task/
     task.ts
     task-id.ts
-    task-repository.ts       # Contract expressed in domain types
+    task-by-id-resolver.ts   # One read operation, expressed in domain types
+    task-store.ts            # One write operation, expressed in domain types
   application/
-    complete-task.ts         # Receives TaskRepository as a dependency
+    complete-task.ts         # Receives the resolver and store separately
   infrastructure/
-    postgres-task-repository.ts  # Implements the domain contract
+    postgres-task-by-id-resolver.ts  # Implements the read contract
+    postgres-task-store.ts          # Implements the write contract
   main.ts                   # Wires the adapter into the use case
 ```
 
-A flat domain layout can use `src/domain/task-repository.ts` instead. Keep each contract with its owning concept, not in a generic `src/ports/task-repository.ts` or `src/domain/ports/task-repository.ts` collection.
+A flat domain layout can use `src/domain/task-store.ts` instead. Keep each contract with its owning concept, not in a generic `src/ports/task-store.ts` or `src/domain/ports/task-store.ts` collection.
 
 Use cases and concrete adapters import the contract from the domain. The contract uses domain types and does not import the adapter, database client, or external SDK types. Keep concrete I/O and external-data mapping in the infrastructure adapter, and wire implementations at the composition root. Defining a contract in the domain does not put I/O into pure domain transitions; the use case invokes the injected dependency.

@@ -1,0 +1,28 @@
+id: kamae-review-operation-scoped-contracts-001
+name: Review task workflow dependencies
+description: |
+  Negative control for separate single-operation contracts, a legitimate
+  findById query, an established Repository name, and one atomic write method.
+
+inputs:
+  prompt: |
+    Use kamae-review to review the attached snapshot for dependency contract
+    responsibilities and consumer coupling only. Report findings with file
+    locations and severity (High / Medium / Low), impact, and concrete fixes.
+    Do not review omitted implementations or already-reviewed domain types.
+    If this scope has no violations, say "No findings".
+  files:
+    - path: architecture/task-workflow-contracts.md
+
+expected:
+  outcomes:
+    - type: task_completed
+
+graders:
+  - type: text
+    name: accepts_narrow_contracts_and_atomic_write
+    config:
+      regex_match:
+        - '(?i)\bno findings\b'
+      regex_not_match:
+        - '\bHigh\b|\bMedium\b|\bLow\b'

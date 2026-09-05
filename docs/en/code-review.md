@@ -92,9 +92,17 @@ Signal: catch-all files such as `types.ts`, `models.ts`, or `domain.ts` that agg
 
 Reference: ["Place Ports in the Domain Layer"](./domain-modeling.md#place-ports-in-the-domain-layer)
 
-Signal: repository, resolver, store, or other domain-facing dependency contracts defined outside the domain layer or collected in a dedicated `port/` or `ports/` directory, including `domain/ports/`. Recommend placing each contract beside the domain concept it serves (for example, `src/domain/task/task-repository.ts`). Use cases and adapters should import that domain-owned contract; concrete I/O implementations remain in infrastructure.
+Signal: repository, resolver, store, or other domain-facing dependency contracts defined outside the domain layer or collected in a dedicated `port/` or `ports/` directory, including `domain/ports/`. Recommend placing each contract beside the domain concept it serves (for example, `src/domain/task/task-store.ts`). Use cases and adapters should import that domain-owned contract; concrete I/O implementations remain in infrastructure.
 
 Treat placement alone as Low. Raise to Medium when the domain contract imports an infrastructure implementation, database client, or external SDK type, and cite that dependency. Do not infer a dependency violation or runtime failure from a directory name alone. A concrete repository adapter correctly placed in infrastructure is not a misplaced port; inspect whether the file defines the contract or implements it. Respect explicit project overrides.
+
+#### 1.11 Separate resolvers and stores, preferably one operation each
+
+Reference: [Separate resolvers and stores by operation](./domain-modeling.md#separate-resolvers-and-stores-by-operation)
+
+Signal: an injected contract mixes reads and writes, or a resolver/store exposes multiple independent operations without a documented project reason. Report this as Low, citing the contract and its consumer. Suggest separate contracts with one method each, and give each consumer only what it needs. An event-only writer does not require a resolver.
+
+Judge responsibilities rather than names: `findById` on a single-operation resolver is valid, as is a single-operation contract named `Repository`. Adapters may share a database client, and the composition root may assemble separate contracts. Keep an atomic state-and-events write in one store method. Respect explicit project overrides for broader contracts and explain the trade-off.
 
 ### 2. State Transitions via Pure Functions
 
@@ -201,7 +209,7 @@ Each finding should include:
 ```
 ### Method notation used
 
-`src/domain/task/task-repository.ts:15`
+`src/domain/task/task-store.ts:15`
 
 `save(task: Task): Promise<void>` uses method notation.
 Per [`./index.md` §1 "Use function-property notation"](./index.md),
@@ -210,7 +218,7 @@ method notation makes parameters bivariant, so a narrower implementation
 
 Suggested fix:
 \`\`\`typescript
-type TaskRepository = {
+type TaskStore = {
   save: (task: Task) => Promise<void>;
 };
 \`\`\`
@@ -234,6 +242,7 @@ type TaskRepository = {
 | [Medium] | Companion Object pattern violated; schema exported standalone (1.4) | Leaks implementation details |
 | [Medium] | Domain contract imports infrastructure types (1.10) | Couples the domain to a concrete implementation |
 | [Low] | Misplaced domain-facing port without an outward dependency (1.10) | Separates the contract from its owning domain concept |
+| [Low] | Unnecessarily broad resolver/store contracts (1.11) | Consumers depend on unrelated operations |
 | [Low] | Method notation (1.6) | Only problematic under specific conditions |
 | [Low] | `interface` for domain types (1.5) | Declaration-merging accidents are rare |
 | [Low] | Domain types missing `Readonly<>` (1.8) | Mutations are often caught in review |

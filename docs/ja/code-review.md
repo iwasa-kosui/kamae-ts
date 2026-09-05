@@ -92,9 +92,17 @@ declaration merging により型の形状が暗黙に変わる危険がありま
 
 参照: [「ポートは domain 層に配置する」](./domain-modeling.md#ポートは-domain-層に配置する)
 
-兆候: リポジトリ、resolver、store などのドメイン向けの依存契約が domain 層の外にある、または `domain/ports/` を含む専用の `port/` や `ports/` ディレクトリに集められている。各契約を対象のドメイン概念のそば（例: `src/domain/task/task-repository.ts`）へ移すよう提案します。ユースケースとアダプターは domain 層が所有する契約を import し、具体的な I/O の実装は infrastructure 層に残します。
+兆候: リポジトリ、resolver、store などのドメイン向けの依存契約が domain 層の外にある、または `domain/ports/` を含む専用の `port/` や `ports/` ディレクトリに集められている。各契約を対象のドメイン概念のそば（例: `src/domain/task/task-store.ts`）へ移すよう提案します。ユースケースとアダプターは domain 層が所有する契約を import し、具体的な I/O の実装は infrastructure 層に残します。
 
 配置だけの問題は Low とします。domain の契約が infrastructure の実装、DB クライアント、外部 SDK の型を import している場合は、その依存を示して Medium とします。ディレクトリ名だけで依存方向の違反やランタイム障害を推測しません。infrastructure 層に正しく配置されたリポジトリアダプターは、配置を誤ったポートではありません。契約の定義か実装かを確認し、明示的なプロジェクトの上書きルールを尊重します。
+
+#### 1.11 resolver と store を分離し、原則として単一操作にしているか
+
+参照: [「resolver と store を操作ごとに分離する」](./domain-modeling.md#resolver-と-store-を操作ごとに分離する)
+
+兆候: 注入する契約が読み取りと書き込みを混在させている、またはプロジェクト上の理由が記されていないのに resolver／store が複数の独立した操作を公開している。契約とその利用側を示し、Low として報告します。原則として単一メソッドの契約へ分離し、各利用側には必要な契約だけを渡すよう提案します。イベントを書くだけの利用側に resolver は不要です。
+
+名前ではなく責務で判断します。単一操作の resolver にある `findById` や、単一操作の契約に付けられた `Repository` という名前自体は違反ではありません。アダプター間での DB クライアント共有や、composition root での複数の契約の組み立ては許容します。状態とイベントの原子的な保存は一つの store メソッドに保ちます。広い契約を要求する明示的なプロジェクトルールを尊重し、トレードオフを説明します。
 
 ### 2. 関数による状態遷移
 
@@ -201,7 +209,7 @@ fp-ts では、内部の `TaskEither` が想定外障害を業務エラーとは
 ```
 ### メソッド記法の使用
 
-`src/domain/task/task-repository.ts:15`
+`src/domain/task/task-store.ts:15`
 
 `save(task: Task): Promise<void>` はメソッド記法です。
 [`./index.md` §1「関数プロパティ記法を使う」](./index.md)
@@ -210,7 +218,7 @@ fp-ts では、内部の `TaskEither` が想定外障害を業務エラーとは
 
 修正案:
 \`\`\`typescript
-type TaskRepository = {
+type TaskStore = {
   save: (task: Task) => Promise<void>;
 };
 \`\`\`
@@ -234,6 +242,7 @@ type TaskRepository = {
 | Medium | Companion Object パターン違反・スキーマ単独 export (1.4) | 実装詳細の漏洩 |
 | Medium | domain の契約が infrastructure の型に依存 (1.10) | ドメインが具体的な実装と結合する |
 | Low | 外向きの依存を伴わないポートの配置違反 (1.10) | 契約が所有元のドメイン概念から離れる |
+| Low | 必要以上に広い resolver／store の契約 (1.11) | 利用側が無関係な操作に依存する |
 | Low | メソッド記法 (1.6) | 特定条件下でのみ問題顕在化 |
 | Low | ドメイン型の `interface` 使用 (1.5) | declaration merging 事故は稀 |
 | Low | `Readonly<>` 未使用のドメイン型 (1.8) | mutation はレビューで気付ける場合が多い |

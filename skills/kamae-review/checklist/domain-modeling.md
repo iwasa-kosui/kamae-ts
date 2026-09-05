@@ -43,6 +43,12 @@ Flag: catch-all files (`types.ts`, `models.ts`, `domain.ts`) aggregating many do
 
 ## 1.10 Are domain-facing ports owned by the domain layer? — Low / Medium
 
-Flag: repository, resolver, store, or other domain-facing dependency contracts defined outside the domain layer or collected in a dedicated `port/` or `ports/` directory, including `domain/ports/`. Recommend placing each contract beside the domain concept it serves (for example, `src/domain/task/task-repository.ts`). Use cases and adapters should import that domain-owned contract; concrete I/O implementations remain in infrastructure.
+Flag: repository, resolver, store, or other domain-facing dependency contracts defined outside the domain layer or collected in a dedicated `port/` or `ports/` directory, including `domain/ports/`. Recommend placing each contract beside the domain concept it serves (for example, `src/domain/task/task-store.ts`). Use cases and adapters should import that domain-owned contract; concrete I/O implementations remain in infrastructure.
 
 Treat placement alone as Low. Raise to Medium when the domain contract imports an infrastructure implementation, database client, or external SDK type, and cite that dependency. Do not infer a dependency violation or runtime failure from a directory name alone. A concrete repository adapter correctly placed in infrastructure is not a misplaced port; inspect whether the file defines the contract or implements it. Respect explicit project overrides loaded in Step 0.
+
+## 1.11 Are resolvers and stores separate and scoped to one operation? — Low
+
+Flag: an injected contract combines reads and writes, or a resolver/store exposes multiple independent operations without a documented project reason. Recommend separate read and write contracts, preferably one method each, with each consumer receiving only what it uses. Cite the contract and the affected consumer; an event-only writer must not need read methods, and two unrelated queries should not become a multi-method resolver by default.
+
+Judge responsibilities, not names: `findById` is valid on a single-operation resolver, and a single-operation contract named `Repository` is not itself a violation. Sharing an adapter's database client or assembling several separate contracts at the composition root is fine. Keep an atomic state-and-events write in one store method; do not split its transaction. Respect explicit project overrides and explain only the remaining trade-off when a broader contract is required.
