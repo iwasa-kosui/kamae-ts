@@ -54,6 +54,42 @@ bun run benchmark --model gpt-5.5 --runs 2 --isolation audit
 | `--codex-bin` | `codex` | Executable path, without shell expansion |
 | `--isolation` | `audit` | audit or macos; both require context preflight |
 | `--dry-run` | Off | Prepare without generation or grading |
+| `--variants` | `baseline,kamae` | Ordered comma-separated conditions: baseline, kamae, kamae-ladder; unique values only |
+
+## Ladder experiment
+
+`kamae-ladder` supplies the same full kamae skill and defaults as `kamae`, plus
+a frozen [decision ladder](guidance/ladder.md). It is an experimental prompt
+addition, not a change to the shipped skill or an installation of ponytail.
+The ladder file is hashed in the manifest and protected by input integrity checks.
+The common task prompt differs by one explicit ladder-file instruction.
+
+The [pilot protocol](experiments/ladder-2026-09-06/protocol.md) fixes the models,
+repetitions, quality gate, and resource metrics before generation. Reproduce each
+model block in a new output directory:
+
+```sh
+bun run benchmark --model gpt-5.4-mini --variants kamae,kamae-ladder \
+  --runs 3 --isolation macos --output benchmarks/results/ladder-mini
+bun run benchmark --model gpt-5.5 --variants kamae,kamae-ladder \
+  --runs 3 --isolation macos --output benchmarks/results/ladder-5.5
+bun run benchmarks/runner/ladder-analysis.ts benchmarks/results/ladder-summary.json \
+  benchmarks/results/ladder-mini benchmarks/results/ladder-5.5
+```
+
+Analysis requires finished real runs with matching frozen conditions and preserves
+failed builds. It reports per-run quality, usage, source sizes, cell medians, and
+within-model paired ratios. Resource medians use runs with both phase usage
+records; the measured count is reported separately from the quality denominator.
+Costs require known cached input and a conservative short-context bound, and are
+API-price equivalents rather than actual Codex charges. Physical lines, bytes,
+AST statements excluding blocks, and variable declarations are separate metrics.
+Test files (`.test.ts`/`.spec.ts`) are counted separately.
+
+The [12-build pilot report](experiments/ladder-2026-09-06/report.md) records the
+observed reductions and failures, separate exploratory boundary checks, and an
+artifact bundle. The cheap-model replacement gate was not met; smaller source
+did not establish quality equivalence.
 
 ## Generation and grading
 

@@ -82,6 +82,22 @@ describe("comparison protocol", () => {
 });
 
 describe("failure accounting", () => {
+  test("ladder conditions retain kamae and change only explicit guidance", () => {
+    expect(options(["--dry-run", "--variants", "kamae,kamae-ladder"]).variants).toEqual(["kamae", "kamae-ladder"]);
+    expect(order(2, ["kamae", "kamae-ladder"])).toEqual(["kamae-ladder", "kamae"]);
+    for (const invalid of ["kamae,kamae", "ladder", "", "baseline,"]) {
+      expect(() => options(["--dry-run", "--variants", invalid])).toThrow();
+    }
+    for (const phase of ["design", "implementation"] as const) {
+      expect(prompt(phase, "kamae-ladder").split("\n").filter(line => !line.startsWith("Also read and apply LADDER.md.")).join("\n"))
+        .toBe(prompt(phase, "kamae"));
+    }
+    const results: RunResult[] = [{ id: "01-kamae-ladder", variant: "kamae-ladder", repetition: 1,
+      status: "failed", stages: {}, integrity: null, designReview: "pending" }];
+    expect(report(results, false, 19)).toContain("| kamae-ladder | 0/1 | 0/19 |");
+    expect(report(results, false, 19)).not.toContain("| baseline |");
+  });
+
   test("reads completion and usage, but rejects failed and malformed streams", () => {
     expect(parseEvents([
       { type: "item.completed", item: { type: "command_execution" } },
@@ -212,5 +228,20 @@ console.log(JSON.stringify({type:'turn.completed',usage:{input_tokens:10,output_
       resolve(import.meta.dir, "../.."), join(temporary, "repeat"), 10000);
     expect(succeeded(repeated)).toBe(false);
     expect(await read(join(temporary, "repeat.stderr"))).toContain("EEXIST");
+  });
+
+  test("ladder is the only extra frozen material in the ladder arm", async () => {
+    const output = join(temporary, "ladder-dry");
+    const result = await command(["bun", "run", "benchmarks/runner/run.ts", "--dry-run", "--runs", "1",
+      "--variants", "kamae,kamae-ladder", "--codex-bin", "/no/model/needed", "--output", output],
+      resolve(import.meta.dir, "../.."), join(temporary, "ladder-dry-log"), 10000);
+    expect(succeeded(result)).toBe(true);
+    const control = await hashes(join(output, "01-kamae/workspace"));
+    const { "LADDER.md": ladderHash, ...treatment } = await hashes(join(output, "01-kamae-ladder/workspace"));
+    expect(treatment).toEqual(control);
+    expect(ladderHash).toBeDefined();
+    const manifest = JSON.parse(await read(join(output, "manifest.json")));
+    expect(manifest.guidance["LADDER.md"]).toBe(ladderHash);
+    expect(manifest.variants).toEqual(["kamae", "kamae-ladder"]);
   });
 });

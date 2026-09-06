@@ -1,8 +1,9 @@
-export type Variant = "baseline" | "kamae";
+export const variants = ["baseline", "kamae", "kamae-ladder"] as const;
+export type Variant = typeof variants[number];
 export type Phase = "design" | "implementation";
 
-export function order(repetition: number): Variant[] {
-  return repetition % 2 === 1 ? ["baseline", "kamae"] : ["kamae", "baseline"];
+export function order(repetition: number, selected: readonly Variant[] = ["baseline", "kamae"]): Variant[] {
+  return repetition % 2 === 1 ? [...selected] : [...selected].reverse();
 }
 
 export function prompt(phase: Phase, variant: Variant): string {
@@ -15,10 +16,13 @@ you are authorized to choose without asking for preferences or approval.
 Do not modify PRD.md, API.md, tsconfig.json, or supplied skill files.
 Write application code and tests under src/.
 `;
-  const guidance = variant === "kamae"
+  const guidance = variant !== "baseline"
     ? "Use the $kamae skill at .agents/skills/kamae/SKILL.md and its relevant guides. Only the supplied .agents/rules defaults apply; do not load user-global rules.\n"
     : "";
-  return shared + guidance + (phase === "design"
+  const ladder = variant === "kamae-ladder"
+    ? "Also read and apply LADDER.md. This adds a decision order to the supplied kamae guidance. Do not modify LADDER.md.\n"
+    : "";
+  return shared + guidance + ladder + (phase === "design"
     ? `First produce DESIGN.md; do not implement yet.
 Describe the design you propose for this product and explain your choices.
 You may edit only the dependencies field of package.json to select runtime

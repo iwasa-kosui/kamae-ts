@@ -1,0 +1,47 @@
+import { expect, test } from "bun:test";
+import { createExpenseService } from "../src/index";
+
+// Exploratory R1 probe: fixed after inspecting the first mini control, then
+// applied unchanged to every output. Not part of the preregistered 19 checks.
+for (const ownerEmail of ["a..b@example.com", ".alice@example.com", "alice.@example.com", "alice.smith+expenses@example.com"]) {
+  test(`email syntax: ${ownerEmail}`, async () => {
+    const writes: unknown[] = [], charges: unknown[] = [];
+    const service = createExpenseService({
+      repository: {
+        get: async (_id: string) => undefined,
+        save: async (_id: string, value: unknown) => { writes.push(value); },
+      },
+      payment: { charge: async (value: unknown) => { charges.push(value); return { kind: "paid" as const, receiptId: "receipt" }; } },
+      logger: { info: (_event: unknown) => {} },
+    });
+    const response = await service.handle({ op: "create", id: "expense-1", ownerId: "alice",
+      ownerEmail, description: "Train", amountCents: 100 });
+    const valid = ownerEmail === "alice.smith+expenses@example.com";
+    expect(response.status).toBe(valid ? 201 : 400);
+    expect(writes.length).toBe(valid ? 1 : 0);
+    expect(charges.length).toBe(0);
+  });
+}
+
+test("unconfirmed gateway outcome with a receipt must not mark paid", async () => {
+  const records = new Map<string, unknown>();
+  let writes = 0;
+  const service = createExpenseService({
+    repository: {
+      get: async (id: string) => records.get(id),
+      save: async (id: string, value: unknown) => { writes++; records.set(id, JSON.parse(JSON.stringify(value))); },
+    },
+    payment: { charge: async () => ({ kind: "pending", receiptId: "unconfirmed-receipt" }) },
+    logger: { info: (_event: unknown) => {} },
+  });
+  expect((await service.handle({ op: "create", id: "expense-1", ownerId: "alice", ownerEmail: "alice@example.com",
+    description: "Train", amountCents: 100 })).status).toBe(201);
+  expect((await service.handle({ op: "submit", id: "expense-1", actorId: "alice" })).status).toBe(200);
+  expect((await service.handle({ op: "approve", id: "expense-1", actorId: "bob" })).status).toBe(200);
+  const before = writes;
+  const response = await service.handle({ op: "pay", id: "expense-1" });
+  const retrieved = await service.handle({ op: "get", id: "expense-1" });
+  expect({ status: response.status, writes: writes - before, body: retrieved.body }).toMatchObject({
+    status: 500, writes: 0, body: { state: "approved" },
+  });
+});

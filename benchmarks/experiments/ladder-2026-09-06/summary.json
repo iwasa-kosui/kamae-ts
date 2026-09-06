@@ -1,0 +1,1250 @@
+{
+  "schemaVersion": 1,
+  "analysisSha256": "7e32824f0ba99a9ce87b59cf770d7d57b92073881167ec1fbd561a48e39b51c8",
+  "typescriptVersion": "5.9.2",
+  "prices": {
+    "gpt-5.4-mini": {
+      "input": 0.75,
+      "cached": 0.075,
+      "output": 4.5
+    },
+    "gpt-5.5": {
+      "input": 5,
+      "cached": 0.5,
+      "output": 30
+    }
+  },
+  "costBasis": "Standard API-equivalent USD, not actual Codex billing; verified 2026-09-06",
+  "sizeDefinition": "Physical lines excluding a phantom trailing line; UTF-8 bytes; TS statements excluding blocks, variable declarations separately; .test.ts/.spec.ts are tests",
+  "manifests": [
+    {
+      "model": "gpt-5.4-mini",
+      "case": {
+        "id": "expense-approval",
+        "name": "Expense approval service",
+        "expectedTests": 19
+      },
+      "createdAt": "2026-09-06T10:04:09.634Z",
+      "revision": "a65a117aad1d3831cc7b855bb3d9af377188a8e4",
+      "runner": {
+        "acceptance.test.ts": "edba4ed23f9896bfcaa7b40528fcb026062dcd3369dc2ba129920ecb30767541",
+        "context.ts": "6fdce3688f4dc015ae846f72962fb5196bb5aac8284b95fd3892e961e6d23582",
+        "dependencies.ts": "1253485a0e15ab90d573f9253f85d7c7c133320ddb89ae007715a4e2bb3d7c8a",
+        "files.ts": "8a3ac1cca69ef05b2da250a95ac63b90c8899f6f285655ec566c0ba1171dad54",
+        "fixtures/reference.ts.txt": "b6ac33b3e2446d63822d75380312f6082b7e1c96edec15f664733165d353de1b",
+        "process.ts": "96851d1c8436a4fcc77d2a95ad43c2bb4f2b560d4bc3b8ab97478074d32f83e3",
+        "protocol.ts": "d541c857c6c14ed07a886da4d7ab66d1bea64222b2a6bb0b04805544c2f7e8c0",
+        "regrade.ts": "4856fc598e83c9ed1d30d843db9f131ca9ee0af25ad0ff78d8347d54682408c5",
+        "run.ts": "ddf27025cb888adc3e9cc5c6d13c69e140ddd9237ac65e23eb6fa58f74a38dae",
+        "runner.test.ts": "00ef0c7fe68a4e218f57caa85577e47de4c1ca308080ea650144f7fb5dcba70a"
+      },
+      "inputs": {
+        "acceptance/contract.ts": "b3cddf6329ea9f82125be6d1e0bcca535b837338bed90ee23af676c87818ef38",
+        "acceptance/expense.test.ts": "7001c6bb2c59b26c6406e9c249fb18887394435e8c2ac3db3db88a555fecd050",
+        "case.json": "50664ef3967dd1dcc9e566b55db784872dfd7040179fe241dba3550ba045ff1b",
+        "prd.md": "b319d3db336595e3995a7cd07dcacf19198f3f0f3111d55e9c6a1935440ad15b",
+        "starter/API.md": "35e825cd71b78a24caec814ff96220cc5fafa794c34d417f5310386b87b69c39",
+        "starter/bun.lock": "9227f380d12bf7d976a63511fccb2ed527ce1bef22676ed38d23ba420356da60",
+        "starter/package.json": "bbcd9101b263e54570add38db2e5562e02bd477bcb7f4137baa5b04e1c3226c7",
+        "starter/tsconfig.json": "31a1aeb79deb59da78c7c3decbbd0b20c1778587643d22be03968b3dfd3833f8"
+      },
+      "skill": {
+        "SKILL.md": "0618096843d6d3d0ff024cb56bce586bd9b410542e24475144b5081b211571be",
+        "boundary-defense.md": "5ee2ba3000a8dcf197c508d13d244de419d87fce77fedbec1e86068dd1446d45",
+        "declarative-style.md": "73075feb91ba67f1b6c55b4d66f89b32828a1b385c2f359230b1d6b18ccae5a6",
+        "domain-modeling.md": "0abe7d972d992a59f5e07c480d2e85739c249358db4e8b25b0a2bbdcd748bc4a",
+        "error-handling.md": "2364722df17690ae9eff2316b3d96341a087db1345a6ff9f7af06027a38a6bd9",
+        "examples/sensitive-type-arktype.ts": "024c3636b0460f0b4072c2e0b508739ff13e1cbabe3e460f2f308b30eb023f63",
+        "examples/sensitive-type-valibot.ts": "c553fe4949e7401fc020301df96b85f887f47d1898497a2d884a02da3e98018b",
+        "examples/sensitive-type.ts": "ca8016e0874c67ab7033344192230d66e6d62ddff122bcb8eb0e925a255ea3ee",
+        "examples/taxi-request-arktype.ts": "4bf46a7ecde4cbd43947535a9871e372c144ae6fd7c333d20f19f48da471de09",
+        "examples/taxi-request-valibot.ts": "bac3a6ce80db6661a64017902a83cd178116f1725c5681b64444c02cae585077",
+        "examples/taxi-request.ts": "06e8fa1e67956f939be4a613ea348990c54cf029b11fdf037004e959a9705828",
+        "result-libraries/byethrow.md": "32e55d236fb8b72aa511c7361a00bc9e286d7b614d607eeb326be78c0766e650",
+        "result-libraries/fp-ts.md": "7930f8e378b5fcf2cdb3b1b1bab9220f2342e4103f91514414e78f57b3e896ef",
+        "result-libraries/neverthrow.md": "7547e9b2af5f2acf5ab3255b99bdeb556dec1ddfe3b29cc87c997153226d674d",
+        "result-libraries/option-t.md": "320cece370dd084c8899c9ab0b9b158eec9395f759d8eccb22bf05786ceca886",
+        "state-modeling.md": "271a3ddca2566725447add595b39d947aa575bb4333d656b3680b8a1d817bd89",
+        "test-data.md": "536551464f406d3a6766094f9dbd0c49c0fb0248040a30518120e68c009c7106",
+        "validation-libraries/arktype.md": "d6e4152e9262c01429d1e6ed704184334bb41747b76706436126652b2c28909c",
+        "validation-libraries/valibot.md": "a502f222214481bb1d89f11dc865965e416d6a088019f3ce8a4b62b2e8bda479",
+        "validation-libraries/zod.md": "ab53056c2bfc6750899f1077293b5be7a31392adc15eab6718135ec8d9139f44"
+      },
+      "rules": {
+        "README.md": "4a8fd2a30f6da896ff4f5c53fbcfc4b458371ec47f9d76e1bb8657c17383f916",
+        "defaults/result-library-detection.md": "4cc32005f4935686862fe76ef8c085b9b3146b89ca32318d2d576ced66e77b50",
+        "defaults/validation-library-detection.md": "c5a7b93ebc8e9a8648e917013e6a93c362a299f6d1aec7a1196271528ab35622"
+      },
+      "guidance": {
+        "LADDER.md": "fd2adfdd38023d035fd9fb6d6ee0ce8b8726012d272f068199b0345b97650691"
+      },
+      "effort": "medium",
+      "isolation": "macos",
+      "codexVersion": "codex-cli 0.150.1",
+      "order": [
+        "01-kamae",
+        "01-kamae-ladder",
+        "02-kamae-ladder",
+        "02-kamae",
+        "03-kamae",
+        "03-kamae-ladder"
+      ]
+    },
+    {
+      "model": "gpt-5.5",
+      "case": {
+        "id": "expense-approval",
+        "name": "Expense approval service",
+        "expectedTests": 19
+      },
+      "createdAt": "2026-09-06T10:04:26.273Z",
+      "revision": "a65a117aad1d3831cc7b855bb3d9af377188a8e4",
+      "runner": {
+        "acceptance.test.ts": "edba4ed23f9896bfcaa7b40528fcb026062dcd3369dc2ba129920ecb30767541",
+        "context.ts": "6fdce3688f4dc015ae846f72962fb5196bb5aac8284b95fd3892e961e6d23582",
+        "dependencies.ts": "1253485a0e15ab90d573f9253f85d7c7c133320ddb89ae007715a4e2bb3d7c8a",
+        "files.ts": "8a3ac1cca69ef05b2da250a95ac63b90c8899f6f285655ec566c0ba1171dad54",
+        "fixtures/reference.ts.txt": "b6ac33b3e2446d63822d75380312f6082b7e1c96edec15f664733165d353de1b",
+        "process.ts": "96851d1c8436a4fcc77d2a95ad43c2bb4f2b560d4bc3b8ab97478074d32f83e3",
+        "protocol.ts": "d541c857c6c14ed07a886da4d7ab66d1bea64222b2a6bb0b04805544c2f7e8c0",
+        "regrade.ts": "4856fc598e83c9ed1d30d843db9f131ca9ee0af25ad0ff78d8347d54682408c5",
+        "run.ts": "ddf27025cb888adc3e9cc5c6d13c69e140ddd9237ac65e23eb6fa58f74a38dae",
+        "runner.test.ts": "00ef0c7fe68a4e218f57caa85577e47de4c1ca308080ea650144f7fb5dcba70a"
+      },
+      "inputs": {
+        "acceptance/contract.ts": "b3cddf6329ea9f82125be6d1e0bcca535b837338bed90ee23af676c87818ef38",
+        "acceptance/expense.test.ts": "7001c6bb2c59b26c6406e9c249fb18887394435e8c2ac3db3db88a555fecd050",
+        "case.json": "50664ef3967dd1dcc9e566b55db784872dfd7040179fe241dba3550ba045ff1b",
+        "prd.md": "b319d3db336595e3995a7cd07dcacf19198f3f0f3111d55e9c6a1935440ad15b",
+        "starter/API.md": "35e825cd71b78a24caec814ff96220cc5fafa794c34d417f5310386b87b69c39",
+        "starter/bun.lock": "9227f380d12bf7d976a63511fccb2ed527ce1bef22676ed38d23ba420356da60",
+        "starter/package.json": "bbcd9101b263e54570add38db2e5562e02bd477bcb7f4137baa5b04e1c3226c7",
+        "starter/tsconfig.json": "31a1aeb79deb59da78c7c3decbbd0b20c1778587643d22be03968b3dfd3833f8"
+      },
+      "skill": {
+        "SKILL.md": "0618096843d6d3d0ff024cb56bce586bd9b410542e24475144b5081b211571be",
+        "boundary-defense.md": "5ee2ba3000a8dcf197c508d13d244de419d87fce77fedbec1e86068dd1446d45",
+        "declarative-style.md": "73075feb91ba67f1b6c55b4d66f89b32828a1b385c2f359230b1d6b18ccae5a6",
+        "domain-modeling.md": "0abe7d972d992a59f5e07c480d2e85739c249358db4e8b25b0a2bbdcd748bc4a",
+        "error-handling.md": "2364722df17690ae9eff2316b3d96341a087db1345a6ff9f7af06027a38a6bd9",
+        "examples/sensitive-type-arktype.ts": "024c3636b0460f0b4072c2e0b508739ff13e1cbabe3e460f2f308b30eb023f63",
+        "examples/sensitive-type-valibot.ts": "c553fe4949e7401fc020301df96b85f887f47d1898497a2d884a02da3e98018b",
+        "examples/sensitive-type.ts": "ca8016e0874c67ab7033344192230d66e6d62ddff122bcb8eb0e925a255ea3ee",
+        "examples/taxi-request-arktype.ts": "4bf46a7ecde4cbd43947535a9871e372c144ae6fd7c333d20f19f48da471de09",
+        "examples/taxi-request-valibot.ts": "bac3a6ce80db6661a64017902a83cd178116f1725c5681b64444c02cae585077",
+        "examples/taxi-request.ts": "06e8fa1e67956f939be4a613ea348990c54cf029b11fdf037004e959a9705828",
+        "result-libraries/byethrow.md": "32e55d236fb8b72aa511c7361a00bc9e286d7b614d607eeb326be78c0766e650",
+        "result-libraries/fp-ts.md": "7930f8e378b5fcf2cdb3b1b1bab9220f2342e4103f91514414e78f57b3e896ef",
+        "result-libraries/neverthrow.md": "7547e9b2af5f2acf5ab3255b99bdeb556dec1ddfe3b29cc87c997153226d674d",
+        "result-libraries/option-t.md": "320cece370dd084c8899c9ab0b9b158eec9395f759d8eccb22bf05786ceca886",
+        "state-modeling.md": "271a3ddca2566725447add595b39d947aa575bb4333d656b3680b8a1d817bd89",
+        "test-data.md": "536551464f406d3a6766094f9dbd0c49c0fb0248040a30518120e68c009c7106",
+        "validation-libraries/arktype.md": "d6e4152e9262c01429d1e6ed704184334bb41747b76706436126652b2c28909c",
+        "validation-libraries/valibot.md": "a502f222214481bb1d89f11dc865965e416d6a088019f3ce8a4b62b2e8bda479",
+        "validation-libraries/zod.md": "ab53056c2bfc6750899f1077293b5be7a31392adc15eab6718135ec8d9139f44"
+      },
+      "rules": {
+        "README.md": "4a8fd2a30f6da896ff4f5c53fbcfc4b458371ec47f9d76e1bb8657c17383f916",
+        "defaults/result-library-detection.md": "4cc32005f4935686862fe76ef8c085b9b3146b89ca32318d2d576ced66e77b50",
+        "defaults/validation-library-detection.md": "c5a7b93ebc8e9a8648e917013e6a93c362a299f6d1aec7a1196271528ab35622"
+      },
+      "guidance": {
+        "LADDER.md": "fd2adfdd38023d035fd9fb6d6ee0ce8b8726012d272f068199b0345b97650691"
+      },
+      "effort": "medium",
+      "isolation": "macos",
+      "codexVersion": "codex-cli 0.150.1",
+      "order": [
+        "01-kamae",
+        "01-kamae-ladder",
+        "02-kamae-ladder",
+        "02-kamae",
+        "03-kamae",
+        "03-kamae-ladder"
+      ]
+    }
+  ],
+  "rows": [
+    {
+      "model": "gpt-5.4-mini",
+      "id": "01-kamae",
+      "repetition": 1,
+      "variant": "kamae",
+      "status": "completed",
+      "error": null,
+      "successful": false,
+      "accepted": 18,
+      "expected": 19,
+      "typecheck": true,
+      "selfTests": true,
+      "dependencies": {},
+      "usage": {
+        "complete": true,
+        "input": 1126250,
+        "output": 40864,
+        "cached": 1071104,
+        "uncached": 55146,
+        "total": 1167114,
+        "apiEquivalentUsd": 0.30558029999999997,
+        "standardApiEquivalentUsd": 0.30558029999999997,
+        "apiEquivalentUpperUsd": 0.30558029999999997,
+        "shortContextBound": false,
+        "seconds": 636.318,
+        "toolCalls": 52
+      },
+      "size": {
+        "production": {
+          "files": 12,
+          "bytes": 31543,
+          "lines": 1068,
+          "statements": 422,
+          "variableDeclarations": 121
+        },
+        "tests": {
+          "files": 1,
+          "bytes": 12412,
+          "lines": 438,
+          "statements": 140,
+          "variableDeclarations": 52
+        }
+      },
+      "sourceHashes": {
+        "amount-cents.ts": "e7f1f7a0f613096eb43544496eeab601afac966212ae6ae17395ffc50f813fe3",
+        "brand.ts": "30767df0358eed74d2be8fd52d6fea1730a1bbde3f95821c3350f6823a35e85a",
+        "command.ts": "14a43b7052eb99359c6581cf878918e04d411efc4e099dd8614354068153c0b7",
+        "email-address.ts": "e1d72a47952eac918be9bc50f0ffe2b53fde1633d69e954c06783cc889e8bd01",
+        "employee-id.ts": "b7b612a9ab15932f1761e83f872651ee3478bfa85b07de477d27bd9ab287a6bd",
+        "expense-description.ts": "86f148b2cbca7add7f48428db700df515e8c6c49b5b59d9afe2aad31c5066766",
+        "expense-id.ts": "04f152aaa16093a6879bf973f29eb1fd260b12be6f67dd1e5021fe410cd759a5",
+        "expense.ts": "bc358915c976399ef9e0b469a6802e082836bc9ac556f55dce5b061bcbb5630e",
+        "index.ts": "caf03c2c28750849753f9e4ab89e6ff01c132e4dc976ad9cc0b66ed4c207855f",
+        "result.ts": "0564c3bc00be0de8f9a873a1c1dfb0d28beea5b270de40356b07f93b187f8949",
+        "service.test.ts": "8e21441c9cc7ea620d964ead384fbb1fc73b1b5ca872db549af497727abe09f8",
+        "service.ts": "aee53b3a66cf711464c6f1adcd47b82f7a6fb190e9370edd5ec26a54e370b3b9",
+        "validation.ts": "6b2a159d13eaa6fe813a9c1d220f9109c70407141f8c62572ba6b2ad9295d741"
+      },
+      "contextAudits": {
+        "design": {
+          "passed": true,
+          "inputMessages": 3,
+          "model": "gpt-5.4-mini",
+          "instructionsSha256": "a2e1143d471279aeb422045486fce7cb502fc05bc105ce31790c39a70ab97491",
+          "toolsSha256": "b55930a0dd3978698f0182e55ce1999c1552f09927452d970a0049184ee8530e"
+        },
+        "implementation": {
+          "passed": true,
+          "inputMessages": 3,
+          "model": "gpt-5.4-mini",
+          "instructionsSha256": "a2e1143d471279aeb422045486fce7cb502fc05bc105ce31790c39a70ab97491",
+          "toolsSha256": "b55930a0dd3978698f0182e55ce1999c1552f09927452d970a0049184ee8530e"
+        }
+      }
+    },
+    {
+      "model": "gpt-5.4-mini",
+      "id": "01-kamae-ladder",
+      "repetition": 1,
+      "variant": "kamae-ladder",
+      "status": "completed",
+      "error": null,
+      "successful": true,
+      "accepted": 19,
+      "expected": 19,
+      "typecheck": true,
+      "selfTests": true,
+      "dependencies": {},
+      "usage": {
+        "complete": true,
+        "input": 1142278,
+        "output": 34986,
+        "cached": 1065984,
+        "uncached": 76294,
+        "total": 1177264,
+        "apiEquivalentUsd": 0.2946063,
+        "standardApiEquivalentUsd": 0.2946063,
+        "apiEquivalentUpperUsd": 0.2946063,
+        "shortContextBound": false,
+        "seconds": 554.63,
+        "toolCalls": 51
+      },
+      "size": {
+        "production": {
+          "files": 4,
+          "bytes": 22155,
+          "lines": 761,
+          "statements": 306,
+          "variableDeclarations": 79
+        },
+        "tests": {
+          "files": 1,
+          "bytes": 9704,
+          "lines": 350,
+          "statements": 93,
+          "variableDeclarations": 33
+        }
+      },
+      "sourceHashes": {
+        "expense.ts": "6633fc39e4fa1f2397abb60e216aa23e010340fbe7adbc18711e0afb099771e1",
+        "index.ts": "caf03c2c28750849753f9e4ab89e6ff01c132e4dc976ad9cc0b66ed4c207855f",
+        "service.test.ts": "3afc77af18ac25c5a45a27e897e3415f567219b9bdc22ec8194368926e1c1656",
+        "service.ts": "a4fe3ce764c6580e94fb183bcee9306ed73c975708abd0326cd5e6e2195b79de",
+        "validation.ts": "f220c26d92d810401ef6d306d60b1253cad6567430e8e79a471c93d5fe5cb802"
+      },
+      "contextAudits": {
+        "design": {
+          "passed": true,
+          "inputMessages": 3,
+          "model": "gpt-5.4-mini",
+          "instructionsSha256": "a2e1143d471279aeb422045486fce7cb502fc05bc105ce31790c39a70ab97491",
+          "toolsSha256": "b55930a0dd3978698f0182e55ce1999c1552f09927452d970a0049184ee8530e"
+        },
+        "implementation": {
+          "passed": true,
+          "inputMessages": 3,
+          "model": "gpt-5.4-mini",
+          "instructionsSha256": "a2e1143d471279aeb422045486fce7cb502fc05bc105ce31790c39a70ab97491",
+          "toolsSha256": "b55930a0dd3978698f0182e55ce1999c1552f09927452d970a0049184ee8530e"
+        }
+      }
+    },
+    {
+      "model": "gpt-5.4-mini",
+      "id": "02-kamae-ladder",
+      "repetition": 2,
+      "variant": "kamae-ladder",
+      "status": "completed",
+      "error": null,
+      "successful": false,
+      "accepted": 18,
+      "expected": 19,
+      "typecheck": true,
+      "selfTests": true,
+      "dependencies": {},
+      "usage": {
+        "complete": true,
+        "input": 1294428,
+        "output": 38540,
+        "cached": 1224704,
+        "uncached": 69724,
+        "total": 1332968,
+        "apiEquivalentUsd": 0.31757579999999996,
+        "standardApiEquivalentUsd": 0.31757579999999996,
+        "apiEquivalentUpperUsd": 0.31757579999999996,
+        "shortContextBound": false,
+        "seconds": 621.302,
+        "toolCalls": 54
+      },
+      "size": {
+        "production": {
+          "files": 8,
+          "bytes": 20025,
+          "lines": 700,
+          "statements": 253,
+          "variableDeclarations": 78
+        },
+        "tests": {
+          "files": 1,
+          "bytes": 10718,
+          "lines": 408,
+          "statements": 117,
+          "variableDeclarations": 36
+        }
+      },
+      "sourceHashes": {
+        "domain/command.ts": "0e31449082db8f06723e511dd98123ff496dcf5c743a4bce7cf3b0da5ae088ef",
+        "domain/email-address.ts": "44baab6dd6df7df263f3b85958544ae75d8e13894ead55d0bbf8ba65a41dd5a9",
+        "domain/employee-id.ts": "b3361dffd50ceda40dc05784674d9c144ec9046595bb542d4e25e1feb22f1fe0",
+        "domain/errors.ts": "9907609e52056bd50e5c4ae516680a58a12ab3396309ba78c844f8b223f42c04",
+        "domain/expense-id.ts": "133a94d8a9d5cabdb852de62691e49f57cc4dcfa6e1db09c46c1a900724cf641",
+        "domain/expense.ts": "c1aeb82d35bd0060ec4a2fd16b145d44b9b88c9234fd162dde15520b042b8f9d",
+        "domain/response.ts": "71305fdc72d83e7daa271cc059634c4fe51f7cf946767f2b3ef2618b763d654c",
+        "index.test.ts": "b59e73b4df77d424bf821a06df64da9216ed5af8c3e87362c7f656b7af4cde5f",
+        "index.ts": "35923611485ae155581fe001cd0aa3e6c378d7f1d26c853005d528a168a29b27"
+      },
+      "contextAudits": {
+        "design": {
+          "passed": true,
+          "inputMessages": 3,
+          "model": "gpt-5.4-mini",
+          "instructionsSha256": "a2e1143d471279aeb422045486fce7cb502fc05bc105ce31790c39a70ab97491",
+          "toolsSha256": "b55930a0dd3978698f0182e55ce1999c1552f09927452d970a0049184ee8530e"
+        },
+        "implementation": {
+          "passed": true,
+          "inputMessages": 3,
+          "model": "gpt-5.4-mini",
+          "instructionsSha256": "a2e1143d471279aeb422045486fce7cb502fc05bc105ce31790c39a70ab97491",
+          "toolsSha256": "b55930a0dd3978698f0182e55ce1999c1552f09927452d970a0049184ee8530e"
+        }
+      }
+    },
+    {
+      "model": "gpt-5.4-mini",
+      "id": "02-kamae",
+      "repetition": 2,
+      "variant": "kamae",
+      "status": "completed",
+      "error": null,
+      "successful": false,
+      "accepted": 18,
+      "expected": 19,
+      "typecheck": true,
+      "selfTests": true,
+      "dependencies": {},
+      "usage": {
+        "complete": true,
+        "input": 1075746,
+        "output": 38530,
+        "cached": 1018880,
+        "uncached": 56866,
+        "total": 1114276,
+        "apiEquivalentUsd": 0.2924505,
+        "standardApiEquivalentUsd": 0.2924505,
+        "apiEquivalentUpperUsd": 0.2924505,
+        "shortContextBound": false,
+        "seconds": 606.273,
+        "toolCalls": 54
+      },
+      "size": {
+        "production": {
+          "files": 9,
+          "bytes": 24747,
+          "lines": 873,
+          "statements": 317,
+          "variableDeclarations": 103
+        },
+        "tests": {
+          "files": 1,
+          "bytes": 10187,
+          "lines": 364,
+          "statements": 91,
+          "variableDeclarations": 33
+        }
+      },
+      "sourceHashes": {
+        "commands.ts": "f7656484e8f50379d2835963caddf73d1bd7c48529cbffebe681cb2f2096a1cb",
+        "employee-id.ts": "6aa213d2efca56caea73e74575d8398976fd5f6a49697458d52d727b2ebb1b39",
+        "expense-id.ts": "b863db3cf66dd61e53657f2297903e8475713843d366f069a36af2fcb1b3c185",
+        "expense.ts": "191349b10ca3f89ada223ae6020745b1b51b1f027226569250cdd0261ca70745",
+        "index.ts": "450bcebaedc485acaaaf3ad2c86af4c96bc902f60ade69c404261e654a19c5b0",
+        "record.ts": "075f5dea36c3f87964f0c8d57ff1159cd89b4fecb10c638bc586081492bae3d2",
+        "result.ts": "df82ea4dcf0c9baaa1d5668da0a2ab0d7e2ece654f2eb8b4f4013527b031b7df",
+        "service.test.ts": "ff72af59105266a8a9c42915fc450d0b50ea2da512606425852b50da7bc5bb67",
+        "service.ts": "04ec787fdceefe10b135f111ada193a85307d878480daea36d50d8c9591809d1",
+        "validation.ts": "e506a67270fe655e113db68e41dea5ff5c9d3f7c7abb22b8015d384c932a661f"
+      },
+      "contextAudits": {
+        "design": {
+          "passed": true,
+          "inputMessages": 3,
+          "model": "gpt-5.4-mini",
+          "instructionsSha256": "a2e1143d471279aeb422045486fce7cb502fc05bc105ce31790c39a70ab97491",
+          "toolsSha256": "b55930a0dd3978698f0182e55ce1999c1552f09927452d970a0049184ee8530e"
+        },
+        "implementation": {
+          "passed": true,
+          "inputMessages": 3,
+          "model": "gpt-5.4-mini",
+          "instructionsSha256": "a2e1143d471279aeb422045486fce7cb502fc05bc105ce31790c39a70ab97491",
+          "toolsSha256": "b55930a0dd3978698f0182e55ce1999c1552f09927452d970a0049184ee8530e"
+        }
+      }
+    },
+    {
+      "model": "gpt-5.4-mini",
+      "id": "03-kamae",
+      "repetition": 3,
+      "variant": "kamae",
+      "status": "completed",
+      "error": null,
+      "successful": false,
+      "accepted": 18,
+      "expected": 19,
+      "typecheck": true,
+      "selfTests": true,
+      "dependencies": {},
+      "usage": {
+        "complete": true,
+        "input": 1069183,
+        "output": 38306,
+        "cached": 1008128,
+        "uncached": 61055,
+        "total": 1107489,
+        "apiEquivalentUsd": 0.29377784999999995,
+        "standardApiEquivalentUsd": 0.29377784999999995,
+        "apiEquivalentUpperUsd": 0.29377784999999995,
+        "shortContextBound": false,
+        "seconds": 596.9100000000001,
+        "toolCalls": 56
+      },
+      "size": {
+        "production": {
+          "files": 11,
+          "bytes": 23255,
+          "lines": 883,
+          "statements": 276,
+          "variableDeclarations": 90
+        },
+        "tests": {
+          "files": 1,
+          "bytes": 9509,
+          "lines": 376,
+          "statements": 83,
+          "variableDeclarations": 32
+        }
+      },
+      "sourceHashes": {
+        "assert-never.ts": "b73927e1929ba2f99903259f8bbb02970f0c2369bc77d5e3c4857b64eaf7cce8",
+        "command.ts": "b92cd04d3a66dc59ff1a9301ed46a2a779668ad524438ddd3a4f1c10593da1b1",
+        "email-address.ts": "11dfa5558768849f41cbeba1b44c80dd2e960c561e05c6d268222814d5bae2ba",
+        "employee-id.ts": "9c5b9725bcda007db37416d3c258f629cbc5bdff44c7b626ac1bd07672004fea",
+        "expense-id.ts": "252defa7c9c9277e40afca5fbb5a1f8250cf063f3fc17ebb7710e124f5be2257",
+        "expense-service.test.ts": "7f6912912b25f5b683f1eebee862c4dfe529d2310745556a3707ae175dd91c2b",
+        "expense-service.ts": "08cb5063cad6884747584066786e130a4544c04089d55fe5d80b0a203a9bf1dd",
+        "expense.ts": "0893454b3115f6e17bbb5323c532084c5e1071d507e462b8a80b4998643abfaa",
+        "index.ts": "212761dde220075a2f3ce6b916f1b6c4eb9c3f764b6780d2b9dfb6147ecc79ce",
+        "logger-event.ts": "11ca214c0250de789bdd520bfd8dd6537142c68e95471e9d3484102c6f4ba730",
+        "public-expense.ts": "c0696c81873436b5dc6b229edea5f27d1482296b81a80b058cfe23145494753f",
+        "receipt-id.ts": "b8470c679e8720fe1a2fddb6219fe10bd43c8236c0ee7e91c9000c8a8c1b202d"
+      },
+      "contextAudits": {
+        "design": {
+          "passed": true,
+          "inputMessages": 3,
+          "model": "gpt-5.4-mini",
+          "instructionsSha256": "a2e1143d471279aeb422045486fce7cb502fc05bc105ce31790c39a70ab97491",
+          "toolsSha256": "b55930a0dd3978698f0182e55ce1999c1552f09927452d970a0049184ee8530e"
+        },
+        "implementation": {
+          "passed": true,
+          "inputMessages": 3,
+          "model": "gpt-5.4-mini",
+          "instructionsSha256": "a2e1143d471279aeb422045486fce7cb502fc05bc105ce31790c39a70ab97491",
+          "toolsSha256": "b55930a0dd3978698f0182e55ce1999c1552f09927452d970a0049184ee8530e"
+        }
+      }
+    },
+    {
+      "model": "gpt-5.4-mini",
+      "id": "03-kamae-ladder",
+      "repetition": 3,
+      "variant": "kamae-ladder",
+      "status": "completed",
+      "error": null,
+      "successful": false,
+      "accepted": 18,
+      "expected": 19,
+      "typecheck": true,
+      "selfTests": true,
+      "dependencies": {},
+      "usage": {
+        "complete": true,
+        "input": 1130759,
+        "output": 34781,
+        "cached": 1056768,
+        "uncached": 73991,
+        "total": 1165540,
+        "apiEquivalentUsd": 0.29126535,
+        "standardApiEquivalentUsd": 0.29126535,
+        "apiEquivalentUpperUsd": 0.29126535,
+        "shortContextBound": false,
+        "seconds": 561.455,
+        "toolCalls": 59
+      },
+      "size": {
+        "production": {
+          "files": 4,
+          "bytes": 20849,
+          "lines": 826,
+          "statements": 303,
+          "variableDeclarations": 53
+        },
+        "tests": {
+          "files": 1,
+          "bytes": 11770,
+          "lines": 452,
+          "statements": 113,
+          "variableDeclarations": 44
+        }
+      },
+      "sourceHashes": {
+        "command.ts": "8f6a051632b2d1f544dd7b48ec1feeeee8bb1647abbe930f2ee1c716ad53418f",
+        "expense-service.test.ts": "3fb2bd31736440b9c283a130f6357ba8ea109381a552fa59f61407928523eacd",
+        "expense.ts": "81ffb120d3b0c090ef6de20577d7712589064720087bd9b52febf701fc0cce79",
+        "index.ts": "ac01aff153e40d73769b86fe50f0ee56ca9bb6a79461d9099eb60b58208eaf66",
+        "service.ts": "b6fa255ce40e61c0811119af79ed8d4d533c1553f995bfa2cf7c3e68e66c6480"
+      },
+      "contextAudits": {
+        "design": {
+          "passed": true,
+          "inputMessages": 3,
+          "model": "gpt-5.4-mini",
+          "instructionsSha256": "a2e1143d471279aeb422045486fce7cb502fc05bc105ce31790c39a70ab97491",
+          "toolsSha256": "b55930a0dd3978698f0182e55ce1999c1552f09927452d970a0049184ee8530e"
+        },
+        "implementation": {
+          "passed": true,
+          "inputMessages": 3,
+          "model": "gpt-5.4-mini",
+          "instructionsSha256": "a2e1143d471279aeb422045486fce7cb502fc05bc105ce31790c39a70ab97491",
+          "toolsSha256": "b55930a0dd3978698f0182e55ce1999c1552f09927452d970a0049184ee8530e"
+        }
+      }
+    },
+    {
+      "model": "gpt-5.5",
+      "id": "01-kamae",
+      "repetition": 1,
+      "variant": "kamae",
+      "status": "completed",
+      "error": null,
+      "successful": true,
+      "accepted": 19,
+      "expected": 19,
+      "typecheck": true,
+      "selfTests": true,
+      "dependencies": {
+        "neverthrow": "8.2.0",
+        "zod": "4.1.5"
+      },
+      "usage": {
+        "complete": true,
+        "input": 942823,
+        "output": 24369,
+        "cached": 854016,
+        "uncached": 88807,
+        "total": 967192,
+        "apiEquivalentUsd": null,
+        "standardApiEquivalentUsd": 1.602113,
+        "apiEquivalentUpperUsd": 2.838691,
+        "shortContextBound": false,
+        "seconds": 512.154,
+        "toolCalls": 60
+      },
+      "size": {
+        "production": {
+          "files": 28,
+          "bytes": 32165,
+          "lines": 1054,
+          "statements": 336,
+          "variableDeclarations": 77
+        },
+        "tests": {
+          "files": 1,
+          "bytes": 12277,
+          "lines": 420,
+          "statements": 133,
+          "variableDeclarations": 48
+        }
+      },
+      "sourceHashes": {
+        "api/adapters.ts": "22b40b8e1b19e64b736e29be7b2dd7cb42efc2e7e3af9ad6783ab2bdd3327ae7",
+        "api/commands.ts": "8795e559c4e39d696de2a5ec622d40331f0e55aaf90024394c966dabc7cd7ddd",
+        "api/dependencies.ts": "8f354e275964295ef9600572d6344b26b4b1e025c6e0433d3aaa6133e59e4b56",
+        "api/handle.ts": "fd96d283f7725e30e12d1364da7702b11bdef25b6287b2197ed5f67ab7b5669f",
+        "api/responses.ts": "d5808908021362ab4fe0ec38e7c84349cbd3a169bd070c77001b230203173498",
+        "api/storage-expense.ts": "8789917f9fee8617279fc633e7f1aa11eef4c57a569bbba097ac625b4da1cdde",
+        "application/approve-expense.ts": "faeb154e32be2ec3beb1992c2108af08fa3e8e45faa06e5940d9463aafde7461",
+        "application/create-expense.ts": "583a6cf767c5c07e9d3395d23128245366a8699b1164b008e4114bcf8d22951b",
+        "application/get-expense.ts": "37e0c8b656f541bd896ae7fbd1994009d7e23f336450d1aaac9e60f91e12a0c9",
+        "application/pay-expense.ts": "351085b53abf03c0311703404179a0667201231f36b6d8a4028b655f3d2abdcd",
+        "application/reject-expense.ts": "7a04e794320b24358463bf360d650b4170000046d8c3397cbb89b02595a24191",
+        "application/submit-expense.ts": "b175426b703df514a567faebe7f6e6d5990d5e843be806cbbea013849bf6af77",
+        "domain/expense/amount-cents.ts": "79179e1ab52705775e9655476818041ec637c3980810b7de0b22363507b2f32c",
+        "domain/expense/description.ts": "34b7b5b6e42d1b6e6de39f1765c5b8c556b573ad9ed652b43d05e838ab6ec098",
+        "domain/expense/employee-id.ts": "3592f03a10cab759de9ac93cecffe362ed6ecfafd24b635debcb42047d431046",
+        "domain/expense/expense-by-id-resolver.ts": "2abc2a2ec405e0af629e89c49cd9dead59a3c01565e6e757201794e4baf8b614",
+        "domain/expense/expense-id.ts": "36526f0ab9f25a00c76e4cbd8d0c0ab26b96d25948da5892f035b82a824917e0",
+        "domain/expense/expense-logger.ts": "1f9c6535faf63fc700e66626a5a0d9a3f65b843e12f8c6d43854931b5d9c9329",
+        "domain/expense/expense-payment-gateway.ts": "0052fd093492f1d6ee857029d16ff696f50139bb85c2d848accb3c072e28e9ba",
+        "domain/expense/expense-store.ts": "6b0104e3e7999ac9b72e6bc8dc569ea04f5782f6be5582ae20007641279f4194",
+        "domain/expense/expense.ts": "746d96cf8e9f2e97ce07d47d96cbb11d069e67fa1285fc0755e70525be348a12",
+        "domain/expense/owner-email.ts": "2c7783d7ed384cb9784cd59fa73c5a1fef9241aa1d5d51f7c54d2c232c4dc960",
+        "domain/expense/receipt-id.ts": "1f3d779b699a8b0cacf5a88f360d9a211a4cbb00c35587e31052e8bcebe1d77c",
+        "domain/expense/rejection-reason.ts": "0ad2a798a3504688ebdf4eb1e68c26f6ea0442f007563a7e542802741654be3c",
+        "index.test.ts": "d23307b027759ddd6fff7b4002785fb4299fc735d96f6130cf34fb970bdf52ad",
+        "index.ts": "6703b4774e3f173b11919f495562d759494e5d7157dc119c8845f280103466da",
+        "shared/assert-never.ts": "b73927e1929ba2f99903259f8bbb02970f0c2369bc77d5e3c4857b64eaf7cce8",
+        "shared/sensitive.ts": "cec9d02640ef8972b8f1c325d254ed59074cde70ee17b2637cbe4b4e10c984f3",
+        "shared/validation.ts": "3162a2e17d73d08b340eb9b95dace2a8375599017b14ac5b6a7829cdceed9c43"
+      },
+      "contextAudits": {
+        "design": {
+          "passed": true,
+          "inputMessages": 3,
+          "model": "gpt-5.5",
+          "instructionsSha256": "c2a980bc28af132eb89e0b4c68ae884043faae83a1afd3fd4889f7e8a1ada7b0",
+          "toolsSha256": "b55930a0dd3978698f0182e55ce1999c1552f09927452d970a0049184ee8530e"
+        },
+        "implementation": {
+          "passed": true,
+          "inputMessages": 3,
+          "model": "gpt-5.5",
+          "instructionsSha256": "c2a980bc28af132eb89e0b4c68ae884043faae83a1afd3fd4889f7e8a1ada7b0",
+          "toolsSha256": "b55930a0dd3978698f0182e55ce1999c1552f09927452d970a0049184ee8530e"
+        }
+      }
+    },
+    {
+      "model": "gpt-5.5",
+      "id": "01-kamae-ladder",
+      "repetition": 1,
+      "variant": "kamae-ladder",
+      "status": "completed",
+      "error": null,
+      "successful": true,
+      "accepted": 19,
+      "expected": 19,
+      "typecheck": true,
+      "selfTests": true,
+      "dependencies": {
+        "neverthrow": "8.2.0",
+        "zod": "3.25.76"
+      },
+      "usage": {
+        "complete": true,
+        "input": 879098,
+        "output": 24123,
+        "cached": 794112,
+        "uncached": 84986,
+        "total": 903221,
+        "apiEquivalentUsd": null,
+        "standardApiEquivalentUsd": 1.545676,
+        "apiEquivalentUpperUsd": 2.729507,
+        "shortContextBound": false,
+        "seconds": 501.284,
+        "toolCalls": 68
+      },
+      "size": {
+        "production": {
+          "files": 10,
+          "bytes": 25138,
+          "lines": 913,
+          "statements": 247,
+          "variableDeclarations": 82
+        },
+        "tests": {
+          "files": 1,
+          "bytes": 10333,
+          "lines": 361,
+          "statements": 114,
+          "variableDeclarations": 32
+        }
+      },
+      "sourceHashes": {
+        "application/commands.ts": "70eae4a583a5ed511072acf9aa0256015acb9005fda35e46ee7fbdae2a3471b9",
+        "application/use-cases.ts": "88079c6cb5ce75edf491a20f5e74f43f32e29bac4a8eb19fdb13d38359755c50",
+        "domain/expense-resolver.ts": "97b70746d76ec45c64d0ab3cbfc5b62cb4f0503a536a8ea7fc540d6065f7ec07",
+        "domain/expense-store.ts": "6b0104e3e7999ac9b72e6bc8dc569ea04f5782f6be5582ae20007641279f4194",
+        "domain/expense.ts": "74654a4f34d6b1a00a8a9d9e386398c03bda7c5d0e255c0a8ca80322ba8f5153",
+        "domain/value-objects.ts": "9475126458bb5c4e004ea8d9ae33e0a364e90cfdb783b838575fb7eb4a0e3184",
+        "expense-service.test.ts": "4125182d807d14b1783deca50b0a3c77883bbd4b45b8072bba6a8a60dfdbc918",
+        "index.ts": "cdb763479cc47342b0a48a7b41b140051d54f082120c614cc2e7f39d656ea27c",
+        "infrastructure/payment-codec.ts": "5f8b090f32f027639a8d4887d83ce803b140f2728ec5ac281f6e7806ca68cfe4",
+        "infrastructure/storage-codec.ts": "f85ec75b9ec76463817bcbe48a280c46d8fafe28c7b3617a2ab32184f2e13e81",
+        "result.ts": "4335ee1b654bb41396cb2cc5103e88ec2d1a784649b99237980f3a54cb451dcf"
+      },
+      "contextAudits": {
+        "design": {
+          "passed": true,
+          "inputMessages": 3,
+          "model": "gpt-5.5",
+          "instructionsSha256": "c2a980bc28af132eb89e0b4c68ae884043faae83a1afd3fd4889f7e8a1ada7b0",
+          "toolsSha256": "b55930a0dd3978698f0182e55ce1999c1552f09927452d970a0049184ee8530e"
+        },
+        "implementation": {
+          "passed": true,
+          "inputMessages": 3,
+          "model": "gpt-5.5",
+          "instructionsSha256": "c2a980bc28af132eb89e0b4c68ae884043faae83a1afd3fd4889f7e8a1ada7b0",
+          "toolsSha256": "b55930a0dd3978698f0182e55ce1999c1552f09927452d970a0049184ee8530e"
+        }
+      }
+    },
+    {
+      "model": "gpt-5.5",
+      "id": "02-kamae-ladder",
+      "repetition": 2,
+      "variant": "kamae-ladder",
+      "status": "completed",
+      "error": null,
+      "successful": true,
+      "accepted": 19,
+      "expected": 19,
+      "typecheck": true,
+      "selfTests": true,
+      "dependencies": {
+        "zod": "4.1.5"
+      },
+      "usage": {
+        "complete": true,
+        "input": 657657,
+        "output": 20830,
+        "cached": 556544,
+        "uncached": 101113,
+        "total": 678487,
+        "apiEquivalentUsd": null,
+        "standardApiEquivalentUsd": 1.408737,
+        "apiEquivalentUpperUsd": 2.505024,
+        "shortContextBound": false,
+        "seconds": 433.188,
+        "toolCalls": 58
+      },
+      "size": {
+        "production": {
+          "files": 14,
+          "bytes": 20473,
+          "lines": 623,
+          "statements": 242,
+          "variableDeclarations": 68
+        },
+        "tests": {
+          "files": 1,
+          "bytes": 12065,
+          "lines": 327,
+          "statements": 155,
+          "variableDeclarations": 69
+        }
+      },
+      "sourceHashes": {
+        "api/commands.ts": "76901b1f97a14de29cea67f8545ec54dafefce2037ca5153a5940780b34a76fe",
+        "api/dependencies.ts": "acf255960175507d3641be639ccdc853d0dc37c4f0e2e3636be73c7f255a2553",
+        "api/response.ts": "9902147c2c2379c98728c8bf1e7b48f8010367ac6413f3c21d2c91ddeca4c3b6",
+        "domain/amount-cents.ts": "c280835131d9f60b026f91b699594c507e07c615e0c37fdb772868ba0017eaba",
+        "domain/description.ts": "1f3e86eb7801d576f6e4c5176b20096685db9a477654d76a56381bdd3c95b20b",
+        "domain/employee-id.ts": "ae118c234e6967fc3c6055c4d91369e1dd4166a53df028ae4926bbfc55bf1cbc",
+        "domain/expense-id.ts": "3ed6b534632340eec3f5397e58532862dbf92361e3335b531ca7ce7fd8111c5d",
+        "domain/expense.ts": "9c9f86cdf7c8c485d7eab474c1e8ee34acbf5f83a627cd464a3903a58336c57c",
+        "domain/owner-email.ts": "130c4542df734deca2f962961f660f07d10d9d226f4f2e5f2efbc4d4c260426a",
+        "domain/receipt-id.ts": "071e41128bc5e0918c2df654c799046b84a60e9b55ef290abe170e9f167f9cea",
+        "domain/rejection-reason.ts": "aed6653373a6322dabd6d0e9cadd4feb5c0dc051e9387e5a5232e05da9c0f0bd",
+        "domain/sensitive.ts": "4cee928409176bf2ce03a4b172ceb6a7202ff486a931ddc48d4d3b9190ec792e",
+        "expense-service.test.ts": "9d603d1ebe1bda605a468a66e7aa0e5ae13e4c78c8fa39628e18fb0feb1851e5",
+        "index.ts": "12f6837677ea22121ba0ff65a8ed105a26eefb612c84c7f3f8a31cbb56b51f18",
+        "storage/stored-expense.ts": "d8587a0f1fc48477c07b3349badb8a052ec69c6baaa92ba2e1f526ec23a5945c"
+      },
+      "contextAudits": {
+        "design": {
+          "passed": true,
+          "inputMessages": 3,
+          "model": "gpt-5.5",
+          "instructionsSha256": "c2a980bc28af132eb89e0b4c68ae884043faae83a1afd3fd4889f7e8a1ada7b0",
+          "toolsSha256": "b55930a0dd3978698f0182e55ce1999c1552f09927452d970a0049184ee8530e"
+        },
+        "implementation": {
+          "passed": true,
+          "inputMessages": 3,
+          "model": "gpt-5.5",
+          "instructionsSha256": "c2a980bc28af132eb89e0b4c68ae884043faae83a1afd3fd4889f7e8a1ada7b0",
+          "toolsSha256": "b55930a0dd3978698f0182e55ce1999c1552f09927452d970a0049184ee8530e"
+        }
+      }
+    },
+    {
+      "model": "gpt-5.5",
+      "id": "02-kamae",
+      "repetition": 2,
+      "variant": "kamae",
+      "status": "completed",
+      "error": null,
+      "successful": true,
+      "accepted": 19,
+      "expected": 19,
+      "typecheck": true,
+      "selfTests": true,
+      "dependencies": {
+        "neverthrow": "8.2.0",
+        "zod": "4.1.5"
+      },
+      "usage": {
+        "complete": true,
+        "input": 844872,
+        "output": 21788,
+        "cached": 764416,
+        "uncached": 80456,
+        "total": 866660,
+        "apiEquivalentUsd": null,
+        "standardApiEquivalentUsd": 1.438128,
+        "apiEquivalentUpperUsd": 2.549436,
+        "shortContextBound": false,
+        "seconds": 463.56399999999996,
+        "toolCalls": 60
+      },
+      "size": {
+        "production": {
+          "files": 27,
+          "bytes": 31898,
+          "lines": 963,
+          "statements": 320,
+          "variableDeclarations": 72
+        },
+        "tests": {
+          "files": 1,
+          "bytes": 9082,
+          "lines": 291,
+          "statements": 105,
+          "variableDeclarations": 44
+        }
+      },
+      "sourceHashes": {
+        "api/command.ts": "e6b6a3eb792ddd692e8f37d591016d5ffea85b7df4fe05c9d016e00dc0ef1aba",
+        "api/handle-command.ts": "5a953c60b9e21d8550e309e8d1500f52d4293c3adeb775a26f329bde66fdd88d",
+        "api/response.ts": "a9a275fabb61b7f72037d930ce52af441415021045d0d3a657065519fa36b78f",
+        "domain/amount-cents.ts": "8aabbf9851cea38f4c221dc7d8117109f3f0db14faa42220a985f622b8a976ab",
+        "domain/diagnostic-logger.ts": "a02d7d703287f8b0188a59656a28c560071c14210707902e306c3a241955f097",
+        "domain/employee-id.ts": "f25cb22c96e16c5ac9826b1de09b7cc56fe433ae96723b6a2ac05d4d4109a810",
+        "domain/expense-by-id-resolver.ts": "2abc2a2ec405e0af629e89c49cd9dead59a3c01565e6e757201794e4baf8b614",
+        "domain/expense-description.ts": "b81dc2505c1b5538bb5d098c35e49d4f2fb928e65ea030ef9840d345db4e9733",
+        "domain/expense-id.ts": "aafe2efdb4aef7bd57fde5581af4ad405a59c3f784872dbeb1466f38565354ba",
+        "domain/expense-store.ts": "6b0104e3e7999ac9b72e6bc8dc569ea04f5782f6be5582ae20007641279f4194",
+        "domain/expense.ts": "d7eeee9e8d3584d4884dec102bfcc89f7ed2481edda1c1de7f519542b7c4ab9f",
+        "domain/owner-email.ts": "d4d300409edf622dbf0ffbfdbb24eaca4a9e5008b5f78e4d45ff39b75120bab7",
+        "domain/payment-gateway.ts": "db134c5d995c6a6b4bd375c7863cc91d3443e00bb2410a59255bb7fafc9c3f48",
+        "domain/receipt-id.ts": "775246941dc72a0e282d6fecf0cf44eeff32391af03c55debe4b54126536f49d",
+        "domain/rejection-reason.ts": "f6c8ed882033eaf436b8bbfebfad97323917586a205e6327a908961aa0ade589",
+        "domain/sensitive.ts": "d016a2ccf05fa32f0193d92475459e4cc429cee362cd122f45f24640ef0ec3e3",
+        "expense-service.test.ts": "5efeca053606ca468231ef9891b850fc4b3f45eb7dfb4b7923ce99321c981655",
+        "index.ts": "20251a3670a22f2f09da698fb0632920dcc52f700fcaa1c54f9ead6c4f9afd6f",
+        "storage/expense-record-mapper.ts": "11a6f7a73d4ca091b7bfdd1598a9ac8964a1e2de3f675a2140d0bd2c970404f7",
+        "storage/stored-expense.ts": "7a9657eb3ce05420fd49e8c023e3cc2b62b46da23c4681ee87c7dbe9a5035de8",
+        "support/assert-never.ts": "8b36a8f25aff5cf5d0e25a6cde0d9e7370496d787f383ff0e62cba253c99924c",
+        "support/schema-result.ts": "57de61f7dfc109db2ee4f3efa6d519bde0b21748c63b9c8ca487cc0e9f2ed384",
+        "use-cases/approve-expense.ts": "aa2af27312081eafd02ace622e3cf10654c25f142527eb0a6c046961f0e1d1dd",
+        "use-cases/create-expense.ts": "a8366eeb684b53c84d076c34bc84625a1c0340d2b00cb63009d069ddd591995f",
+        "use-cases/get-expense.ts": "51f69f78f11b8d56d4f62ab106a72666d047c02baadda20c798e457f1f8aad63",
+        "use-cases/pay-expense.ts": "34c8db47d1da3304e75c27cdc6a32653d989f2b62c162cf760826f094a8a7140",
+        "use-cases/reject-expense.ts": "8beb2ccc4f64ca5027e611f81c4e886c793590742e04e60d78fe777ec893f974",
+        "use-cases/submit-expense.ts": "c420ff906dfc2c85895b9e028e6bcced8902ae71bab0c9edb7fd162ac1e47347"
+      },
+      "contextAudits": {
+        "design": {
+          "passed": true,
+          "inputMessages": 3,
+          "model": "gpt-5.5",
+          "instructionsSha256": "c2a980bc28af132eb89e0b4c68ae884043faae83a1afd3fd4889f7e8a1ada7b0",
+          "toolsSha256": "b55930a0dd3978698f0182e55ce1999c1552f09927452d970a0049184ee8530e"
+        },
+        "implementation": {
+          "passed": true,
+          "inputMessages": 3,
+          "model": "gpt-5.5",
+          "instructionsSha256": "c2a980bc28af132eb89e0b4c68ae884043faae83a1afd3fd4889f7e8a1ada7b0",
+          "toolsSha256": "b55930a0dd3978698f0182e55ce1999c1552f09927452d970a0049184ee8530e"
+        }
+      }
+    },
+    {
+      "model": "gpt-5.5",
+      "id": "03-kamae",
+      "repetition": 3,
+      "variant": "kamae",
+      "status": "completed",
+      "error": null,
+      "successful": true,
+      "accepted": 19,
+      "expected": 19,
+      "typecheck": true,
+      "selfTests": true,
+      "dependencies": {
+        "neverthrow": "8.2.0",
+        "zod": "4.1.5"
+      },
+      "usage": {
+        "complete": true,
+        "input": 712606,
+        "output": 22766,
+        "cached": 636928,
+        "uncached": 75678,
+        "total": 735372,
+        "apiEquivalentUsd": null,
+        "standardApiEquivalentUsd": 1.379834,
+        "apiEquivalentUpperUsd": 2.418178,
+        "shortContextBound": false,
+        "seconds": 481.024,
+        "toolCalls": 60
+      },
+      "size": {
+        "production": {
+          "files": 29,
+          "bytes": 30856,
+          "lines": 1050,
+          "statements": 333,
+          "variableDeclarations": 81
+        },
+        "tests": {
+          "files": 1,
+          "bytes": 10398,
+          "lines": 359,
+          "statements": 114,
+          "variableDeclarations": 39
+        }
+      },
+      "sourceHashes": {
+        "application/approve-expense.ts": "8e16622c79bcc9340d981e4b79579166c910d1bc1f7b5c8aa5a10a1152cf2e4b",
+        "application/create-expense.ts": "eaa5e5cee2222078d46abf456a81f5600bedc651710053c794a0d81b4b5e86d7",
+        "application/get-expense.ts": "098038df22c7d420ebebe5231793c355f1cfcc07afcd4d691e6dbe277eaeba0d",
+        "application/logger.ts": "690e40389326ca4db432b1e51f1ffa28833fbed485698614dbe87b4d72009f3c",
+        "application/pay-expense.ts": "05bb3869a1bdc42ba1551c658684944bd452b0168b0d8ae355c622ffd0e98dc8",
+        "application/payment-charger.ts": "9b7a519a092248b96524c6c1c55b4d24bb395d9775d8c0195817cbd73ce4227e",
+        "application/reject-expense.ts": "e1b5727fd18efa9be3e7ee9ff1bd368ac52c03a5b9c9feabf6b1cb7d92bb02a6",
+        "application/submit-expense.ts": "7069cefa90c48f4a640e48cd3e51ec50465670d71137668d1aaa991fe7c9875b",
+        "domain/expense/amount-cents.ts": "b2f4c9c74bd009f0617c4056a34c134c7c4630929943237f2efdd7e3ed1c8d92",
+        "domain/expense/assert-never.ts": "98e5e6e4c3468fb1247f0164841502309d349dfafb173fd1c11737f1f7a14d4e",
+        "domain/expense/description.ts": "9ba63ed21fa7f8efcfc5b5665fd5e7360b965e2af724c4630cff19ba819f6586",
+        "domain/expense/email-address.ts": "ace23ea7c0bb80d8ef9f832204316f36ad40ac2ec77b42d550370708454e0bb5",
+        "domain/expense/employee-id.ts": "23cd506df463474dbb28c10a0509b19b8620e2b7a9c2f5064aed7efd59a12937",
+        "domain/expense/expense-by-id-resolver.ts": "9f858d56f8b52ae84a46cdee0d34997842c318d6e99048994e1cf5927cd7489d",
+        "domain/expense/expense-codec.ts": "d1cd6c1a2e4888e30828d8930cda079d30379f4d8edf272f2255ddda820c75c6",
+        "domain/expense/expense-id.ts": "864b2482471e18443dcdde02aea0093a2976da3f46543a09b56899bb594036a4",
+        "domain/expense/expense-store.ts": "752a04073bc3808120ce95a6cb12935a8eea2268ef9518f7ccdef3c06fbec7e5",
+        "domain/expense/expense.ts": "6244914a112fe3b9625b86e7963d1204a7ff619345f3188aec82aad7e19086a3",
+        "domain/expense/receipt-id.ts": "e726e01bde35ef41e599856a5c8175e04c26485e0f93034f6786e165639c7d1b",
+        "domain/expense/rejection-reason.ts": "69e192d8357f5f1929d63806cb9294076463b1dd6cec56da397186da5df29c2b",
+        "domain/expense/sensitive.ts": "0de6a01f9e53d5889cc806d49a36fcc3d75f8fd49c4f1e2cbd5ed66e5513a0a5",
+        "domain/expense/validation.ts": "3555153358767e51fb98617c09794f3b8f49692a5f9e3c54b086fc01ce6d5bf0",
+        "expense-service.test.ts": "1ab0dd53877bf585d599e7afdc741697f555bbb3612f586dce30be60beecfdb7",
+        "index.ts": "36f002ef7a26684b3a84b5cd55d2875ad9cbe6324818cbc439a582e3821ec95d",
+        "infrastructure/host-logger.ts": "9373d83b58cbe0149b0a07418257a4b3a96f74e09d6e364a7f833cbdcc6116e8",
+        "infrastructure/host-payment.ts": "b72c2ad334a929c273f3d5b2386f8b63052011997f6fb3358f9e051891c26d84",
+        "infrastructure/host-repository.ts": "663b5eeba446aa5c4fa1ed5eee7a5d596a85ccaaabd251701c5b8272c001a348",
+        "service/command.ts": "281e4827bac6349f15b842395f5f22e7a50e2220813d64c91e0d4642b0939531",
+        "service/expense-service.ts": "2066dc48caff95ceb0473d2b8de1f5d6af5de38abd376308c83756b9906aa0d0",
+        "service/response.ts": "0d11f50ceafa15a99917bd00b27201b7c0fb4d232f30f95a81352f2ff0237696"
+      },
+      "contextAudits": {
+        "design": {
+          "passed": true,
+          "inputMessages": 3,
+          "model": "gpt-5.5",
+          "instructionsSha256": "c2a980bc28af132eb89e0b4c68ae884043faae83a1afd3fd4889f7e8a1ada7b0",
+          "toolsSha256": "b55930a0dd3978698f0182e55ce1999c1552f09927452d970a0049184ee8530e"
+        },
+        "implementation": {
+          "passed": true,
+          "inputMessages": 3,
+          "model": "gpt-5.5",
+          "instructionsSha256": "c2a980bc28af132eb89e0b4c68ae884043faae83a1afd3fd4889f7e8a1ada7b0",
+          "toolsSha256": "b55930a0dd3978698f0182e55ce1999c1552f09927452d970a0049184ee8530e"
+        }
+      }
+    },
+    {
+      "model": "gpt-5.5",
+      "id": "03-kamae-ladder",
+      "repetition": 3,
+      "variant": "kamae-ladder",
+      "status": "completed",
+      "error": null,
+      "successful": true,
+      "accepted": 19,
+      "expected": 19,
+      "typecheck": true,
+      "selfTests": true,
+      "dependencies": {},
+      "usage": {
+        "complete": true,
+        "input": 456920,
+        "output": 18494,
+        "cached": 389632,
+        "uncached": 67288,
+        "total": 475414,
+        "apiEquivalentUsd": null,
+        "standardApiEquivalentUsd": 1.086076,
+        "apiEquivalentUpperUsd": 1.894742,
+        "shortContextBound": false,
+        "seconds": 375.73400000000004,
+        "toolCalls": 48
+      },
+      "size": {
+        "production": {
+          "files": 3,
+          "bytes": 15507,
+          "lines": 527,
+          "statements": 185,
+          "variableDeclarations": 38
+        },
+        "tests": {
+          "files": 1,
+          "bytes": 13122,
+          "lines": 449,
+          "statements": 111,
+          "variableDeclarations": 44
+        }
+      },
+      "sourceHashes": {
+        "application/validation.ts": "d98aef82080b58dc2c41fb7bbd3ca2b88e3b5aa3bdb0e7844fc705ca558a11d4",
+        "domain/expense.ts": "d339ce7ef327b9a163530e8d784dcf1c91ea6aa69fc0872c15530fc1d15b4b51",
+        "index.test.ts": "00acf35499c273d4dba1d80261bb5d96ed872e8356aa260064301d952fe2e4c2",
+        "index.ts": "2d40f7dcfb24bbce8d33246d53442c37b0e973fbcf36cd7366dd774703dcc5ef"
+      },
+      "contextAudits": {
+        "design": {
+          "passed": true,
+          "inputMessages": 3,
+          "model": "gpt-5.5",
+          "instructionsSha256": "c2a980bc28af132eb89e0b4c68ae884043faae83a1afd3fd4889f7e8a1ada7b0",
+          "toolsSha256": "b55930a0dd3978698f0182e55ce1999c1552f09927452d970a0049184ee8530e"
+        },
+        "implementation": {
+          "passed": true,
+          "inputMessages": 3,
+          "model": "gpt-5.5",
+          "instructionsSha256": "c2a980bc28af132eb89e0b4c68ae884043faae83a1afd3fd4889f7e8a1ada7b0",
+          "toolsSha256": "b55930a0dd3978698f0182e55ce1999c1552f09927452d970a0049184ee8530e"
+        }
+      }
+    }
+  ],
+  "cells": [
+    {
+      "key": "gpt-5.4-mini/kamae",
+      "planned": 3,
+      "successful": 0,
+      "accepted": 54,
+      "expected": 57,
+      "measured": 3,
+      "knownContextCosts": 3,
+      "standardCosts": 3,
+      "medians": {
+        "totalTokens": 1114276,
+        "outputTokens": 38530,
+        "apiEquivalentUsd": 0.29377784999999995,
+        "standardApiEquivalentUsd": 0.29377784999999995,
+        "apiEquivalentUpperUsd": 0.29377784999999995,
+        "seconds": 606.273,
+        "productionBytes": 24747,
+        "productionLines": 883,
+        "statements": 317,
+        "testBytes": 10187
+      }
+    },
+    {
+      "key": "gpt-5.4-mini/kamae-ladder",
+      "planned": 3,
+      "successful": 1,
+      "accepted": 55,
+      "expected": 57,
+      "measured": 3,
+      "knownContextCosts": 3,
+      "standardCosts": 3,
+      "medians": {
+        "totalTokens": 1177264,
+        "outputTokens": 34986,
+        "apiEquivalentUsd": 0.2946063,
+        "standardApiEquivalentUsd": 0.2946063,
+        "apiEquivalentUpperUsd": 0.2946063,
+        "seconds": 561.455,
+        "productionBytes": 20849,
+        "productionLines": 761,
+        "statements": 303,
+        "testBytes": 10718
+      }
+    },
+    {
+      "key": "gpt-5.5/kamae",
+      "planned": 3,
+      "successful": 3,
+      "accepted": 57,
+      "expected": 57,
+      "measured": 3,
+      "knownContextCosts": 0,
+      "standardCosts": 3,
+      "medians": {
+        "totalTokens": 866660,
+        "outputTokens": 22766,
+        "apiEquivalentUsd": null,
+        "standardApiEquivalentUsd": 1.438128,
+        "apiEquivalentUpperUsd": 2.549436,
+        "seconds": 481.024,
+        "productionBytes": 31898,
+        "productionLines": 1050,
+        "statements": 333,
+        "testBytes": 10398
+      }
+    },
+    {
+      "key": "gpt-5.5/kamae-ladder",
+      "planned": 3,
+      "successful": 3,
+      "accepted": 57,
+      "expected": 57,
+      "measured": 3,
+      "knownContextCosts": 0,
+      "standardCosts": 3,
+      "medians": {
+        "totalTokens": 678487,
+        "outputTokens": 20830,
+        "apiEquivalentUsd": null,
+        "standardApiEquivalentUsd": 1.408737,
+        "apiEquivalentUpperUsd": 2.505024,
+        "seconds": 433.188,
+        "productionBytes": 20473,
+        "productionLines": 623,
+        "statements": 242,
+        "testBytes": 12065
+      }
+    }
+  ],
+  "pairs": [
+    {
+      "model": "gpt-5.4-mini",
+      "repetition": 1,
+      "controlSuccessful": false,
+      "treatmentSuccessful": true,
+      "tokenRatio": 1.0086966654499903,
+      "byteRatio": 0.7023745363472086,
+      "costRatio": 0.9640879991282161,
+      "standardCostRatio": 0.9640879991282161
+    },
+    {
+      "model": "gpt-5.4-mini",
+      "repetition": 2,
+      "controlSuccessful": false,
+      "treatmentSuccessful": false,
+      "tokenRatio": 1.1962637622994663,
+      "byteRatio": 0.8091889926051643,
+      "costRatio": 1.0859130006616502,
+      "standardCostRatio": 1.0859130006616502
+    },
+    {
+      "model": "gpt-5.4-mini",
+      "repetition": 3,
+      "controlSuccessful": false,
+      "treatmentSuccessful": false,
+      "tokenRatio": 1.0524167734397363,
+      "byteRatio": 0.8965383788432595,
+      "costRatio": 0.9914476193491103,
+      "standardCostRatio": 0.9914476193491103
+    },
+    {
+      "model": "gpt-5.5",
+      "repetition": 1,
+      "controlSuccessful": true,
+      "treatmentSuccessful": true,
+      "tokenRatio": 0.9338590476348027,
+      "byteRatio": 0.7815327219026893,
+      "costRatio": null,
+      "standardCostRatio": 0.964773396133731
+    },
+    {
+      "model": "gpt-5.5",
+      "repetition": 2,
+      "controlSuccessful": true,
+      "treatmentSuccessful": true,
+      "tokenRatio": 0.7828756375049039,
+      "byteRatio": 0.6418270737977303,
+      "costRatio": null,
+      "standardCostRatio": 0.9795630152531624
+    },
+    {
+      "model": "gpt-5.5",
+      "repetition": 3,
+      "controlSuccessful": true,
+      "treatmentSuccessful": true,
+      "tokenRatio": 0.6464945632958558,
+      "byteRatio": 0.5025602800103708,
+      "costRatio": null,
+      "standardCostRatio": 0.7871062751026573
+    }
+  ]
+}

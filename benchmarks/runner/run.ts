@@ -4,7 +4,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { copyTree, files, hashes, json, read, skillOverrides } from "./files";
 import { command, interrupted, parseEvents, parseJunit, succeeded, type CommandResult } from "./process";
-import { codexArgs, order, prompt, rubric, type Phase, type Variant } from "./protocol";
+import { codexArgs, order, prompt, rubric, variants, type Phase, type Variant } from "./protocol";
 import { auditContext, isolationPrefix, verifySandbox, type Isolation } from "./context";
 import { selectedPackage } from "./dependencies";
 
@@ -12,13 +12,14 @@ const repo = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
 export function options(args: string[]) {
   const config = { case: "expense-approval", model: "", effort: "medium", runs: 3,
-    timeoutSeconds: 900, output: "", dryRun: false, binary: "codex", isolation: "audit" };
+    timeoutSeconds: 900, output: "", dryRun: false, binary: "codex", isolation: "audit",
+    variants: "baseline,kamae" };
   for (let index = 0; index < args.length; index++) {
     const key = args[index];
     if (key === "--dry-run") { config.dryRun = true; continue; }
     const fields = { "--case": "case", "--model": "model", "--reasoning-effort": "effort",
       "--runs": "runs", "--timeout-seconds": "timeoutSeconds", "--output": "output",
-      "--codex-bin": "binary", "--isolation": "isolation" } as const;
+      "--codex-bin": "binary", "--isolation": "isolation", "--variants": "variants" } as const;
     const field = fields[key as keyof typeof fields];
     if (!field) throw new Error(`Unknown option: ${key}`);
     const value = args[++index];
@@ -27,13 +28,16 @@ export function options(args: string[]) {
     else config[field] = value;
   }
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(config.case)) throw new Error("Invalid case ID");
+  const selectedVariants = config.variants.split(",");
+  if (!selectedVariants.length || new Set(selectedVariants).size !== selectedVariants.length ||
+      selectedVariants.some(value => !variants.includes(value as Variant))) throw new Error("Invalid variants");
   if (!config.dryRun && !config.model.trim()) throw new Error("--model is required for real runs");
   if (!["audit", "macos"].includes(config.isolation)) throw new Error("Invalid isolation mode");
   if (!["low", "medium", "high", "xhigh"].includes(config.effort)) throw new Error("Invalid reasoning effort");
   if (!Number.isInteger(config.runs) || config.runs < 1 || config.runs > 20) throw new Error("--runs must be 1–20");
   if (!Number.isInteger(config.timeoutSeconds) || config.timeoutSeconds < 1) throw new Error("Invalid timeout");
   config.output = resolve(config.output || join(repo, "benchmarks/results", new Date().toISOString().replaceAll(":", "-")));
-  return config;
+  return { ...config, variants: selectedVariants as Variant[] };
 }
 
 type StageResult = CommandResult & ReturnType<typeof parseEvents>;
@@ -63,7 +67,7 @@ export function report(results: RunResult[], dryRun: boolean, expectedTests: num
       ? stages.reduce((sum, stage) => sum + (stage.usage?.input_tokens ?? 0) + (stage.usage?.output_tokens ?? 0), 0) : "—";
     return `| ${run.id} | ${run.status} | ${run.typecheck ? (succeeded(run.typecheck) ? "pass" : "fail") : "—"} | ${counts ? `${counts.passed}/${counts.tests}` : "—"} | ${seconds} / ${tokens} | ${run.sourceFiles ?? "—"} / ${run.sourceLines ?? "—"} | [design](${path}/DESIGN.md) · [implementation](${path}/workspace/IMPLEMENTATION.md) · [source](${path}/workspace/src) · [review](${path}/review.md) |`;
   });
-  const summary = (["baseline", "kamae"] as const).map(variant => {
+  const summary = [...new Set(results.map(run => run.variant))].map(variant => {
     const runs = results.filter(run => run.variant === variant);
     // Incomplete/invalid runs remain in the denominator, never silently disappearing.
     const passed = runs.reduce((sum, run) => sum + (run.status === "completed" ? run.acceptance?.counts?.passed ?? 0 : 0), 0);
@@ -71,7 +75,7 @@ export function report(results: RunResult[], dryRun: boolean, expectedTests: num
   });
   return `# PRD benchmark comparison
 
-${dryRun ? "Dry run: prompts and inputs prepared; no model or grading executed." : "Same PRD, starter, model, and reasoning effort; only skill access differs."}
+${dryRun ? "Dry run: prompts and inputs prepared; no model or grading executed." : "Same PRD, starter, model, and reasoning effort; only declared guidance differs."}
 
 | Condition | Completed runs | Accepted checks (all planned runs) |
 | --- | --- | --- |
@@ -111,7 +115,7 @@ async function checkIntegrity(workspace: string, starterHashes: Record<string, s
 
 async function main() {
   if (process.argv.includes("--help")) {
-    console.log("bun run benchmark --model MODEL [--case expense-approval] [--runs 3] [--reasoning-effort medium] [--timeout-seconds 900] [--output DIR] [--dry-run] [--codex-bin PATH] [--isolation audit|macos]");
+    console.log("bun run benchmark --model MODEL [--case expense-approval] [--variants baseline,kamae|kamae,kamae-ladder] [--runs 3] [--reasoning-effort medium] [--timeout-seconds 900] [--output DIR] [--dry-run] [--codex-bin PATH] [--isolation audit|macos]");
     return;
   }
   const config = options(process.argv.slice(2));
@@ -127,7 +131,7 @@ async function main() {
     await writeFile(join(config.output, "report.md"), report(results, config.dryRun, metadata.expectedTests));
   };
   for (let repetition = 1; repetition <= config.runs; repetition++) {
-    for (const variant of order(repetition)) results.push({
+    for (const variant of order(repetition, config.variants)) results.push({
       id: `${String(repetition).padStart(2, "0")}-${variant}`, variant, repetition,
       status: "planned", stages: {}, integrity: null, designReview: "pending",
     });
@@ -145,12 +149,17 @@ async function main() {
     await copyTree(caseRoot, frozenCase);
     await copyTree(join(repo, "skills/kamae"), join(frozenSkill, "skills/kamae"));
     await copyTree(join(repo, "rules"), join(frozenSkill, "rules"));
+    if (config.variants.includes("kamae-ladder")) {
+      await mkdir(join(config.output, "guidance"));
+      await cp(join(repo, "benchmarks/guidance/ladder.md"), join(config.output, "guidance/LADDER.md"));
+    }
     await json(join(config.output, "manifest.json"), {
       schemaVersion: 2, createdAt: new Date().toISOString(), ...config, case: metadata,
       codexVersion: (await read(join(config.output, "codex-version.stdout"))).trim(),
       bunVersion: Bun.version, revision: (await read(join(config.output, "revision.stdout"))).trim(),
       inputs: await hashes(frozenCase), skill: await hashes(join(frozenSkill, "skills/kamae")),
       rules: await hashes(join(frozenSkill, "rules")), runner: await hashes(join(repo, "benchmarks/runner")), disabledSkills,
+      guidance: config.variants.includes("kamae-ladder") ? await hashes(join(config.output, "guidance")) : {},
       contextPolicy: "Every phase must pass a loopback initial-context preflight. User config, discovered skills, plugins/hooks/memory/web/subagents disabled. macos additionally denies personal instruction reads. This is not a container or a capture of the actual remote request.",
       order: results.map(run => run.id),
     });
@@ -169,10 +178,11 @@ async function main() {
       await copyTree(prepared, workspace);
       await mkdir(join(workspace, "src"), { recursive: true });
       await writeFile(join(workspace, "PRD.md"), await read(join(frozenCase, "prd.md")));
-      if (run.variant === "kamae") {
+      if (run.variant !== "baseline") {
         await copyTree(join(frozenSkill, "skills/kamae"), join(workspace, ".agents/skills/kamae"));
         await copyTree(join(frozenSkill, "rules"), join(workspace, ".agents/rules"));
       }
+      if (run.variant === "kamae-ladder") await cp(join(config.output, "guidance/LADDER.md"), join(workspace, "LADDER.md"));
       // This also protects PRD and supplied skill/rule bytes from modification.
       let original = await hashes(workspace);
       const originalPackage = await read(join(workspace, "package.json"));

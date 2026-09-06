@@ -1,0 +1,110 @@
+[
+  {
+    "model": "gpt-5.4-mini",
+    "id": "01-kamae",
+    "passed": 2,
+    "tests": 5,
+    "measured": true,
+    "sourceUnchanged": true,
+    "error": ""
+  },
+  {
+    "model": "gpt-5.4-mini",
+    "id": "01-kamae-ladder",
+    "passed": 1,
+    "tests": 5,
+    "measured": true,
+    "sourceUnchanged": true,
+    "error": ""
+  },
+  {
+    "model": "gpt-5.4-mini",
+    "id": "02-kamae-ladder",
+    "passed": 1,
+    "tests": 5,
+    "measured": true,
+    "sourceUnchanged": true,
+    "error": ""
+  },
+  {
+    "model": "gpt-5.4-mini",
+    "id": "02-kamae",
+    "passed": 1,
+    "tests": 5,
+    "measured": true,
+    "sourceUnchanged": true,
+    "error": ""
+  },
+  {
+    "model": "gpt-5.4-mini",
+    "id": "03-kamae",
+    "passed": 1,
+    "tests": 5,
+    "measured": true,
+    "sourceUnchanged": true,
+    "error": ""
+  },
+  {
+    "model": "gpt-5.4-mini",
+    "id": "03-kamae-ladder",
+    "passed": 1,
+    "tests": 5,
+    "measured": true,
+    "sourceUnchanged": true,
+    "error": ""
+  },
+  {
+    "model": "gpt-5.5",
+    "id": "01-kamae",
+    "passed": 5,
+    "tests": 5,
+    "measured": true,
+    "sourceUnchanged": true,
+    "error": ""
+  },
+  {
+    "model": "gpt-5.5",
+    "id": "01-kamae-ladder",
+    "passed": 5,
+    "tests": 5,
+    "measured": true,
+    "sourceUnchanged": true,
+    "error": ""
+  },
+  {
+    "model": "gpt-5.5",
+    "id": "02-kamae-ladder",
+    "passed": 5,
+    "tests": 5,
+    "measured": true,
+    "sourceUnchanged": true,
+    "error": ""
+  },
+  {
+    "model": "gpt-5.5",
+    "id": "02-kamae",
+    "passed": 5,
+    "tests": 5,
+    "measured": true,
+    "sourceUnchanged": true,
+    "error": ""
+  },
+  {
+    "model": "gpt-5.5",
+    "id": "03-kamae",
+    "passed": 5,
+    "tests": 5,
+    "measured": true,
+    "sourceUnchanged": true,
+    "error": ""
+  },
+  {
+    "model": "gpt-5.5",
+    "id": "03-kamae-ladder",
+    "passed": 2,
+    "tests": 5,
+    "measured": true,
+    "sourceUnchanged": true,
+    "error": ""
+  }
+]
