@@ -12,6 +12,8 @@
     "benchmark:regrade": "bun run benchmarks/runner/regrade.ts",
     "benchmark:test": "bun test ./benchmarks/runner",
     "benchmark:typecheck": "tsc --project benchmarks/tsconfig.json",
+    "benchmark:scenarios": "bun run benchmarks/design-scenarios/cli.ts",
+    "benchmark:scenarios:test": "bun test ./benchmarks/design-scenarios/pack.test.ts",
     "gen:og-image": "bun run scripts/gen-og-image.ts",
     "gen:og-image-community": "bun run scripts/gen-og-image-community.ts"
   },

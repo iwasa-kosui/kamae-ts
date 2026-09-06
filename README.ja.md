@@ -81,11 +81,18 @@ rule のフォーマットと具体例は [`rules/README.md`](./rules/README.md)
 
 ## ベンチマーク
 
-同じモデル・同じPRDで、`kamae` の有無による設計と実装の違いを比較できます。
-[ベンチマークランナー](benchmarks/README.md) は、最初の設計書、生成コード、
-共通の受け入れテスト結果、設計レビュー表を保存します。
-`bun run benchmark --dry-run --runs 1` で比較条件を確認し、
-`bun run benchmark --model <model-id> --runs 3` で実モデルによる比較を実行できます。
+[DMMF設計手法の判定基準ドラフト](benchmarks/design-evaluation-draft.ja.md)では、生成コードへの
+関数型ドメインモデリングの適用を評価対象にしています。機能要件のテスト得点や
+合否ゲートは、この評価に含めません。採点器は未実装・未校正です。
+
+[実行前のシナリオ確認](benchmarks/design-scenarios/REVIEW.ja.md)に、貸出・見積・配送の
+初期課題、後続変更、評価の着眼点をまとめています。
+[入力準備ツール](benchmarks/design-scenarios/README.md)は生成用と評価用の資料を分配し、
+モデルを呼びません。シナリオに対する実装生成・評価は未実行です。
+
+[旧PRD実行基盤](benchmarks/README.md)と実行手順は、過去の作業を確認するために
+残しています。受け入れテストを中心とした従来の比較は、スキルの設計上の有効性を
+測る評価としては不適切でした。
 
 ## ドキュメント
 

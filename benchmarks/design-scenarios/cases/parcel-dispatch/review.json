@@ -1,0 +1,157 @@
+{
+  "caseId": "parcel-dispatch",
+  "units": [
+    {
+      "id": "dispatch-values",
+      "axis": "D1",
+      "phase": "initial",
+      "requirements": [
+        "P1",
+        "P2",
+        "P3"
+      ],
+      "meaning": "Dispatch/order IDs, parcel mass, carrier identity, booking references, and retry times have distinct meanings.",
+      "scope": [
+        "Registration and carrier-request construction",
+        "Retry-time comparisons",
+        "Booking and deferred-record consumers"
+      ],
+      "question": "Which distinctions are represented and maintained in ordinary typed internal use?",
+      "counterevidence": [
+        "Carrier A being the sole initial provider does not require an artificial multi-provider hierarchy.",
+        "A timestamp is not automatically interchangeable with a duration."
+      ]
+    },
+    {
+      "id": "dispatch-states",
+      "axis": "D2",
+      "phase": "initial",
+      "requirements": [
+        "P2",
+        "P3",
+        "P4"
+      ],
+      "meaning": "Deferred work needs retry context, booked work needs a reference, and refused work needs a carrier reason.",
+      "scope": [
+        "Initial dispatch state representations",
+        "Attempt-outcome transitions",
+        "Restoration and resume callers"
+      ],
+      "question": "Do state and transition contracts retain the appropriate facts and restrict the meaningful source states?",
+      "counterevidence": [
+        "The public operation may accept an ID then narrow a loaded state.",
+        "Required state information does not imply all infrastructure failures must be modeled as states."
+      ]
+    },
+    {
+      "id": "dispatch-boundaries",
+      "axis": "D3",
+      "phase": "initial",
+      "requirements": [
+        "P1",
+        "P2",
+        "P3",
+        "P4"
+      ],
+      "meaning": "Registration JSON, carrier A's response, and stored resume context cross external boundaries.",
+      "scope": [
+        "Registration parsing",
+        "Carrier A response conversion",
+        "Deferred and terminal record restoration"
+      ],
+      "question": "How are external representations converted into the internal values actually used to transition and resume?",
+      "counterevidence": [
+        "Observe the persistence path as well as the public request.",
+        "Do not award points for a particular schema package."
+      ]
+    },
+    {
+      "id": "dispatch-pipeline",
+      "axis": "D4",
+      "phase": "initial",
+      "requirements": [
+        "P2",
+        "P3"
+      ],
+      "meaning": "An eligible attempt, carrier decision, and resulting recorded dispatch are distinct workflow stages.",
+      "scope": [
+        "Attempt preparation contracts",
+        "Carrier-decision interpretation",
+        "Connection to recorded result and public outcome"
+      ],
+      "question": "Do the actual contracts and composition preserve the meaning established by each stage?",
+      "counterevidence": [
+        "Do not require an event store or event output.",
+        "A workflow wrapper with one unconstrained mutable record is not sufficient evidence."
+      ]
+    },
+    {
+      "id": "dispatch-decisions",
+      "axis": "D5",
+      "phase": "initial",
+      "requirements": [
+        "P2",
+        "P3",
+        "P4"
+      ],
+      "meaning": "Retry eligibility and outcome interpretation use explicit state, carrier response, and time.",
+      "scope": [
+        "Time-dependent resume decision",
+        "Outcome-to-state decision",
+        "Carrier, clock, and persistence effects"
+      ],
+      "question": "Where are decisions separated from host calls, and does the production path use those decisions?",
+      "counterevidence": [
+        "A carrier response is obtained between legitimate workflow stages.",
+        "Do not infer runtime immutability solely from readonly syntax."
+      ]
+    },
+    {
+      "id": "dispatch-recovery",
+      "axis": "D6",
+      "phase": "initial",
+      "requirements": [
+        "P2",
+        "P3",
+        "P5",
+        "P6"
+      ],
+      "meaning": "Busy is a recoverable carrier decision; refusal and infrastructure failure have different meanings.",
+      "scope": [
+        "Construction of refusal and early-retry information",
+        "Deferral/recovery composition",
+        "Final business handlers"
+      ],
+      "question": "Are recovery alternatives and carrier/retry context explicit and retained through handlers?",
+      "counterevidence": [
+        "Deferral may be a successful domain outcome rather than an error; assess its meaning, not the wrapper name.",
+        "A fallback default that erases known alternatives requires inspection, not an automatic syntax penalty."
+      ]
+    },
+    {
+      "id": "carrier-switch-change",
+      "axis": "D7",
+      "phase": "change",
+      "requirements": [
+        "P3",
+        "P4",
+        "P6",
+        "C1",
+        "C2",
+        "C3"
+      ],
+      "meaning": "Fallback introduces another wire format and a persisted choice of which carrier may resume.",
+      "scope": [
+        "Before/after carrier adapters and mass conversion",
+        "Fallback and resume decisions",
+        "Stored provider/attempt history and prior-record interpretation"
+      ],
+      "question": "Does the change preserve the chosen carrier, retry context, and typed stage/value distinctions through actual fallback and later resumption?",
+      "counterevidence": [
+        "Do not judge by adapter count, directory names, or number of changed files.",
+        "A carrier-specific DTO is acceptable when conversion keeps it out of unrelated domain decisions."
+      ]
+    }
+  ],
+  "exclusions": []
+}
