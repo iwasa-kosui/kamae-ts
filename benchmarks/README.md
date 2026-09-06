@@ -26,7 +26,8 @@ assessment units, rating anchors, and calibration contrasts.
 New [design scenarios](design-scenarios/README.md) contain initial tasks, withheld
 changes, and predeclared observation maps. Use their prepare-only CLI and
 [human preview](design-scenarios/REVIEW.ja.md); they are not cases for this
-historical runner. No generation or assessment has been run for the new suite.
+historical runner. A separate `benchmark:design` command now captures exploratory
+initial/change generations without this harness's functional grading.
 
 ## Protocol v2: remove design priming
 

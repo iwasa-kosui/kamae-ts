@@ -27,6 +27,7 @@ jobs:
       - run: bun run benchmark:test
       - run: bun run benchmark:scenarios check
       - run: bun run benchmark:scenarios:test
+      - run: bun run benchmark:design --dry-run --output benchmarks/results/design-ci
       - run: bun run benchmark --dry-run --runs 1 --output benchmarks/results/ci
       - uses: actions/upload-artifact@v4
         if: always()

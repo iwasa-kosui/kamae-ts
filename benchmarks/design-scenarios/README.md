@@ -1,11 +1,11 @@
 # DMMF design scenarios
 
-Status: authored scenarios and input preparation, awaiting human review before
-model execution. No candidate generation, follow-up implementation, assessment,
-or calibration has been performed with this suite. It has no model runner or
-grader and is independent of the historical acceptance runner.
+Status: authored scenarios, input preparation, and an exploratory execution runner.
+The v0.1 rubric is uncalibrated and there is no automatic design grader.
+The runner shares process/context utilities with the historical harness, but does
+not use its generation prompts, acceptance checks, or grading/reporting logic.
 
-Read the [Japanese scenario preview](REVIEW.ja.md) before approving execution.
+Read the [Japanese scenario preview](REVIEW.ja.md) before execution.
 The scenarios instantiate the [DMMF assessment proposal](../design-evaluation.md):
 product behavior supplies domain meaning; functional test scores, defect counts,
 and eligibility gates are not assessment inputs.
@@ -85,11 +85,11 @@ Files are copied from explicit lists. Extra files in a source case directory
 cannot enter generation packets implicitly. Reviewer-only edits alter review
 hashes without altering generation inputs. Store any later run record separately.
 
-## Intended handoff to a future runner
+## Execution protocol
 
 Packet separation is not filesystem isolation. Never give a generation agent
 access to the whole prepared output, this source tree, reviewer material, prior
-results, or later changes during its initial task. A future runner must provide
+results, or later changes during its initial task. An execution runner must provide
 an isolated workspace containing only the selected phase's inputs, and establish
 which personal instructions, tools, and skills can enter its context.
 
@@ -110,9 +110,52 @@ which personal instructions, tools, and skills can enter its context.
    claims to verify, not scores. Retain missing evidence as U and planned N/A;
    do not require a public API failure to recognize a missing design guarantee.
 
-These are handoff requirements; this preparation tool does not implement or
-verify model context isolation, anonymous review, dependency installation,
-generation, or grading. Real execution remains pending human scenario review.
+The preparation CLI alone does not implement these execution requirements.
+The separate pilot runner implements the generation and snapshot steps below;
+anonymous source review and calibration remain reviewer responsibilities.
+
+## Exploratory pilot
+
+```sh
+bun run benchmark:design --model gpt-5.5 --reasoning-effort medium \
+  --timeout-seconds 900 --output benchmarks/results/dmmf-pilot
+```
+
+This explicitly calls models. Each of the three scenarios gets one baseline and
+one kamae candidate, each with fresh design, implementation, and change sessions.
+Order alternates across scenarios. There are no automatic retries, score-based
+selection, or post-generation repairs. An incomplete run retains its evidence;
+execution status describes artifact production and protocol integrity, not design
+application. This one-pair pilot is exploratory, not a calibrated comparison.
+
+Real execution currently requires macOS. The outer OS sandbox denies reads of
+personal instructions, the repository, evaluation packets, future changes, and
+other candidate workspaces. Every phase has a loopback initial-context audit;
+separate probes check workspace access and held-out material restrictions. The
+same base-instruction/tool signature must remain across phases. As in the
+historical isolation utilities, authentication stays in place and the actual
+remote request is not captured. The environment is not a container and network
+access remains available. See the [context limitations](../README.md#context-evidence-and-limits).
+
+`run-manifest.json` records inputs, treatment, model settings, utility/source
+hashes, and planned order. `runtime-source/` preserves the runner source. Per-phase
+prompts, command arguments, context evidence, JSONL output, final messages, and
+source snapshots are retained. `initial/` is saved before revealing the change;
+`changed/` and `change-diff.stdout` retain the actual follow-up. Failed or incomplete
+attempts retain `latest/` and any phase snapshots. Results are ignored by Git.
+
+The runner installs the pinned toolchain and selected exact dependencies with
+lifecycle scripts disabled. Design may choose dependencies; implementation keeps
+that package and lockfile; change may add exact dependencies as documented in the
+recorded prompt. It never runs acceptance checks or creates candidate test totals.
+Candidate-driven development checks may appear in raw logs and are not assessment
+inputs. Review source evidence even where an execution is incomplete; do not turn
+execution status into a functional eligibility gate.
+
+For a portable input-only check, add `--dry-run` and use a new output directory.
+This makes no model calls or dependency installations. The execution CLI uses
+[`codex exec` JSONL and ephemeral mode](https://learn.chatgpt.com/docs/non-interactive-mode);
+the exact locally audited arguments are recorded with each phase.
 
 ## Validate tooling
 

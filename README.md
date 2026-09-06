@@ -93,7 +93,8 @@ Three [design scenarios](benchmarks/design-scenarios/README.md) now provide init
 tasks, withheld follow-up changes, and evaluator-only observation maps. Their
 preparation CLI packages inputs without model calls. Read the
 [scenario preview](benchmarks/design-scenarios/REVIEW.ja.md) before execution;
-generation and assessment remain pending.
+the separate exploratory runner preserves initial and changed source for review.
+Its execution records are not calibrated design ratings.
 
 The [historical PRD harness](benchmarks/README.md) and its protocol remain available
 for inspecting earlier work. Its acceptance-based comparison was rejected as an
