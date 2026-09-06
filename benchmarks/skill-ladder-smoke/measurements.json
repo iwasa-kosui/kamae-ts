@@ -1,0 +1,312 @@
+[
+  {
+    "model": "haiku",
+    "case": "generate",
+    "variant": "after",
+    "archive": "haiku",
+    "inputTokens": 34998,
+    "outputTokens": 2012,
+    "cachedInputTokens": 26645,
+    "durationMs": 23409,
+    "exitCode": 0,
+    "generationChecks": {
+      "runtime": true,
+      "readonlyContract": true,
+      "schemaEvolution": false
+    },
+    "skillSha256": "5625330fb539b2492348cf18c6061eb41411c047937c4eb5cd15358cb2bef68b"
+  },
+  {
+    "model": "haiku",
+    "case": "generate",
+    "variant": "after-v2",
+    "archive": "haiku",
+    "inputTokens": 40985,
+    "outputTokens": 1626,
+    "cachedInputTokens": 35905,
+    "durationMs": 20060,
+    "exitCode": 0,
+    "generationChecks": {
+      "runtime": true,
+      "readonlyContract": true,
+      "schemaEvolution": false
+    },
+    "skillSha256": "8f71aef9bc942b60d20cd01e5039df96e7d4f93dcbee8faade33c84f75c8baa3"
+  },
+  {
+    "model": "haiku",
+    "case": "generate",
+    "variant": "after-v3",
+    "archive": "haiku",
+    "inputTokens": 25940,
+    "outputTokens": 2504,
+    "cachedInputTokens": 19545,
+    "durationMs": 28024,
+    "exitCode": 0,
+    "generationChecks": {
+      "runtime": true,
+      "readonlyContract": true,
+      "schemaEvolution": true
+    },
+    "skillSha256": "b7eb880fe4d82f77adbcc49be5f192c13edc1a9b77fe563c0507cddbf67ece08"
+  },
+  {
+    "model": "haiku",
+    "case": "generate",
+    "variant": "after-v4",
+    "archive": "haiku",
+    "inputTokens": 33043,
+    "outputTokens": 1410,
+    "cachedInputTokens": 28367,
+    "durationMs": 17407,
+    "exitCode": 0,
+    "generationChecks": {
+      "runtime": true,
+      "readonlyContract": true,
+      "schemaEvolution": false
+    },
+    "skillSha256": "abefd96efa6e43f1870c2830e98d92c4a4cf17c9810483a919da6d28b654594b"
+  },
+  {
+    "model": "haiku",
+    "case": "generate",
+    "variant": "after-v5",
+    "archive": "haiku",
+    "inputTokens": 15067,
+    "outputTokens": 2539,
+    "cachedInputTokens": 10789,
+    "durationMs": 25222,
+    "exitCode": 0,
+    "generationChecks": {
+      "runtime": true,
+      "readonlyContract": true,
+      "schemaEvolution": false
+    },
+    "skillSha256": "156044563995eb6aa6b7261cf124c8f1f8c70285d2f6b40804b62d112c7c0b3d",
+    "output": "outputs/haiku-generate-after-v5.md"
+  },
+  {
+    "model": "haiku",
+    "case": "generate",
+    "variant": "before",
+    "archive": "haiku",
+    "inputTokens": 61351,
+    "outputTokens": 4128,
+    "cachedInputTokens": 49345,
+    "durationMs": 36587,
+    "exitCode": 0,
+    "generationChecks": {
+      "runtime": false,
+      "readonlyContract": true,
+      "schemaEvolution": false
+    },
+    "skillSha256": "0618096843d6d3d0ff024cb56bce586bd9b410542e24475144b5081b211571be",
+    "output": "outputs/haiku-generate-before.md"
+  },
+  {
+    "model": "haiku",
+    "case": "review",
+    "variant": "after",
+    "archive": "haiku",
+    "inputTokens": 46773,
+    "outputTokens": 2879,
+    "cachedInputTokens": 38757,
+    "durationMs": 36633,
+    "exitCode": 0,
+    "skillSha256": "a1e03eebecdc76138ec85d162e4c43e28f0f2b07dbd9ce2fa782bc614b6fe966"
+  },
+  {
+    "model": "haiku",
+    "case": "review",
+    "variant": "after-v2",
+    "archive": "haiku",
+    "inputTokens": 49872,
+    "outputTokens": 5116,
+    "cachedInputTokens": 41384,
+    "durationMs": 59861,
+    "exitCode": 0,
+    "skillSha256": "457de170516a41b8fd2774e081acf8b080398b99b47a4cac64d9068244318cc3"
+  },
+  {
+    "model": "haiku",
+    "case": "review",
+    "variant": "after-v3",
+    "archive": "haiku",
+    "inputTokens": 46847,
+    "outputTokens": 2999,
+    "cachedInputTokens": 38993,
+    "durationMs": 40182,
+    "exitCode": 0,
+    "skillSha256": "91107f9ae040a9c840258dd3f5364bbcf7a1b2a507aeb8f774b968fd0f8ff66b"
+  },
+  {
+    "model": "haiku",
+    "case": "review",
+    "variant": "after-v4",
+    "archive": "haiku",
+    "inputTokens": 15322,
+    "outputTokens": 2326,
+    "cachedInputTokens": 10738,
+    "durationMs": 29094,
+    "exitCode": 0,
+    "skillSha256": "91107f9ae040a9c840258dd3f5364bbcf7a1b2a507aeb8f774b968fd0f8ff66b"
+  },
+  {
+    "model": "haiku",
+    "case": "review",
+    "variant": "after-v5",
+    "archive": "haiku",
+    "inputTokens": 24383,
+    "outputTokens": 1744,
+    "cachedInputTokens": 19423,
+    "durationMs": 19048,
+    "exitCode": 0,
+    "skillSha256": "788b6528fba14fe409ec0e93e319fe46c7f56ae0b79bfc886262a9bc1c96c5e7",
+    "output": "outputs/haiku-review-after-v5.md"
+  },
+  {
+    "model": "haiku",
+    "case": "review",
+    "variant": "before",
+    "archive": "haiku",
+    "inputTokens": 45126,
+    "outputTokens": 3387,
+    "cachedInputTokens": 32255,
+    "durationMs": 41231,
+    "exitCode": 0,
+    "skillSha256": "0733a61bd7c63fbbf9bd8d5c3efb9485770d628488e225b08f5ec995ef823a58",
+    "output": "outputs/haiku-review-before.md"
+  },
+  {
+    "model": "gpt-5.6-terra",
+    "case": "generate",
+    "variant": "after",
+    "archive": "gpt-5.6-terra",
+    "inputTokens": 31689,
+    "outputTokens": 720,
+    "cachedInputTokens": 24832,
+    "durationMs": 22194,
+    "exitCode": 0,
+    "generationChecks": {
+      "runtime": true,
+      "readonlyContract": true,
+      "schemaEvolution": true
+    },
+    "skillSha256": "8f71aef9bc942b60d20cd01e5039df96e7d4f93dcbee8faade33c84f75c8baa3"
+  },
+  {
+    "model": "gpt-5.6-terra",
+    "case": "generate",
+    "variant": "after-v4",
+    "archive": "gpt-5.6-terra",
+    "inputTokens": 42735,
+    "outputTokens": 986,
+    "cachedInputTokens": 26880,
+    "durationMs": 29958,
+    "exitCode": 0,
+    "generationChecks": {
+      "runtime": true,
+      "readonlyContract": true,
+      "schemaEvolution": true
+    },
+    "skillSha256": "abefd96efa6e43f1870c2830e98d92c4a4cf17c9810483a919da6d28b654594b"
+  },
+  {
+    "model": "gpt-5.6-terra",
+    "case": "generate",
+    "variant": "after-v5",
+    "archive": "gpt-5.6-terra",
+    "inputTokens": 39591,
+    "outputTokens": 702,
+    "cachedInputTokens": 26880,
+    "durationMs": 22121,
+    "exitCode": 0,
+    "generationChecks": {
+      "runtime": true,
+      "readonlyContract": true,
+      "schemaEvolution": true
+    },
+    "skillSha256": "156044563995eb6aa6b7261cf124c8f1f8c70285d2f6b40804b62d112c7c0b3d",
+    "output": "outputs/gpt-5.6-terra-generate-after-v5.md"
+  },
+  {
+    "model": "gpt-5.6-terra",
+    "case": "generate",
+    "variant": "before",
+    "archive": "gpt-5.6-terra",
+    "inputTokens": 43791,
+    "outputTokens": 942,
+    "cachedInputTokens": 27904,
+    "durationMs": 27017,
+    "exitCode": 0,
+    "generationChecks": {
+      "runtime": true,
+      "readonlyContract": true,
+      "schemaEvolution": true
+    },
+    "skillSha256": "0618096843d6d3d0ff024cb56bce586bd9b410542e24475144b5081b211571be",
+    "output": "outputs/gpt-5.6-terra-generate-before.md"
+  },
+  {
+    "model": "gpt-5.6-terra",
+    "case": "review",
+    "variant": "after",
+    "archive": "gpt-5.6-terra",
+    "inputTokens": 56067,
+    "outputTokens": 1266,
+    "cachedInputTokens": 45824,
+    "durationMs": 32599,
+    "exitCode": 0,
+    "skillSha256": "457de170516a41b8fd2774e081acf8b080398b99b47a4cac64d9068244318cc3"
+  },
+  {
+    "model": "gpt-5.6-terra",
+    "case": "review",
+    "variant": "after-v4",
+    "archive": "gpt-5.6-terra",
+    "inputTokens": 56642,
+    "outputTokens": 1209,
+    "cachedInputTokens": 45824,
+    "durationMs": 32686,
+    "exitCode": 0,
+    "skillSha256": "91107f9ae040a9c840258dd3f5364bbcf7a1b2a507aeb8f774b968fd0f8ff66b"
+  },
+  {
+    "model": "gpt-5.6-terra",
+    "case": "review",
+    "variant": "after-v5",
+    "archive": "gpt-5.6-terra",
+    "inputTokens": 44350,
+    "outputTokens": 1211,
+    "cachedInputTokens": 35840,
+    "durationMs": 31442,
+    "exitCode": 0,
+    "skillSha256": "788b6528fba14fe409ec0e93e319fe46c7f56ae0b79bfc886262a9bc1c96c5e7",
+    "output": "outputs/gpt-5.6-terra-review-after-v5.md"
+  },
+  {
+    "model": "gpt-5.6-terra",
+    "case": "review",
+    "variant": "before",
+    "archive": "gpt-5.6-terra",
+    "inputTokens": 74218,
+    "outputTokens": 1560,
+    "cachedInputTokens": 51968,
+    "durationMs": 41431,
+    "exitCode": 0,
+    "skillSha256": "0733a61bd7c63fbbf9bd8d5c3efb9485770d628488e225b08f5ec995ef823a58",
+    "output": "outputs/gpt-5.6-terra-review-before.md"
+  },
+  {
+    "model": "gpt-5.6-terra",
+    "case": "generate",
+    "variant": "before",
+    "archive": "gpt-5.6-terra-initial",
+    "inputTokens": 32311,
+    "outputTokens": 1328,
+    "cachedInputTokens": 16896,
+    "durationMs": 33865,
+    "exitCode": 0,
+    "skillSha256": "0618096843d6d3d0ff024cb56bce586bd9b410542e24475144b5081b211571be"
+  }
+]

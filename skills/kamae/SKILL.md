@@ -15,78 +15,87 @@ license: MIT
 
 # Kamae — Functional Domain Modeling in TypeScript
 
-Six topic files cover the principles. Read only the file(s) relevant to the current task. The library guides under `result-libraries/` and `validation-libraries/` are read on demand based on the project's `package.json`.
+Choose the smallest design that satisfies the task and the checks below. Do not
+narrate every rung or load every guide.
 
-## Step 0: Load applicable rules
+## 0. Establish context once
 
-Before any other step, glob and Read rules in priority order:
+- Read affected code and callers; identify inputs, decisions, outputs, and I/O.
+- Load rule frontmatter from the worktree root’s `.claude/rules/*.md`,
+  `~/.claude/rules/*.md`, then
+  [`../../rules/defaults/*.md`](../../rules/defaults/). Keep `applies-to: kamae`
+  or `*`; group by `name`. Project > user > defaults; same-tier last filename
+  lexicographically wins. Apply surviving bodies: `library-preference` selects
+  libraries, `convention` sets style, `override` replaces topic guidance.
+  Read [rule format](../../rules/README.md) only if needed.
+- Follow established coding/import conventions in the same package. Read its
+  `package.json` once when library choice matters; reuse existing types and schemas.
 
-1. `.claude/rules/*.md` (project-level overrides at the working-tree root)
-2. `~/.claude/rules/*.md` (user-global preferences)
-3. `../../rules/defaults/*.md` relative to this `SKILL.md` (plugin defaults)
+## 1. Choose the first sufficient rung
 
-For each file:
+For each required change, try in order. Stop adding structure once the task and
+all applicable checks in step 2 are satisfied. Different responsibilities may need
+different rungs.
 
-- Read the YAML frontmatter. Skip the rule unless `applies-to` is `kamae` or `*`.
-- Group by `name`. For each `name`, keep only the highest-tier instance (1 > 2 > 3); within a tier the lexicographically last filename wins.
-- Apply the body of each surviving rule throughout the remaining steps. A `library-preference` rule overrides Step 1 detection; a `convention` rule shapes generated code; an `override` rule replaces guidance from a specific topic file.
+1. **Reuse:** Existing schema, type, helper, or installed API does it? Use it.
+   Reusing a schema means deriving its matching type, not keeping a copied shape:
+   `type Parsed = Readonly<z.infer<typeof Schema>>` replaces `type Parsed = { ... }`.
+   Use `z.input` for raw input and `z.output` / `z.infer` for parsed output.
+2. **Constrain data:** A type/schema change suffices? Brand distinct IDs/values,
+   infer schema-backed types, use a `kind` union for state-specific data.
+3. **Compute a decision:** Behavior remains? Add a pure companion-object function.
+   Transitions accept valid source states and return explicit targets; decision
+   entrypoints may narrow a union and return an expected-error `Result`.
+4. **Coordinate effects:** I/O required? Read at the workflow edge, pass values
+   (including time/IDs) into decisions, then persist. Inject required operations
+   through domain-owned contracts; keep concrete adapters outside.
 
-If no rules are found, proceed with the plugin defaults already documented in [`../../rules/defaults/`](../../rules/defaults/).
+Do not add states, events, dependencies, or abstractions for hypothetical needs.
+Validation, privacy, error handling, and atomic writes required by the task remain
+mandatory at every rung. Reused code must also pass the affected-flow checks.
 
-See [`../../rules/README.md`](../../rules/README.md) for the rule format.
+## 2. Check the affected flow
 
-Before applying the topic and library guides, inspect nearby files in the same package for an established, consistent coding and import style. Follow that local convention when it exists; use Kamae's guide conventions only when the repository does not establish one.
+Mark each row internally **pass / fix / N/A**. N/A requires evidence that the
+concern is absent. Uncertainty requires the linked detail; it is not a pass.
 
-## Step 1: Detect project libraries
+| When present | Check | Detail for fix/uncertainty |
+| --- | --- | --- |
+| External data / assertions | Parse request/DB/queue/file/env data before domain use. No assertions except `as const` / `as const satisfies Type`. | [Boundary](boundary-defense.md) |
+| Schema and matching handwritten type | One source of truth: infer the represented input/output side from the schema. Preserve export names, not duplicated shapes. | [Boundary](boundary-defense.md) |
+| PII | Schema-wrap in `Sensitive<T>`; redact serialization/logging; unwrap only at authorized use. | [Boundary](boundary-defense.md) |
+| Domain data | Distinct primitives branded; invalid combinations excluded. Readonly `type`, same-name companion; branded schemas exposed as `.schema`, function properties, one concept per file. | [Domain](domain-modeling.md) |
+| State changes / union switches | Pure decisions using values, not injected I/O; valid source and explicit target; exhaustive union handling with `assertNever`. Required events immutable. | [States](state-modeling.md) |
+| Failure | Expected failures: typed `Result` variants with context fields. External failures: Result only for documented recovery. Unexpected faults: application boundary, never catch-all domain errors. | [Errors](error-handling.md) |
+| I/O dependency | Separate single-operation resolvers/stores beside their domain concept; no dedicated `port/` or `ports/` folder or infrastructure imports. Preserve atomic state/event writes. | [Domain](domain-modeling.md) |
+| Collections / Result pipelines | Direct array operations, inferred predicates, named decision steps; avoid mutation and multi-branch combinator callbacks. | [Style](declarative-style.md), [Errors](error-handling.md) |
+| Test data | Preserve literals with `as const satisfies Type`. | [Fixtures](test-data.md) |
 
-Read `package.json` once. Note which Result library and validation library are present:
+## 3. Resolve only what is missing
 
-- Result libraries — match the first present in priority `neverthrow` > `byethrow` > `fp-ts` > `option-t`. Load the matching guide under [`result-libraries/`](./result-libraries/) when error-handling is in scope.
-- Validation libraries — match the first present in priority `zod` > `valibot` > `arktype`. Load the matching guide under [`validation-libraries/`](./validation-libraries/) when boundary or branded-type work is in scope.
+Read the relevant topic once per fix/uncertainty. Load a library guide when
+implementing/verifying its API; examples only if the guide is insufficient.
+Select from dependencies/devDependencies unless a rule overrides:
 
-If none are present, ask the user before proceeding.
+- Result: [neverthrow](result-libraries/neverthrow.md) >
+  [@praha/byethrow or byethrow](result-libraries/byethrow.md) >
+  [fp-ts](result-libraries/fp-ts.md) > [option-t](result-libraries/option-t.md).
+- Validation: [zod](validation-libraries/zod.md) >
+  [valibot](validation-libraries/valibot.md) > [arktype](validation-libraries/arktype.md).
 
-## Step 2: Apply the topic relevant to the task
+Missing library: continue independent work. For dependent work, use an existing
+custom implementation/override or ask about a library unless that choice is authorized.
 
-Each topic below is one file. Read it lazily — only the file(s) you need for the current task.
+Always consult the Result guide for rejectable I/O wrappers or fp-ts execution.
+Never claim a rejecting Promise is safe. fp-ts transports unexpected faults in a
+separate execution channel and rethrows at a native Promise boundary. A private
+sentinel is allowed only when its local boundary catches it and rethrows all other
+values; see [errors](error-handling.md).
 
-### Type-Driven Domain Modeling — [domain-modeling.md](./domain-modeling.md)
+## 4. Verify and stop
 
-Represent states with discriminated unions using `kind` as the unified discriminant. Use `type` (not `interface`), Companion Object pattern, branded types via the project's validation library, `Readonly<>`, function property notation, and one-concept-per-file structure.
-
-Separate read contracts (resolvers) from write contracts (stores), and prefer one method per contract. Give each consumer only the operations it needs; an event store does not require a resolver or a CRUD repository. Keep I/O at workflow edges and pass values into pure domain decisions.
-
-Place these domain-facing ports beside the concepts they serve in the domain layer. Do not introduce a dedicated `port/` or `ports/` directory, including inside `domain/`. Keep concrete I/O adapters outside the domain; use cases and adapters import the domain-owned contracts. Read the domain-modeling guide when defining dependency contracts or choosing their file locations.
-
-### State Transitions — [state-modeling.md](./state-modeling.md)
-
-Express transitions with pure functions. Argument types constrain valid source states; return types make targets explicit. Invalid transitions become compile errors. Use `assertNever` for exhaustiveness.
-
-### Error Handling — [error-handling.md](./error-handling.md)
-
-- Model expected business failures as use-case-specific `Result` error unions.
-- Include an external failure in the domain `Result` error union only when the workflow has a documented recovery decision.
-- Let unexpected infrastructure failures and contract/invariant violations reach the application error boundary. Preserve library contracts: fp-ts uses a separate execution failure channel inside `TaskEither` and rethrows unexpected faults at a native `Promise` boundary; see the [fp-ts guide](./result-libraries/fp-ts.md).
-- A private control-flow sentinel is allowed when its associated boundary catches only that sentinel and rethrows all other errors.
-
-### Boundary Defense — [boundary-defense.md](./boundary-defense.md)
-
-Validate every external input (API requests, DB results, file/queue/env) with a schema at runtime. Trust types inside the domain. Do not use type assertions — `as const` and `as const satisfies Type` are the only allowed forms; when the type is unknown, parse through a validation-library schema instead. Apply `Sensitive<T>` to PII fields; the validation schema auto-wraps them.
-
-When a runtime schema already defines a boundary representation, derive its TypeScript type from the schema instead of restating the same shape.
-
-### Declarative Style — [declarative-style.md](./declarative-style.md)
-
-Use `filter` / `map` / `reduce` with companion-object predicates instead of imperative loops. Model domain events as immutable records.
-
-### Test Data — [test-data.md](./test-data.md)
-
-Define fixtures with `as const satisfies Type` to preserve discriminant literal types and prevent widening.
-
-## Examples
-
-Worked end-to-end examples are in [examples/](./examples/). Read them only when the topic guide cites a specific example.
-
-## Applying These Principles
-
-These are recommendations, not strict rules. Use judgment based on context. If you deviate from a principle, state the reason in a comment. Justifiable reasons include: external library requires class inheritance, immutable object creation cost is a measured performance concern, or a different pattern has been adopted by team agreement.
+Run required project checks and focused checks for changed behavior, including
+failure paths. Fix failures and revisit affected rows, without restarting all reading.
+Report changes, verification, and unresolved limits concisely. Explain justified
+deviations briefly at the relevant code; respect project overrides. Do not expand
+the task to make unrelated code conform.

@@ -14,6 +14,10 @@ Read the project's `package.json` (`dependencies` and `devDependencies`). Match 
 2. `valibot` → load `validation-libraries/valibot.md`
 3. `arktype` → load `validation-libraries/arktype.md`
 
-Load only the matching file when boundary validation or branded-type generation is in scope. If none are present, recommend `zod` (the most common choice) or ask the user before proceeding with boundary code.
+Select the matching library when boundary validation or branded types are in scope.
+Load its guide only when implementing or verifying its API. Reusing an established
+schema does not require rereading the guide. If none are present, follow an existing
+custom implementation/override or ask which to introduce unless the user already
+authorized that choice. Continue work that does not need a validation library.
 
 Override this default by placing a `name: validation-library` rule in `.claude/rules/` or `~/.claude/rules/` with a higher-tier `library-preference` selection.
