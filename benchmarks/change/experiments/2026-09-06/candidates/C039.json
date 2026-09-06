@@ -1,0 +1,936 @@
+{
+  "candidate": {
+    "caseId": "consumers",
+    "repetition": 3,
+    "ref": "v1.3.0",
+    "candidate_id": "C039"
+  },
+  "generationStatus": "completed",
+  "primaryStatus": "completed",
+  "primaryError": null,
+  "source": {
+    "after/src/index.ts": "export { createReservationService } from \"./reservation\";\nexport { createStockReport } from \"./report\";\nexport { createObservationReceiver } from \"./observation\";\nexport { createProviderBReservationService } from \"./provider-b\";\nexport type {\n  LegacyStorage,\n  ObservationEvent,\n  ObservationSink,\n  ProviderBCollection,\n  ProviderBCommitBatch,\n  ProviderBInventoryRow,\n  ProviderBOutboxRow,\n  ProviderBReadRequest,\n  ProviderBReservationRow,\n  ProviderBStorage,\n  ReservationCommit,\n  ReservationEvent,\n  Reservation,\n  Service,\n  ServiceResponse,\n  SnapshotStockRow,\n  Stock,\n  StockReportSource,\n} from \"./types\";\n",
+    "after/src/observation.ts": "import type { ObservationEvent, ObservationSink, Service, ServiceResponse } from \"./types\";\nimport { error } from \"./reservation\";\nimport { isId, isRecord, isUnits } from \"./validation\";\n\ntype RecordObservationCommand = Readonly<{\n  op: \"recordObservation\";\n  observationId: string;\n  sku: string;\n  observedUnits: number;\n}>;\n\nfunction parseCommand(raw: unknown): RecordObservationCommand | undefined {\n  if (!isRecord(raw) || raw.op !== \"recordObservation\" ||\n      !isId(raw.observationId) || !isId(raw.sku) || !isUnits(raw.observedUnits)) {\n    return undefined;\n  }\n  return {\n    op: raw.op,\n    observationId: raw.observationId,\n    sku: raw.sku,\n    observedUnits: raw.observedUnits,\n  };\n}\n\nexport function createObservationReceiver({ sink }: { sink: ObservationSink }): Service {\n  return {\n    async handle(raw): Promise<ServiceResponse> {\n      const command = parseCommand(raw);\n      if (command === undefined) return error(400, \"invalid_command\");\n      const event: ObservationEvent = {\n        type: \"inventory.observed\",\n        observationId: command.observationId,\n        sku: command.sku,\n        observedUnits: command.observedUnits,\n      };\n      try {\n        const outcome = await sink.appendObservation(event);\n        if (outcome === \"stored\") {\n          return { status: 201, body: { observationId: command.observationId, recorded: true } };\n        }\n        if (outcome === \"duplicate\") {\n          return { status: 200, body: { observationId: command.observationId, recorded: false } };\n        }\n        return error(500, \"storage_unavailable\");\n      } catch {\n        return error(500, \"storage_unavailable\");\n      }\n    },\n  };\n}\n",
+    "after/src/provider-b.ts": "import { error, parseReservationCommand, reservationResponse } from \"./reservation\";\nimport type {\n  ProviderBInventoryRow,\n  ProviderBReservationRow,\n  ProviderBStorage,\n  Reservation,\n  Service,\n  Stock,\n} from \"./types\";\nimport {\n  decodeCanonicalDecimal,\n  decodeProviderBInventoryRow,\n  decodeProviderBReservationRow,\n  encodeCanonicalDecimal,\n  isRecord,\n  isRevision,\n} from \"./validation\";\n\ntype ReadResult<T> =\n  | Readonly<{ kind: \"found\"; value: T }>\n  | Readonly<{ kind: \"missing\" }>\n  | Readonly<{ kind: \"unavailable\" }>;\n\nfunction providerInventoryToStock(row: ProviderBInventoryRow, requestedKey: string): Stock | undefined {\n  const totalUnits = decodeCanonicalDecimal(row.onHandText);\n  const reservedUnits = decodeCanonicalDecimal(row.heldText);\n  const revision = decodeCanonicalDecimal(row.revisionText);\n  if (row.itemKey !== requestedKey || totalUnits === undefined || reservedUnits === undefined ||\n      revision === undefined) return undefined;\n  return {\n    sku: row.itemKey,\n    totalUnits,\n    reservedUnits,\n    revision,\n  };\n}\n\nfunction providerReservationToReservation(\n  row: ProviderBReservationRow,\n  requestedKey: string,\n): Reservation | undefined {\n  const quantity = decodeCanonicalDecimal(row.unitsText);\n  if (row.bookingKey !== requestedKey || quantity === undefined) return undefined;\n  return {\n    reservationId: row.bookingKey,\n    sku: row.itemKey,\n    quantity,\n  };\n}\n\nfunction decodeProviderEnvelope<T>(\n  raw: unknown,\n  decodeValue: (value: unknown) => T | undefined,\n): ReadResult<T> {\n  if (!isRecord(raw) || typeof raw.ok !== \"boolean\") return { kind: \"unavailable\" };\n  if (raw.ok) {\n    const value = decodeValue(raw.value);\n    return value === undefined ? { kind: \"unavailable\" } : { kind: \"found\", value };\n  }\n  if (!isRecord(raw.error) || typeof raw.error.reason !== \"string\") {\n    return { kind: \"unavailable\" };\n  }\n  if (raw.error.reason === \"NO_SUCH_KEY\") return { kind: \"missing\" };\n  return { kind: \"unavailable\" };\n}\n\nasync function readStock(storage: ProviderBStorage, sku: string): Promise<ReadResult<Stock>> {\n  const envelope = await storage.read({ collection: \"inventory\", key: sku });\n  const decoded = decodeProviderEnvelope(envelope, decodeProviderBInventoryRow);\n  if (decoded.kind !== \"found\") return decoded;\n  const stock = providerInventoryToStock(decoded.value, sku);\n  return stock === undefined ? { kind: \"unavailable\" } : { kind: \"found\", value: stock };\n}\n\nasync function readReservation(\n  storage: ProviderBStorage,\n  reservationId: string,\n): Promise<ReadResult<Reservation>> {\n  const envelope = await storage.read({ collection: \"reservations\", key: reservationId });\n  const decoded = decodeProviderEnvelope(envelope, decodeProviderBReservationRow);\n  if (decoded.kind !== \"found\") return decoded;\n  const reservation = providerReservationToReservation(decoded.value, reservationId);\n  return reservation === undefined ? { kind: \"unavailable\" } : { kind: \"found\", value: reservation };\n}\n\nexport function createProviderBReservationService({ storage }: { storage: ProviderBStorage }): Service {\n  return {\n    async handle(raw) {\n      const command = parseReservationCommand(raw);\n      if (command === undefined) return error(400, \"invalid_command\");\n      try {\n        if (command.op === \"getAvailability\") {\n          const stock = await readStock(storage, command.sku);\n          if (stock.kind === \"missing\") return error(404, \"stock_not_found\");\n          if (stock.kind === \"unavailable\") return error(500, \"storage_unavailable\");\n          return {\n            status: 200,\n            body: {\n              sku: stock.value.sku,\n              totalUnits: stock.value.totalUnits,\n              reservedUnits: stock.value.reservedUnits,\n              availableUnits: stock.value.totalUnits - stock.value.reservedUnits,\n            },\n          };\n        }\n\n        const existing = await readReservation(storage, command.reservationId);\n        if (existing.kind === \"unavailable\") return error(500, \"storage_unavailable\");\n        if (command.op === \"getReservation\") {\n          return existing.kind === \"found\"\n            ? reservationResponse(200, existing.value)\n            : error(404, \"reservation_not_found\");\n        }\n        if (existing.kind === \"found\") {\n          return existing.value.sku === command.sku && existing.value.quantity === command.quantity\n            ? reservationResponse(200, existing.value)\n            : error(409, \"reservation_conflict\");\n        }\n\n        const stock = await readStock(storage, command.sku);\n        if (stock.kind === \"missing\") return error(404, \"stock_not_found\");\n        if (stock.kind === \"unavailable\") return error(500, \"storage_unavailable\");\n        if (stock.value.totalUnits - stock.value.reservedUnits < command.quantity) {\n          return error(409, \"insufficient_stock\");\n        }\n\n        const nextRevision = stock.value.revision + 1;\n        if (!isRevision(nextRevision)) return error(500, \"storage_unavailable\");\n\n        const reservation: Reservation = {\n          reservationId: command.reservationId,\n          sku: command.sku,\n          quantity: command.quantity,\n        };\n        const outcome = await storage.commitBatch({\n          expectedRevisionText: encodeCanonicalDecimal(stock.value.revision),\n          stockRow: {\n            itemKey: command.sku,\n            onHandText: encodeCanonicalDecimal(stock.value.totalUnits),\n            heldText: encodeCanonicalDecimal(stock.value.reservedUnits + command.quantity),\n            revisionText: encodeCanonicalDecimal(nextRevision),\n          },\n          reservationRow: {\n            bookingKey: command.reservationId,\n            itemKey: command.sku,\n            unitsText: encodeCanonicalDecimal(command.quantity),\n          },\n          outboxRows: [{\n            key: \"reservation.created:\" + command.reservationId,\n            category: \"reservation\",\n            name: \"created\",\n            payload: {\n              bookingKey: command.reservationId,\n              itemKey: command.sku,\n              unitsText: encodeCanonicalDecimal(command.quantity),\n            },\n          }],\n        });\n        if (outcome === \"revision_conflict\") return error(409, \"commit_conflict\");\n        if (outcome !== \"applied\") return error(500, \"storage_unavailable\");\n        return reservationResponse(201, reservation);\n      } catch {\n        return error(500, \"storage_unavailable\");\n      }\n    },\n  };\n}\n",
+    "after/src/report.ts": "import type { Service, ServiceResponse, SnapshotStockRow, StockReportSource } from \"./types\";\nimport { isRecord, isUnits, decodeSnapshotStockRow } from \"./validation\";\nimport { error } from \"./reservation\";\n\ntype LowStockCommand = Readonly<{\n  op: \"lowStock\";\n  belowUnits: number;\n}>;\n\nfunction parseCommand(raw: unknown): LowStockCommand | undefined {\n  if (!isRecord(raw) || raw.op !== \"lowStock\" || !isUnits(raw.belowUnits)) return undefined;\n  return { op: raw.op, belowUnits: raw.belowUnits };\n}\n\nfunction decodeSnapshot(value: unknown): readonly SnapshotStockRow[] | undefined {\n  if (!Array.isArray(value)) return undefined;\n  const rows: SnapshotStockRow[] = [];\n  const seen = new Set<string>();\n  for (const rawRow of value) {\n    const row = decodeSnapshotStockRow(rawRow);\n    if (row === undefined || seen.has(row.sku)) return undefined;\n    seen.add(row.sku);\n    rows.push(row);\n  }\n  return rows;\n}\n\nexport function createStockReport({ source }: { source: StockReportSource }): Service {\n  return {\n    async handle(raw): Promise<ServiceResponse> {\n      const command = parseCommand(raw);\n      if (command === undefined) return error(400, \"invalid_command\");\n      try {\n        const snapshot = decodeSnapshot(await source.readSnapshot());\n        if (snapshot === undefined) return error(500, \"storage_unavailable\");\n        const items = snapshot\n          .map((row) => ({ sku: row.sku, availableUnits: row.totalUnits - row.reservedUnits }))\n          .filter((item) => item.availableUnits < command.belowUnits)\n          .sort((left, right) => left.sku < right.sku ? -1 : left.sku > right.sku ? 1 : 0);\n        return { status: 200, body: { items } };\n      } catch {\n        return error(500, \"storage_unavailable\");\n      }\n    },\n  };\n}\n",
+    "after/src/reservation.ts": "import type { LegacyStorage, Reservation, ReservationEvent, Service, ServiceResponse } from \"./types\";\nimport { decodeReservation, decodeStock, isId, isQuantity, isRecord, isRevision } from \"./validation\";\n\nexport type ReservationCommand =\n  | { op: \"getAvailability\"; sku: string }\n  | { op: \"getReservation\"; reservationId: string }\n  | { op: \"reserve\"; reservationId: string; sku: string; quantity: number };\n\nexport function parseReservationCommand(raw: unknown): ReservationCommand | undefined {\n  if (!isRecord(raw)) return undefined;\n  switch (raw.op) {\n    case \"getAvailability\":\n      return isId(raw.sku) ? { op: raw.op, sku: raw.sku } : undefined;\n    case \"getReservation\":\n      return isId(raw.reservationId)\n        ? { op: raw.op, reservationId: raw.reservationId } : undefined;\n    case \"reserve\":\n      return isId(raw.reservationId) && isId(raw.sku) && isQuantity(raw.quantity)\n        ? { op: raw.op, reservationId: raw.reservationId, sku: raw.sku, quantity: raw.quantity }\n        : undefined;\n    default:\n      return undefined;\n  }\n}\n\nexport function error(status: 400 | 404 | 409 | 500, code: string): ServiceResponse {\n  return { status, body: { code } };\n}\n\nexport function reservationResponse(status: 200 | 201, reservation: Reservation): ServiceResponse {\n  return {\n    status,\n    body: {\n      reservationId: reservation.reservationId,\n      sku: reservation.sku,\n      quantity: reservation.quantity,\n    },\n  };\n}\n\nexport function createReservationService({ storage }: { storage: LegacyStorage }): Service {\n  return {\n    async handle(raw) {\n      const command = parseReservationCommand(raw);\n      if (command === undefined) return error(400, \"invalid_command\");\n      try {\n        if (command.op === \"getAvailability\") {\n          const rawStock = await storage.getStock(command.sku);\n          if (rawStock === undefined) return error(404, \"stock_not_found\");\n          const stock = decodeStock(rawStock);\n          if (!stock || stock.sku !== command.sku) return error(500, \"storage_unavailable\");\n          return {\n            status: 200,\n            body: {\n              sku: stock.sku,\n              totalUnits: stock.totalUnits,\n              reservedUnits: stock.reservedUnits,\n              availableUnits: stock.totalUnits - stock.reservedUnits,\n            },\n          };\n        }\n\n        const rawReservation = await storage.getReservation(command.reservationId);\n        const existing = rawReservation === undefined ? undefined : decodeReservation(rawReservation);\n        if (rawReservation !== undefined && (!existing || existing.reservationId !== command.reservationId)) {\n          return error(500, \"storage_unavailable\");\n        }\n        if (command.op === \"getReservation\") {\n          return existing ? reservationResponse(200, existing) : error(404, \"reservation_not_found\");\n        }\n        if (existing) {\n          return existing.sku === command.sku && existing.quantity === command.quantity\n            ? reservationResponse(200, existing)\n            : error(409, \"reservation_conflict\");\n        }\n\n        const rawStock = await storage.getStock(command.sku);\n        if (rawStock === undefined) return error(404, \"stock_not_found\");\n        const stock = decodeStock(rawStock);\n        if (!stock || stock.sku !== command.sku) return error(500, \"storage_unavailable\");\n        if (stock.totalUnits - stock.reservedUnits < command.quantity) {\n          return error(409, \"insufficient_stock\");\n        }\n        const nextRevision = stock.revision + 1;\n        if (!isRevision(nextRevision)) return error(500, \"storage_unavailable\");\n        const reservation: Reservation = {\n          reservationId: command.reservationId,\n          sku: command.sku,\n          quantity: command.quantity,\n        };\n        const event: ReservationEvent = {\n          eventId: \"reservation.created:\" + reservation.reservationId,\n          type: \"reservation.created\",\n          reservationId: reservation.reservationId,\n          sku: reservation.sku,\n          quantity: reservation.quantity,\n        };\n        const outcome = await storage.commitReservation({\n          expectedRevision: stock.revision,\n          nextStock: {\n            ...stock,\n            reservedUnits: stock.reservedUnits + command.quantity,\n            revision: nextRevision,\n          },\n          reservation,\n          events: [event],\n        });\n        if (outcome === \"revision_conflict\") return error(409, \"commit_conflict\");\n        if (outcome !== \"committed\") return error(500, \"storage_unavailable\");\n        return reservationResponse(201, reservation);\n      } catch {\n        return error(500, \"storage_unavailable\");\n      }\n    },\n  };\n}\n",
+    "after/src/types.ts": "export type Stock = {\n  sku: string;\n  totalUnits: number;\n  reservedUnits: number;\n  revision: number;\n};\n\nexport type Reservation = {\n  reservationId: string;\n  sku: string;\n  quantity: number;\n};\n\nexport type ReservationEvent = {\n  eventId: string;\n  type: \"reservation.created\";\n  reservationId: string;\n  sku: string;\n  quantity: number;\n};\n\nexport type ReservationCommit = {\n  expectedRevision: number;\n  nextStock: Stock;\n  reservation: Reservation;\n  events: ReservationEvent[];\n};\n\nexport type LegacyStorage = {\n  getStock: (sku: string) => Promise<unknown>;\n  getReservation: (reservationId: string) => Promise<unknown>;\n  commitReservation: (change: ReservationCommit) => Promise<unknown>;\n};\n\nexport type SnapshotStockRow = Readonly<{\n  sku: string;\n  totalUnits: number;\n  reservedUnits: number;\n}>;\n\nexport type StockReportSource = Readonly<{\n  readSnapshot: () => Promise<unknown>;\n}>;\n\nexport type ObservationEvent = Readonly<{\n  type: \"inventory.observed\";\n  observationId: string;\n  sku: string;\n  observedUnits: number;\n}>;\n\nexport type ObservationSink = Readonly<{\n  appendObservation: (event: ObservationEvent) => Promise<unknown>;\n}>;\n\nexport type ProviderBCollection = \"inventory\" | \"reservations\";\n\nexport type ProviderBReadRequest = Readonly<{\n  collection: ProviderBCollection;\n  key: string;\n}>;\n\nexport type ProviderBInventoryRow = Readonly<{\n  itemKey: string;\n  onHandText: string;\n  heldText: string;\n  revisionText: string;\n}>;\n\nexport type ProviderBReservationRow = Readonly<{\n  bookingKey: string;\n  itemKey: string;\n  unitsText: string;\n}>;\n\nexport type ProviderBOutboxRow = Readonly<{\n  key: string;\n  category: \"reservation\";\n  name: \"created\";\n  payload: Readonly<{\n    bookingKey: string;\n    itemKey: string;\n    unitsText: string;\n  }>;\n}>;\n\nexport type ProviderBCommitBatch = Readonly<{\n  expectedRevisionText: string;\n  stockRow: ProviderBInventoryRow;\n  reservationRow: ProviderBReservationRow;\n  outboxRows: readonly ProviderBOutboxRow[];\n}>;\n\nexport type ProviderBStorage = Readonly<{\n  read: (request: ProviderBReadRequest) => Promise<unknown>;\n  commitBatch: (batch: ProviderBCommitBatch) => Promise<unknown>;\n}>;\n\nexport type ServiceResponse = {\n  status: 200 | 201 | 400 | 404 | 409 | 500;\n  body: Record<string, unknown>;\n};\n\nexport type Service = {\n  handle: (command: unknown) => Promise<ServiceResponse>;\n};\n",
+    "after/src/validation.ts": "import type { ProviderBInventoryRow, ProviderBReservationRow, Reservation, SnapshotStockRow, Stock } from \"./types\";\n\nexport function isRecord(value: unknown): value is Record<string, unknown> {\n  return typeof value === \"object\" && value !== null && !Array.isArray(value);\n}\n\nexport function isId(value: unknown): value is string {\n  return typeof value === \"string\" && value.length > 0;\n}\n\nexport function isUnits(value: unknown): value is number {\n  return typeof value === \"number\" && Number.isInteger(value) &&\n    value >= 0 && value <= 1_000_000;\n}\n\nexport function isQuantity(value: unknown): value is number {\n  return isUnits(value) && value > 0;\n}\n\nexport function isRevision(value: unknown): value is number {\n  return typeof value === \"number\" && Number.isSafeInteger(value) && value >= 0;\n}\n\nexport function decodeStock(value: unknown): Stock | undefined {\n  if (!isRecord(value) || !isId(value.sku) || !isUnits(value.totalUnits) ||\n      !isUnits(value.reservedUnits) || value.reservedUnits > value.totalUnits ||\n      !isRevision(value.revision)) return undefined;\n  return {\n    sku: value.sku,\n    totalUnits: value.totalUnits,\n    reservedUnits: value.reservedUnits,\n    revision: value.revision,\n  };\n}\n\nexport function decodeSnapshotStockRow(value: unknown): SnapshotStockRow | undefined {\n  if (!isRecord(value) || !isId(value.sku) || !isUnits(value.totalUnits) ||\n      !isUnits(value.reservedUnits) || value.reservedUnits > value.totalUnits) return undefined;\n  return {\n    sku: value.sku,\n    totalUnits: value.totalUnits,\n    reservedUnits: value.reservedUnits,\n  };\n}\n\nexport function decodeReservation(value: unknown): Reservation | undefined {\n  if (!isRecord(value) || !isId(value.reservationId) ||\n      !isId(value.sku) || !isQuantity(value.quantity)) return undefined;\n  return {\n    reservationId: value.reservationId,\n    sku: value.sku,\n    quantity: value.quantity,\n  };\n}\n\nexport function decodeCanonicalDecimal(value: unknown): number | undefined {\n  if (typeof value !== \"string\" || !/^(0|[1-9][0-9]*)$/.test(value)) return undefined;\n  const parsed = Number(value);\n  return Number.isSafeInteger(parsed) ? parsed : undefined;\n}\n\nexport function encodeCanonicalDecimal(value: number): string {\n  return String(value);\n}\n\nexport function decodeProviderBInventoryRow(value: unknown): ProviderBInventoryRow | undefined {\n  if (!isRecord(value) || !isId(value.itemKey) ||\n      typeof value.onHandText !== \"string\" ||\n      typeof value.heldText !== \"string\" ||\n      typeof value.revisionText !== \"string\") return undefined;\n  const onHand = decodeCanonicalDecimal(value.onHandText);\n  const held = decodeCanonicalDecimal(value.heldText);\n  const revision = decodeCanonicalDecimal(value.revisionText);\n  if (onHand === undefined || held === undefined || revision === undefined ||\n      !isUnits(onHand) || !isUnits(held) || held > onHand || !isRevision(revision)) {\n    return undefined;\n  }\n  return {\n    itemKey: value.itemKey,\n    onHandText: value.onHandText,\n    heldText: value.heldText,\n    revisionText: value.revisionText,\n  };\n}\n\nexport function decodeProviderBReservationRow(value: unknown): ProviderBReservationRow | undefined {\n  if (!isRecord(value) || !isId(value.bookingKey) || !isId(value.itemKey) ||\n      typeof value.unitsText !== \"string\") return undefined;\n  const units = decodeCanonicalDecimal(value.unitsText);\n  if (units === undefined || !isQuantity(units)) return undefined;\n  return {\n    bookingKey: value.bookingKey,\n    itemKey: value.itemKey,\n    unitsText: value.unitsText,\n  };\n}\n"
+  },
+  "implementationNotes": "# Implementation\n\n## Changed behavior\n\n- `src/index.ts` now exports all four factories:\n  - `createReservationService({ storage })`\n  - `createStockReport({ source })`\n  - `createObservationReceiver({ sink })`\n  - `createProviderBReservationService({ storage })`\n- The legacy reservation service preserves the existing command behavior and response shapes. Its parser and response helper are exported internally for reuse by the Provider B adapter.\n- `createStockReport` handles `{ op: \"lowStock\", belowUnits }`, validates the command before I/O, reads only `source.readSnapshot()`, rejects malformed snapshots and duplicate SKUs with `500 storage_unavailable`, and returns SKU-sorted `{ sku, availableUnits }` items whose availability is strictly below the threshold.\n- `createObservationReceiver` handles `{ op: \"recordObservation\", observationId, sku, observedUnits }`, validates before I/O, appends exactly the documented observation event through `sink.appendObservation`, and maps `\"stored\"` to `201` and `\"duplicate\"` to `200`.\n- `createProviderBReservationService` handles the same public reservation commands as the legacy service using only `storage.read` and `storage.commitBatch`. It translates Provider B envelopes and canonical decimal-string rows into the existing reservation domain behavior, and writes Provider B stock, reservation and outbox rows in one atomic batch.\n\n## Affected call paths\n\n- Legacy reservation:\n  - `createReservationService().handle()` -> `parseReservationCommand()` -> legacy storage reads/commit.\n- Stock report:\n  - `createStockReport().handle()` -> report command validation -> `source.readSnapshot()` -> snapshot row validation/filter/sort.\n- Observation receiver:\n  - `createObservationReceiver().handle()` -> observation command validation -> `sink.appendObservation()`.\n- Provider B reservation:\n  - `createProviderBReservationService().handle()` -> `parseReservationCommand()` -> Provider B read envelope decoding -> decimal row decoding -> Provider B batch commit.\n\n## Deviations\n\n- No runtime validation or result library was added because the package has no such dependency and dependency changes were out of scope. The implementation follows the existing local decoder style instead.\n- `bun run typecheck` was attempted but Bun failed before invoking the script with `CouldntReadCurrentDirectory`. The same TypeScript command was run directly through the installed compiler.\n\n## Validation performed\n\n- `node node_modules/typescript/bin/tsc --noEmit` passed.\n- `bun test src/implementation.test.ts` passed with 3 tests covering:\n  - low-stock filtering and sorting,\n  - observation stored/duplicate mapping and payload shape,\n  - Provider B reservation batch shape and idempotent repeat behavior.\n\n## Remaining limitations\n\n- The implementation intentionally does not add concurrency retries, migration between providers, observation-to-stock updates, crash recovery, logging, or external service integration.\n",
+  "primaryAssessment": {
+    "candidate_id": "C039",
+    "files_read": [
+      "before/src/index.ts",
+      "before/src/reservation.ts",
+      "before/src/types.ts",
+      "before/src/validation.ts",
+      "after/src/index.ts",
+      "after/src/reservation.ts",
+      "after/src/types.ts",
+      "after/src/validation.ts",
+      "after/src/report.ts",
+      "after/src/observation.ts",
+      "after/src/provider-b.ts"
+    ],
+    "requirements": [
+      {
+        "id": "B1",
+        "status": "supported",
+        "rationale": "The legacy factory remains exported, uses the same three legacy commands, validates required fields before I/O, ignores extras by copying only required fields, and returns the documented status/body shapes.",
+        "evidence": [
+          {
+            "file": "after/src/index.ts",
+            "line_start": 1,
+            "line_end": 4,
+            "explanation": "Exports the legacy reservation factory along with the new factories."
+          },
+          {
+            "file": "after/src/reservation.ts",
+            "line_start": 9,
+            "line_end": 23,
+            "explanation": "Parses only the three legacy operations and required fields."
+          },
+          {
+            "file": "after/src/reservation.ts",
+            "line_start": 41,
+            "line_end": 112,
+            "explanation": "Implements legacy command handling and fixed error responses."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "B2",
+        "status": "supported",
+        "rationale": "Reserve checks for an existing reservation first, returns exact duplicates with 200, rejects conflicting reuse with 409, then requires existing stock and sufficient availability before commit.",
+        "evidence": [
+          {
+            "file": "after/src/reservation.ts",
+            "line_start": 63,
+            "line_end": 75,
+            "explanation": "Existing reservation handling preserves exact duplicate and conflict behavior before stock reads."
+          },
+          {
+            "file": "after/src/reservation.ts",
+            "line_start": 77,
+            "line_end": 83,
+            "explanation": "Missing stock and insufficient availability are rejected before committing."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "B3",
+        "status": "supported",
+        "rationale": "New legacy reservations commit the loaded revision, increment revision by one, increase reservedUnits, insert the reservation, and include exactly one matching reservation.created event; provider B uses an equivalent single atomic batch.",
+        "evidence": [
+          {
+            "file": "after/src/reservation.ts",
+            "line_start": 84,
+            "line_end": 107,
+            "explanation": "Builds next stock, reservation, expectedRevision, and one reservation.created event for legacy storage."
+          },
+          {
+            "file": "after/src/provider-b.ts",
+            "line_start": 127,
+            "line_end": 158,
+            "explanation": "Builds the Provider B batch with expectedRevisionText, stockRow, reservationRow, and one outbox row."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "B4",
+        "status": "supported",
+        "rationale": "Legacy storage rejections, malformed records/results, exhausted revision, and commit outcomes are mapped to the required code-only public errors.",
+        "evidence": [
+          {
+            "file": "after/src/reservation.ts",
+            "line_start": 26,
+            "line_end": 27,
+            "explanation": "Shared error helper returns only { code }."
+          },
+          {
+            "file": "after/src/reservation.ts",
+            "line_start": 48,
+            "line_end": 51,
+            "explanation": "Malformed or mismatched stock records produce storage_unavailable."
+          },
+          {
+            "file": "after/src/reservation.ts",
+            "line_start": 63,
+            "line_end": 66,
+            "explanation": "Malformed self-owned reservation records produce storage_unavailable."
+          },
+          {
+            "file": "after/src/reservation.ts",
+            "line_start": 84,
+            "line_end": 112,
+            "explanation": "Exhausted revisions, revision_conflict, unusable commit results, and rejections are mapped as required."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "B5",
+        "status": "supported",
+        "rationale": "Identifiers are accepted as exact nonempty strings without trimming, storage writes preserve required stock/reservation/event data, responses copy stored/command fields, and no in-memory state prevents fresh-instance round trips.",
+        "evidence": [
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 7,
+            "line_end": 17,
+            "explanation": "Shared validators accept exact nonempty strings and bounded integer quantities."
+          },
+          {
+            "file": "after/src/reservation.ts",
+            "line_start": 30,
+            "line_end": 38,
+            "explanation": "Reservation responses preserve stored reservation fields."
+          },
+          {
+            "file": "after/src/reservation.ts",
+            "line_start": 86,
+            "line_end": 107,
+            "explanation": "Legacy reservation writes preserve exact command IDs and required event/stock fields."
+          },
+          {
+            "file": "after/src/provider-b.ts",
+            "line_start": 135,
+            "line_end": 158,
+            "explanation": "Provider B writes complete decimal-string stock, reservation, and outbox rows from exact command values."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "B6",
+        "status": "supported",
+        "rationale": "Invalid commands, queries, business failures, and completed-reservation retries return before commits; commit failures are not followed by separate writes, so retries do not create duplicate events.",
+        "evidence": [
+          {
+            "file": "after/src/reservation.ts",
+            "line_start": 43,
+            "line_end": 83,
+            "explanation": "Invalid, query, duplicate, conflict, missing-stock, and insufficient-stock paths return before commitReservation."
+          },
+          {
+            "file": "after/src/reservation.ts",
+            "line_start": 98,
+            "line_end": 110,
+            "explanation": "Only successful committed outcomes return 201."
+          },
+          {
+            "file": "after/src/provider-b.ts",
+            "line_start": 107,
+            "line_end": 125,
+            "explanation": "Provider B duplicate/conflict/business failures return before commitBatch."
+          },
+          {
+            "file": "after/src/provider-b.ts",
+            "line_start": 135,
+            "line_end": 161,
+            "explanation": "Provider B uses one batch and returns success only after applied."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C1",
+        "status": "supported",
+        "rationale": "createStockReport validates lowStock before I/O, uses only readSnapshot, rejects unusable/duplicate snapshots, computes availability, filters strictly below threshold, sorts by direct string comparison, and returns an items array.",
+        "evidence": [
+          {
+            "file": "after/src/report.ts",
+            "line_start": 10,
+            "line_end": 12,
+            "explanation": "Validates op and belowUnits before host access."
+          },
+          {
+            "file": "after/src/report.ts",
+            "line_start": 15,
+            "line_end": 25,
+            "explanation": "Rejects non-array snapshots, malformed rows, and duplicate SKUs."
+          },
+          {
+            "file": "after/src/report.ts",
+            "line_start": 28,
+            "line_end": 40,
+            "explanation": "Calls readSnapshot, computes availableUnits, filters with < belowUnits, sorts by relational string comparison, and returns { items }."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C2",
+        "status": "supported",
+        "rationale": "createObservationReceiver validates before I/O, accepts any valid SKU string, calls only appendObservation with exactly the documented event fields, and maps stored/duplicate outcomes correctly.",
+        "evidence": [
+          {
+            "file": "after/src/observation.ts",
+            "line_start": 12,
+            "line_end": 22,
+            "explanation": "Validates recordObservation fields and copies only documented command fields."
+          },
+          {
+            "file": "after/src/observation.ts",
+            "line_start": 25,
+            "line_end": 47,
+            "explanation": "Builds the exact observation event, calls appendObservation, maps stored to 201, duplicate to 200, and other/rejected outcomes to 500."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C3",
+        "status": "supported",
+        "rationale": "Provider B reservation support is exported, uses only read and commitBatch, decodes documented envelopes and canonical decimal rows, preserves legacy reservation behavior, and writes self-owned rows in one atomic batch.",
+        "evidence": [
+          {
+            "file": "after/src/index.ts",
+            "line_start": 1,
+            "line_end": 4,
+            "explanation": "Exports createProviderBReservationService."
+          },
+          {
+            "file": "after/src/provider-b.ts",
+            "line_start": 51,
+            "line_end": 84,
+            "explanation": "Decodes Provider B read envelopes and translates inventory/reservation rows."
+          },
+          {
+            "file": "after/src/provider-b.ts",
+            "line_start": 86,
+            "line_end": 161,
+            "explanation": "Implements legacy reservation workflows over Provider B reads and commitBatch."
+          },
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 56,
+            "line_end": 96,
+            "explanation": "Validates canonical decimal text and Provider B row shapes."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C4",
+        "status": "supported",
+        "rationale": "Each factory's dependency type contains only the documented host methods, and each implementation calls only the relevant methods on its supplied dependency.",
+        "evidence": [
+          {
+            "file": "after/src/types.ts",
+            "line_start": 29,
+            "line_end": 33,
+            "explanation": "LegacyStorage contains only getStock, getReservation, and commitReservation."
+          },
+          {
+            "file": "after/src/types.ts",
+            "line_start": 41,
+            "line_end": 54,
+            "explanation": "Report and observation dependency types contain only readSnapshot or appendObservation."
+          },
+          {
+            "file": "after/src/types.ts",
+            "line_start": 94,
+            "line_end": 97,
+            "explanation": "ProviderBStorage contains only read and commitBatch."
+          },
+          {
+            "file": "after/src/report.ts",
+            "line_start": 33,
+            "line_end": 40,
+            "explanation": "Report calls only source.readSnapshot."
+          },
+          {
+            "file": "after/src/observation.ts",
+            "line_start": 36,
+            "line_end": 43,
+            "explanation": "Observation calls only sink.appendObservation."
+          },
+          {
+            "file": "after/src/provider-b.ts",
+            "line_start": 67,
+            "line_end": 79,
+            "explanation": "Provider B reads use only storage.read."
+          },
+          {
+            "file": "after/src/provider-b.ts",
+            "line_start": 135,
+            "line_end": 158,
+            "explanation": "Provider B writes use only storage.commitBatch."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C5",
+        "status": "supported",
+        "rationale": "New report and observation commands validate op and required fields before I/O, use exact nonempty IDs and 0-through-1000000 integer quantities, reject unknown/malformed commands with invalid_command, and ignore extras.",
+        "evidence": [
+          {
+            "file": "after/src/report.ts",
+            "line_start": 10,
+            "line_end": 12,
+            "explanation": "lowStock command validation rejects unknown ops and invalid belowUnits before I/O."
+          },
+          {
+            "file": "after/src/observation.ts",
+            "line_start": 12,
+            "line_end": 22,
+            "explanation": "recordObservation validation rejects unknown ops and invalid/missing fields before I/O."
+          },
+          {
+            "file": "after/src/observation.ts",
+            "line_start": 30,
+            "line_end": 35,
+            "explanation": "Observation event contains only documented fields, so extras are ignored."
+          },
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 7,
+            "line_end": 17,
+            "explanation": "IDs and 0-through-1000000 integer units are validated."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C6",
+        "status": "supported",
+        "rationale": "Report snapshots reject malformed rows and duplicate SKUs. Provider B rejects malformed envelopes/rows, noncanonical decimal strings, invalid stock quantities, held greater than on-hand, key mismatches, and distinguishes NO_SUCH_KEY from unavailable reasons.",
+        "evidence": [
+          {
+            "file": "after/src/report.ts",
+            "line_start": 15,
+            "line_end": 25,
+            "explanation": "Snapshot decoder rejects unusable snapshots and duplicate SKUs."
+          },
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 36,
+            "line_end": 44,
+            "explanation": "Snapshot rows require valid stock quantities and reservedUnits <= totalUnits."
+          },
+          {
+            "file": "after/src/provider-b.ts",
+            "line_start": 51,
+            "line_end": 64,
+            "explanation": "Provider B envelope decoder maps only NO_SUCH_KEY to missing; all malformed or other reasons become unavailable."
+          },
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 56,
+            "line_end": 96,
+            "explanation": "Provider B decimal and row validators enforce canonical text, numeric bounds, positive reservation units, and held <= on-hand."
+          },
+          {
+            "file": "after/src/provider-b.ts",
+            "line_start": 67,
+            "line_end": 83,
+            "explanation": "Provider B readers reject stock/reservation key mismatches."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C7",
+        "status": "supported",
+        "rationale": "New host rejections and unusable outcomes are contained as code-only storage_unavailable, Provider B revision_conflict maps to commit_conflict, and Provider B reservation writes preserve atomicity/idempotency through one commitBatch and duplicate short-circuiting.",
+        "evidence": [
+          {
+            "file": "after/src/reservation.ts",
+            "line_start": 26,
+            "line_end": 27,
+            "explanation": "Shared error helper exposes only fixed code bodies."
+          },
+          {
+            "file": "after/src/report.ts",
+            "line_start": 33,
+            "line_end": 42,
+            "explanation": "readSnapshot rejection or unusable snapshot returns storage_unavailable."
+          },
+          {
+            "file": "after/src/observation.ts",
+            "line_start": 36,
+            "line_end": 47,
+            "explanation": "appendObservation rejection or unknown result returns storage_unavailable."
+          },
+          {
+            "file": "after/src/provider-b.ts",
+            "line_start": 114,
+            "line_end": 117,
+            "explanation": "Exact completed Provider B reservation repeats return without another batch."
+          },
+          {
+            "file": "after/src/provider-b.ts",
+            "line_start": 135,
+            "line_end": 160,
+            "explanation": "Provider B sends one atomic batch and maps revision_conflict to commit_conflict and other non-applied outcomes to storage_unavailable."
+          },
+          {
+            "file": "after/src/provider-b.ts",
+            "line_start": 162,
+            "line_end": 163,
+            "explanation": "Provider B host rejections are caught and returned as storage_unavailable."
+          }
+        ],
+        "finding_ids": []
+      }
+    ],
+    "findings": [],
+    "implemented_changes": [
+      {
+        "claim": "The public integration surface now exports all four required factories and associated public dependency/data types.",
+        "evidence": [
+          {
+            "file": "after/src/index.ts",
+            "line_start": 1,
+            "line_end": 24,
+            "explanation": "Exports createReservationService, createStockReport, createObservationReceiver, createProviderBReservationService, and public types."
+          }
+        ]
+      },
+      {
+        "claim": "The stock report workflow was added with isolated readSnapshot access, snapshot validation, availability filtering, and SKU sorting.",
+        "evidence": [
+          {
+            "file": "after/src/report.ts",
+            "line_start": 28,
+            "line_end": 40,
+            "explanation": "Factory handles lowStock via source.readSnapshot and returns sorted low-stock items."
+          }
+        ]
+      },
+      {
+        "claim": "The observation receiver workflow was added with isolated appendObservation access and stored/duplicate response mapping.",
+        "evidence": [
+          {
+            "file": "after/src/observation.ts",
+            "line_start": 25,
+            "line_end": 47,
+            "explanation": "Factory validates, appends the documented observation event, and maps host outcomes."
+          }
+        ]
+      },
+      {
+        "claim": "Provider B reservation support was added through envelope/row decoding and atomic commitBatch writes.",
+        "evidence": [
+          {
+            "file": "after/src/provider-b.ts",
+            "line_start": 51,
+            "line_end": 84,
+            "explanation": "Provider B read outcomes and rows are decoded into domain records."
+          },
+          {
+            "file": "after/src/provider-b.ts",
+            "line_start": 135,
+            "line_end": 160,
+            "explanation": "Provider B new reservations write stock, reservation, and outbox rows in one batch."
+          }
+        ]
+      }
+    ],
+    "preserved_consumers": [
+      {
+        "consumer": "Legacy createReservationService callers using provider A storage",
+        "assessment": "Preserved: public export remains, legacy command parsing and responses remain equivalent, and the storage dependency still uses only getStock, getReservation, and commitReservation.",
+        "evidence": [
+          {
+            "file": "after/src/index.ts",
+            "line_start": 1,
+            "line_end": 1,
+            "explanation": "Legacy factory remains exported."
+          },
+          {
+            "file": "after/src/types.ts",
+            "line_start": 29,
+            "line_end": 33,
+            "explanation": "Legacy storage type contains the documented legacy methods."
+          },
+          {
+            "file": "after/src/reservation.ts",
+            "line_start": 41,
+            "line_end": 112,
+            "explanation": "Legacy handler implementation matches the before workflow."
+          }
+        ]
+      },
+      {
+        "consumer": "Stock report integration with only readSnapshot",
+        "assessment": "Supported: constructor type and implementation require only readSnapshot.",
+        "evidence": [
+          {
+            "file": "after/src/types.ts",
+            "line_start": 41,
+            "line_end": 43,
+            "explanation": "StockReportSource has only readSnapshot."
+          },
+          {
+            "file": "after/src/report.ts",
+            "line_start": 33,
+            "line_end": 40,
+            "explanation": "The report handler performs only the documented snapshot read after validation."
+          }
+        ]
+      },
+      {
+        "consumer": "Observation receiver integration with only appendObservation",
+        "assessment": "Supported: constructor type and implementation require only appendObservation.",
+        "evidence": [
+          {
+            "file": "after/src/types.ts",
+            "line_start": 52,
+            "line_end": 54,
+            "explanation": "ObservationSink has only appendObservation."
+          },
+          {
+            "file": "after/src/observation.ts",
+            "line_start": 36,
+            "line_end": 43,
+            "explanation": "The observation handler performs only the documented append after validation."
+          }
+        ]
+      },
+      {
+        "consumer": "Provider B reservation deployment with only read and commitBatch",
+        "assessment": "Supported: constructor type and implementation require only Provider B read and commitBatch, with no dependency on provider A.",
+        "evidence": [
+          {
+            "file": "after/src/types.ts",
+            "line_start": 94,
+            "line_end": 97,
+            "explanation": "ProviderBStorage has only read and commitBatch."
+          },
+          {
+            "file": "after/src/provider-b.ts",
+            "line_start": 67,
+            "line_end": 79,
+            "explanation": "Provider B lookup paths use storage.read."
+          },
+          {
+            "file": "after/src/provider-b.ts",
+            "line_start": 135,
+            "line_end": 158,
+            "explanation": "Provider B mutation uses storage.commitBatch."
+          }
+        ]
+      }
+    ],
+    "overall_assessment": "Supported. Static source inspection establishes the required legacy preservation and new integrations, and no necessary correction was established. The combined critique proposed no findings.",
+    "uncertainties": [
+      "No code or tests were executed, per the review instructions; this assessment is based on static source inspection only."
+    ],
+    "outcome": "supported",
+    "decisions": []
+  },
+  "supplementalAssessment": {
+    "candidate_id": "C039",
+    "audit_outcome": "supported",
+    "files_read": [
+      "API.md",
+      "CHANGE.md",
+      "RUBRIC.md",
+      "DIFF.patch",
+      "../final.json",
+      "before/src/index.ts",
+      "before/src/reservation.ts",
+      "before/src/types.ts",
+      "before/src/validation.ts",
+      "after/src/index.ts",
+      "after/src/observation.ts",
+      "after/src/provider-b.ts",
+      "after/src/report.ts",
+      "after/src/reservation.ts",
+      "after/src/types.ts",
+      "after/src/validation.ts"
+    ],
+    "requirement_assessments": [
+      {
+        "id": "B1",
+        "status": "supported",
+        "rationale": "Legacy command behavior is preserved with shared pure parser/response exports; validation precedes I/O and response shapes and codes remain unchanged.",
+        "evidence": [
+          {
+            "file": "after/src/reservation.ts",
+            "line_start": 9,
+            "line_end": 112,
+            "explanation": "The parser and complete legacy workflow retain the original behavior."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 1,
+            "line_end": 24,
+            "explanation": "Legacy and new factories and types are exported."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "B2",
+        "status": "supported",
+        "rationale": "Both reservation services return exact repeats and conflicts before stock reads and require existing sufficient inventory for new reservations.",
+        "evidence": [
+          {
+            "file": "after/src/reservation.ts",
+            "line_start": 63,
+            "line_end": 83,
+            "explanation": "Legacy repeat and availability decisions precede commit."
+          },
+          {
+            "file": "after/src/provider-b.ts",
+            "line_start": 107,
+            "line_end": 125,
+            "explanation": "Provider B follows the same ordering and business rules."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "B3",
+        "status": "supported",
+        "rationale": "Each service sends the loaded expected revision, correct stock and revision increments, reservation and exactly one event through one atomic host operation.",
+        "evidence": [
+          {
+            "file": "after/src/reservation.ts",
+            "line_start": 84,
+            "line_end": 110,
+            "explanation": "The legacy commit contains all required effects."
+          },
+          {
+            "file": "after/src/provider-b.ts",
+            "line_start": 127,
+            "line_end": 161,
+            "explanation": "Provider B commits the complete decimal-string batch with one outbox row."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "B4",
+        "status": "supported",
+        "rationale": "Legacy keyed record validation, safe revision advancement, unknown acknowledgement checks and catch mapping preserve fixed-code failure behavior.",
+        "evidence": [
+          {
+            "file": "after/src/reservation.ts",
+            "line_start": 26,
+            "line_end": 28,
+            "explanation": "Errors expose only code."
+          },
+          {
+            "file": "after/src/reservation.ts",
+            "line_start": 47,
+            "line_end": 112,
+            "explanation": "All legacy records, revision advancement and outcomes are guarded and rejections contained."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "B5",
+        "status": "supported",
+        "rationale": "Exact identifiers and required fields round-trip through JSON writes and decoders across fresh service instances.",
+        "evidence": [
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 7,
+            "line_end": 54,
+            "explanation": "Legacy scalar and record validation preserves exact IDs and data."
+          },
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 56,
+            "line_end": 96,
+            "explanation": "Provider B wire fields and canonical safe decimals are validated."
+          },
+          {
+            "file": "after/src/provider-b.ts",
+            "line_start": 130,
+            "line_end": 158,
+            "explanation": "All persisted Provider B fields are explicitly projected and serialized."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "B6",
+        "status": "supported",
+        "rationale": "Invalid commands, queries, repeats and business failures return before commits; no reservation event is appended separately or claimed in a local cache.",
+        "evidence": [
+          {
+            "file": "after/src/reservation.ts",
+            "line_start": 44,
+            "line_end": 112,
+            "explanation": "Legacy effects occur only in its atomic commit."
+          },
+          {
+            "file": "after/src/provider-b.ts",
+            "line_start": 89,
+            "line_end": 163,
+            "explanation": "Provider B follows the same early returns and single batch semantics."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C1",
+        "status": "supported",
+        "rationale": "The report reads one snapshot, validates every row and duplicate key before filtering, uses strict availability comparison and relational SKU ordering, and returns empty arrays when appropriate.",
+        "evidence": [
+          {
+            "file": "after/src/report.ts",
+            "line_start": 10,
+            "line_end": 42,
+            "explanation": "The full snapshot decoder and report handler implement these behaviors."
+          },
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 36,
+            "line_end": 44,
+            "explanation": "Snapshot rows require bounded quantities but no revision."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C2",
+        "status": "supported",
+        "rationale": "The receiver only appends explicit observation events and maps host-owned first-wins deduplication, without querying or mutating inventory.",
+        "evidence": [
+          {
+            "file": "after/src/observation.ts",
+            "line_start": 12,
+            "line_end": 46,
+            "explanation": "Validation precedes append; stored and duplicate yield the required bodies, while failures yield unavailable."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C3",
+        "status": "supported",
+        "rationale": "Provider B works independently over the documented envelope/decimal-row/batch protocol and retains reservation behavior and self-written record round trips.",
+        "evidence": [
+          {
+            "file": "after/src/provider-b.ts",
+            "line_start": 51,
+            "line_end": 84,
+            "explanation": "Envelope decoding and keyed row conversion use only Provider B reads."
+          },
+          {
+            "file": "after/src/provider-b.ts",
+            "line_start": 86,
+            "line_end": 167,
+            "explanation": "The factory implements the complete reservation flow and atomic write."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C4",
+        "status": "supported",
+        "rationale": "Factory dependency contracts and actual call paths require only the provisioned consumer methods; shared imports are pure helpers.",
+        "evidence": [
+          {
+            "file": "after/src/types.ts",
+            "line_start": 29,
+            "line_end": 54,
+            "explanation": "Legacy, report and observation dependencies expose only their operations."
+          },
+          {
+            "file": "after/src/types.ts",
+            "line_start": 94,
+            "line_end": 106,
+            "explanation": "Provider B exposes only read and commitBatch."
+          },
+          {
+            "file": "after/src/provider-b.ts",
+            "line_start": 1,
+            "line_end": 17,
+            "explanation": "The imports do not initialize a legacy storage provider."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 1,
+            "line_end": 24,
+            "explanation": "Public exports support ordinary typed construction."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C5",
+        "status": "supported",
+        "rationale": "The new input parsers validate exact IDs and integer bounds before any host call, and extra observation fields are excluded.",
+        "evidence": [
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 7,
+            "line_end": 18,
+            "explanation": "Scalar validation preserves exact nonempty strings and unit bounds."
+          },
+          {
+            "file": "after/src/report.ts",
+            "line_start": 10,
+            "line_end": 34,
+            "explanation": "Report parsing precedes its read."
+          },
+          {
+            "file": "after/src/observation.ts",
+            "line_start": 12,
+            "line_end": 37,
+            "explanation": "Observation parsing and explicit projection precede append."
+          },
+          {
+            "file": "after/src/provider-b.ts",
+            "line_start": 89,
+            "line_end": 93,
+            "explanation": "Provider B validates all reservation fields before I/O."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C6",
+        "status": "supported",
+        "rationale": "Successful Provider B values are decoded before becoming found results, canonical decimals and business bounds are checked, and each converted row matches its requested key.",
+        "evidence": [
+          {
+            "file": "after/src/provider-b.ts",
+            "line_start": 24,
+            "line_end": 84,
+            "explanation": "Envelope value decoding precedes found, then conversion checks lookup keys."
+          },
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 56,
+            "line_end": 96,
+            "explanation": "Provider row decoders enforce canonical syntax, safe revisions, bounded quantities and held <= on-hand."
+          },
+          {
+            "file": "after/src/report.ts",
+            "line_start": 15,
+            "line_end": 25,
+            "explanation": "Malformed or duplicate snapshot rows are rejected before filtering."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C7",
+        "status": "supported",
+        "rationale": "Every new host failure is contained with fixed codes, and Provider B uses one atomic state/reservation/outbox batch and short-circuits completed repeats.",
+        "evidence": [
+          {
+            "file": "after/src/provider-b.ts",
+            "line_start": 107,
+            "line_end": 163,
+            "explanation": "Repeat ordering, revision validation, batch composition and acknowledgement/rejection handling preserve atomicity and idempotency."
+          },
+          {
+            "file": "after/src/report.ts",
+            "line_start": 33,
+            "line_end": 42,
+            "explanation": "Snapshot failures are contained."
+          },
+          {
+            "file": "after/src/observation.ts",
+            "line_start": 36,
+            "line_end": 46,
+            "explanation": "Append failures are contained."
+          }
+        ],
+        "finding_ids": []
+      }
+    ],
+    "primary_finding_decisions": [],
+    "findings": [],
+    "external_semantics_sources": [
+      {
+        "url": "https://tc39.es/ecma262/multipage/text-processing.html#sec-compileassertion",
+        "rule": "Without Multiline, Assertion :: $ cannot succeed before a final newline; this candidate's flagless canonical decimal pattern requires input end."
+      }
+    ],
+    "overall_assessment": "Full static source review supports all thirteen obligations and the primary no-finding outcome. The conversion helpers need not repeat stock and quantity bounds because every call receives a value already checked by the provider-row decoders; they then check the requested keys. Successful malformed primitives, including strings resembling outcome names, fail those decoders before becoming found results.",
+    "uncertainties": [
+      "This supplemental uniform pass was added after the experiment started. The auditor retains same-case context, including prior control authoring and fixture audits, but remains blind to candidate conditions. It is not a preregistered or fully independent assessment; primary adjudication remains separate.",
+      "Static inspection only; implementation code, tests and type checks were not executed."
+    ]
+  },
+  "originalArtifactHashes": {
+    "generationResult": "958e87019f991dd8059b9ef12093db6546b1aabc41c2af268aad32008a8569b6",
+    "primaryResult": "94af43e2cee1fa983132e251a3367476555eb0a0e7aa09f338bb7b3abc83343d",
+    "primaryAssessment": "05c22174cbf35d57b6c333fdc70b12fedad2a5b6f81499d63be2ab8581d3ac18",
+    "supplementalAssessment": "5005eb775f13f239f37da8b0aa7624b89734be8a190eb305147332df9f2b15f7",
+    "source": {
+      "index.ts": "8a67f622c703b8372cd4655b1956fa619eefca69d4471e144de73bc0bc5a6369",
+      "observation.ts": "f3e96d6a19142d30034d45b9289ddb87c17fde73a266aa8f9082f838fb1e6c6b",
+      "provider-b.ts": "1869dcf02943034a4c4a1b25fbfb392c3f7f18df1424d9b4c095b246dff72efd",
+      "report.ts": "06a28df4617fc9581efef46ca3d8612ecacb290aa83c8edd8fb42c720ad28593",
+      "reservation.ts": "127e2f5e85a60ac26bb5603161abf73e2aa72cb4d00222115eb315967d6ae8b7",
+      "types.ts": "e60c6d886896c0f9757776dca9599ea8099e1f4eaef64a7a471248b8c4bc58da",
+      "validation.ts": "7a366c81b4d7b76f05bea3ac9072911673557ef8ecddb0f59a7c968ae244f9f1"
+    }
+  }
+}

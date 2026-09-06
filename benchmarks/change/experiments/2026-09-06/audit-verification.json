@@ -1,0 +1,374 @@
+{
+  "recordedAt": "2026-09-06T05:29:04.658Z",
+  "inspected": 72,
+  "complete": true,
+  "valid": true,
+  "records": [
+    {
+      "candidate_id": "C023",
+      "issues": []
+    },
+    {
+      "candidate_id": "C035",
+      "issues": []
+    },
+    {
+      "candidate_id": "C062",
+      "issues": []
+    },
+    {
+      "candidate_id": "C034",
+      "issues": []
+    },
+    {
+      "candidate_id": "C021",
+      "issues": []
+    },
+    {
+      "candidate_id": "C008",
+      "issues": []
+    },
+    {
+      "candidate_id": "C010",
+      "issues": []
+    },
+    {
+      "candidate_id": "C017",
+      "issues": []
+    },
+    {
+      "candidate_id": "C055",
+      "issues": []
+    },
+    {
+      "candidate_id": "C007",
+      "issues": []
+    },
+    {
+      "candidate_id": "C061",
+      "issues": []
+    },
+    {
+      "candidate_id": "C014",
+      "issues": []
+    },
+    {
+      "candidate_id": "C058",
+      "issues": []
+    },
+    {
+      "candidate_id": "C002",
+      "issues": []
+    },
+    {
+      "candidate_id": "C052",
+      "issues": []
+    },
+    {
+      "candidate_id": "C026",
+      "issues": []
+    },
+    {
+      "candidate_id": "C044",
+      "issues": []
+    },
+    {
+      "candidate_id": "C057",
+      "issues": []
+    },
+    {
+      "candidate_id": "C053",
+      "issues": []
+    },
+    {
+      "candidate_id": "C064",
+      "issues": []
+    },
+    {
+      "candidate_id": "C001",
+      "issues": []
+    },
+    {
+      "candidate_id": "C029",
+      "issues": []
+    },
+    {
+      "candidate_id": "C051",
+      "issues": []
+    },
+    {
+      "candidate_id": "C047",
+      "issues": []
+    },
+    {
+      "candidate_id": "C012",
+      "issues": []
+    },
+    {
+      "candidate_id": "C048",
+      "issues": []
+    },
+    {
+      "candidate_id": "C067",
+      "issues": []
+    },
+    {
+      "candidate_id": "C030",
+      "issues": []
+    },
+    {
+      "candidate_id": "C070",
+      "issues": []
+    },
+    {
+      "candidate_id": "C066",
+      "issues": []
+    },
+    {
+      "candidate_id": "C069",
+      "issues": []
+    },
+    {
+      "candidate_id": "C050",
+      "issues": []
+    },
+    {
+      "candidate_id": "C060",
+      "issues": []
+    },
+    {
+      "candidate_id": "C004",
+      "issues": []
+    },
+    {
+      "candidate_id": "C038",
+      "issues": []
+    },
+    {
+      "candidate_id": "C072",
+      "issues": []
+    },
+    {
+      "candidate_id": "C019",
+      "issues": []
+    },
+    {
+      "candidate_id": "C059",
+      "issues": []
+    },
+    {
+      "candidate_id": "C015",
+      "issues": []
+    },
+    {
+      "candidate_id": "C025",
+      "issues": []
+    },
+    {
+      "candidate_id": "C032",
+      "issues": []
+    },
+    {
+      "candidate_id": "C049",
+      "issues": []
+    },
+    {
+      "candidate_id": "C056",
+      "issues": []
+    },
+    {
+      "candidate_id": "C037",
+      "issues": []
+    },
+    {
+      "candidate_id": "C068",
+      "issues": []
+    },
+    {
+      "candidate_id": "C041",
+      "issues": []
+    },
+    {
+      "candidate_id": "C033",
+      "issues": []
+    },
+    {
+      "candidate_id": "C043",
+      "issues": []
+    },
+    {
+      "candidate_id": "C003",
+      "issues": []
+    },
+    {
+      "candidate_id": "C022",
+      "issues": []
+    },
+    {
+      "candidate_id": "C009",
+      "issues": []
+    },
+    {
+      "candidate_id": "C027",
+      "issues": []
+    },
+    {
+      "candidate_id": "C016",
+      "issues": []
+    },
+    {
+      "candidate_id": "C011",
+      "issues": []
+    },
+    {
+      "candidate_id": "C018",
+      "issues": []
+    },
+    {
+      "candidate_id": "C045",
+      "issues": []
+    },
+    {
+      "candidate_id": "C046",
+      "issues": []
+    },
+    {
+      "candidate_id": "C065",
+      "issues": []
+    },
+    {
+      "candidate_id": "C006",
+      "issues": []
+    },
+    {
+      "candidate_id": "C020",
+      "issues": []
+    },
+    {
+      "candidate_id": "C028",
+      "issues": []
+    },
+    {
+      "candidate_id": "C040",
+      "issues": []
+    },
+    {
+      "candidate_id": "C039",
+      "issues": []
+    },
+    {
+      "candidate_id": "C071",
+      "issues": []
+    },
+    {
+      "candidate_id": "C024",
+      "issues": []
+    },
+    {
+      "candidate_id": "C005",
+      "issues": []
+    },
+    {
+      "candidate_id": "C054",
+      "issues": []
+    },
+    {
+      "candidate_id": "C042",
+      "issues": []
+    },
+    {
+      "candidate_id": "C063",
+      "issues": []
+    },
+    {
+      "candidate_id": "C036",
+      "issues": []
+    },
+    {
+      "candidate_id": "C031",
+      "issues": []
+    },
+    {
+      "candidate_id": "C013",
+      "issues": []
+    }
+  ],
+  "auditHashes": {
+    "C021.json": "cf133c2ca9432559e06df1966e315bf3ef4ae07c0b4bceab2318469714962d5c",
+    "C021.md": "8ffd9d0652c10540907ffd4873f6fdf71418a3635d62bec653247b045d3b9291",
+    "PROTOCOL.md": "714f52b91f8d31061fdaf69e014b3e563988858e4ad25e92f40dc7bd625e65de",
+    "full/C001.json": "20984ca6b93343c17912c2c21c4987c01292d5c03cfbfb27676810a08b39d40f",
+    "full/C002.json": "1b722a3fc3abce84ee96c691e2375859d2a397c8dc60f4465cf1b1ceaa45c1e5",
+    "full/C003.json": "c551b222f4bf20c8056341079b9137ff0f02bee0423cdc9137a5131f130d9716",
+    "full/C004.json": "3abd96983fad1867f6bdc4466462cfee620b4d91364a00e5ad2484ad64def478",
+    "full/C005.json": "2a62888a1ceffa821b4cbdf5c3e534fd23dc55cd625f64bdc418d8791f08f7c7",
+    "full/C006.json": "31a8e21c5d603be3518166e656ff2afc45f59a632ab462b0e6260e755d2ae231",
+    "full/C007.json": "4a3afe024bebefe6973073d4e57a3768659bc31ab857ac1c311816d2194c7806",
+    "full/C008.json": "0bbb9243542e8ac6df8c9eccace1b5f21953cd8ed020431e818598eed8963ee2",
+    "full/C009.json": "e42d9097d75068206b07d91e4d21f6835f0c7c0de7bb510ece74af9db4d55965",
+    "full/C010.json": "8c32820821ccb12ab6a0e1d77fb5cd1a25180ea0b5a03fd286956efa4a8a251f",
+    "full/C011.json": "a2a8120abb4ea492a65aad9e223368bbd71e087cce895ed24d42cccf8391ab3a",
+    "full/C012.json": "ba65e3b2814044bcd8ff24a32acc823599936a77706911ea1d92699f0ebb6399",
+    "full/C013.json": "f73827beb7dc02d4cccfc4df26a16fd6a3b2179a819fdaee509945c563937116",
+    "full/C014.json": "431820d49966cb2358cf5263fd6969b222cee731dbdd76b788a84757a9245e91",
+    "full/C015.json": "e3d6ea3b3888aa4f47b3a51218ca3d744390123768abecb45c4208c862c997b2",
+    "full/C016.json": "6ee793d3e5b5948b5268d8839dd6e4d295d8e16f928dabcf766d8cc9035b1c93",
+    "full/C017.json": "7af9f11bb7d33cbaa8634c9398c7a09cb676555ef2d572aaa410989a496c90a6",
+    "full/C018.json": "771513ff62652b056e7bfd6680c77c025768ed54638ccad8ab32d6354a69d613",
+    "full/C019.json": "cecec14cf9698b6bde586b80ef7d280b9607666a7d53b4b3e0250e4977bcbaa8",
+    "full/C020.json": "fae281466be9f3546560608e5943b45484441c30d50344060d3db1e645006e3a",
+    "full/C021.json": "0ca770a046759503a31c7fe94ae5867fe84940359ee5b334f375979ca4da4725",
+    "full/C022.json": "df4580a8ca1202c41c0f7526d9822c0cb1ccac0048feeb30a404b2325bf3d30e",
+    "full/C023.json": "f202ba253b386b20ed67b560ddfb2f7f936dacf5fa275bbd5d776b2110250c01",
+    "full/C024.json": "b4f39f18c17cc8b18d73a126682b9016c2337988b5e4aeda5744ecd32cb7eeb2",
+    "full/C025.json": "ddd3f1583929619f2f26c5d2b02333c820ff068a525b53ce647c37ba0d802556",
+    "full/C026.json": "fc5c36938263759e051fa74e1c466059017ce137684f82ae1c46e046c4bad3cc",
+    "full/C027.json": "67bee946b07cb33e6a6ccd648e5f5289b32430dbb7bcb5aac3690e784a0df52b",
+    "full/C028.json": "53657ebc1b276b982db1b4d423987a9e0341969594b887e1dc346d84dc2f4c13",
+    "full/C029.json": "a25ffdbd102dd5eebe0ed862aabd86efc8008ba4915810012ce28278d2dbdd9e",
+    "full/C030.json": "594c41516c0aff84237b02b74e09f9d71011803859603bd271791c1375129e4a",
+    "full/C031.json": "25f14147b06b9d681cc6589d86f6b018fb4a3eb2b4d1bd689da84df396d6e3a1",
+    "full/C032.json": "422bfb66ccea56a6fa8c8b6892fc955ae3294cea95bc09e72ad829bd17a14388",
+    "full/C033.json": "40b44c6559ec6ca6ba6f3c5ef3c324b682336e1161fae6f6fb7f19c6e43afac8",
+    "full/C034.json": "c6fb21f243eed12be0953431df9bb5560f50ba595a017e3edd8d42f92af4f66c",
+    "full/C035.json": "4768625552890844945e6e99a960c96c092847df4941dc57d423bd99cf2578a9",
+    "full/C036.json": "ac9377439d37fd81c1eaecd0e6010ee284916e0eb42536604dd02a84c5637b82",
+    "full/C037.json": "133c451c0c8bb1beef0c2ad8106f773c2fa89c0be3137884a1a903c94041701d",
+    "full/C038.json": "6f4e46c730d379f8811346be336fc4247d4269dab09490cf29324b7725487fc2",
+    "full/C039.json": "5005eb775f13f239f37da8b0aa7624b89734be8a190eb305147332df9f2b15f7",
+    "full/C040.json": "2754568e2dd1de55d4b46daf30fa8ad92e7bc1d3315652b555f5c4ba54a8c306",
+    "full/C041.json": "48e0c809b3c0075bd18bc07f81abb78332cf64f2319df3760327b3cd2ccb8987",
+    "full/C042.json": "9346a079af50331c6b85523a34a5db0330fe47fa98ae69050a37f192a375c9ef",
+    "full/C043.json": "217f9c571d81831a1c3e13ab14c82a054bf9b4aceb12727a51373ea1de673e22",
+    "full/C044.json": "752c274c89c601a296162e260becabf99245c972db5c9c170281bfb72585b5f6",
+    "full/C045.json": "6fa2f5a8b8f7c7286b2f99546de92de5bacd0922432954e8576ea9f009a3def8",
+    "full/C046.json": "27353b25f109aaac4bb5285d6a19d599a3337766b439164cd910c6496e079ce5",
+    "full/C047.json": "9e8522c1106982b349d8475dbe354166ec7fef2fa8fc356bba529fc6506b6d0e",
+    "full/C048.json": "47a7c6b33bcc09300d7a0aeb9c4f30374479401fbd6999efa7a615b0487062af",
+    "full/C049.json": "315f5a388d4552f107dc03cf887d3316bc954cdfd78ce3f31446f0accb7db35a",
+    "full/C050.json": "38bedca32e6b434ef353228cdf1eab9d8edb39396f5a934f568f704894da964b",
+    "full/C051.json": "355036ac880a1b4d21171d3d09ec2fd95af8a828973a184ffe3a8db74bebbe3a",
+    "full/C052.json": "1d9a669ae9940e743bd50e29b3efdd318c9fe5c8c574abc20f37b31b7ca764ce",
+    "full/C053.json": "dd561878653de1258a4fcc155078109dd3f7dc374570e910f3a195467f2704bc",
+    "full/C054.json": "4361f38212df2a757fba5f1e2294db7932fa7bcc5314ec9c99dc347f757a7ee1",
+    "full/C055.json": "ce9ba92d1f3f2c2368d5e72b5217edc1d197395aac8a0c46ccab7ff8c2d54ff6",
+    "full/C056.json": "a751363753f786218f0078adef7eddb665601c2a5f121096c56fd0809da321ed",
+    "full/C057.json": "2bdbe397e82ae203ab8c5e700b36a6593388008e86002a47863a7f76ec83c4d9",
+    "full/C058.json": "78737eb57644d94d21fea1a312f42c6887edc41b414629a574b9790ba03e9554",
+    "full/C059.json": "cf7c4a2ee92ccfa0b140d5a51f3ae608f788589f61230c063523b097cb29eb64",
+    "full/C060.json": "a9c79bd7c526ecd18c9e5d94fd6922543ed0387ed482c9e8750efdac5c9ac018",
+    "full/C061.json": "0222206a9588a1670203b6513471a8e0cfc76f544f5146de0af05707b080986d",
+    "full/C062.json": "18f80a515c5c661549015bbfa6b00e7cef027ca7bf1b7bdf916528030173c8ab",
+    "full/C063.json": "551a62f8785e691f3480ffc0e36111b17114bcaa544e19eadfd189040d18dc79",
+    "full/C064.json": "71afabb6a2c1a89ed69d57a2e823c765bd42043a1ffdbbb24205957e22708163",
+    "full/C065.json": "0112d7755d076d853838032b7b88703dabcc747da9b8a98e2eb391713655dcae",
+    "full/C066.json": "7f328ef9ac7f907c77b81f2d6cd7a325fbf46c4310cf7ac5a768fa5c79ae1c8a",
+    "full/C067.json": "8bbdc6820353b8ab98be779fcabfb86065e580b3eb4056a74208f8a9c040cfe1",
+    "full/C068.json": "8e2ed5c66b2ba8f274867084d308ae9e11b98fa367d19cd3a2c59dcb1deb380c",
+    "full/C069.json": "0e762b09b3ff40aa18ecfc952f49384e221fc50ef305bf621d124c8e4c8fc90a",
+    "full/C070.json": "58fbf93377884720f58a78864d68d72dc992a19aa7d546ffe0fd728636f94346",
+    "full/C071.json": "3fbb8cc43dacbf426ef7ea0a50eb46270ad17a09276f96dc681102e09a29889c",
+    "full/C072.json": "09848b7c0b3dca689258f10dec4266f8a3b51e06c59e6c1f500bdbb305fb1c6d"
+  },
+  "limitation": "Valid bookkeeping and source references do not prove semantic correctness."
+}

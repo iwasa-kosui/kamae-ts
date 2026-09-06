@@ -16,6 +16,12 @@ run a real pair after changing prompts, cases, acceptance logic, or skill loadin
 CI validates the harness and dry-run inputs without model calls. The files under
 `evals/` are legacy task data, not an active evaluation runner.
 
+`benchmarks/change/` also compares actual modifications of existing applications
+across tagged skills with blinded corrective source judgments. Read its README
+before running it. Run `bun run benchmark:change:test` for that harness; preserve
+frozen experiments and calibrate source reviewers before real generation. Test
+results and source-string matches are not its quality graders.
+
 ## Worktree conventions
 
 This repo uses `git worktree` under `.wt/<branch-name>/`. Session-start hooks create the worktree automatically; `git wt -d <branch>` removes it after merge. PRs are drafted, then promoted to ready after self-review.

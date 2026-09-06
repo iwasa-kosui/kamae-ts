@@ -1,0 +1,160 @@
+{
+  "recordedAt": "2026-09-06T03:50:29.830Z",
+  "method": "Pinned TypeScript toolchain run in separate temporary copies; all three starters and all six reference/broken variants typechecked. This is fixture verification and never supplies candidate quality outcomes.",
+  "results": [
+    {
+      "caseId": "intake",
+      "variant": "starter",
+      "typecheckExitCode": 0,
+      "typescript": "5.9.2",
+      "bun": "1.3.14"
+    },
+    {
+      "caseId": "intake",
+      "variant": "reference",
+      "typecheckExitCode": 0,
+      "typescript": "5.9.2",
+      "bun": "1.3.14"
+    },
+    {
+      "caseId": "intake",
+      "variant": "broken",
+      "typecheckExitCode": 0,
+      "typescript": "5.9.2",
+      "bun": "1.3.14"
+    },
+    {
+      "caseId": "recovery",
+      "variant": "starter",
+      "typecheckExitCode": 0,
+      "typescript": "5.9.2",
+      "bun": "1.3.14"
+    },
+    {
+      "caseId": "recovery",
+      "variant": "reference",
+      "typecheckExitCode": 0,
+      "typescript": "5.9.2",
+      "bun": "1.3.14"
+    },
+    {
+      "caseId": "recovery",
+      "variant": "broken",
+      "typecheckExitCode": 0,
+      "typescript": "5.9.2",
+      "bun": "1.3.14"
+    },
+    {
+      "caseId": "consumers",
+      "variant": "starter",
+      "typecheckExitCode": 0,
+      "typescript": "5.9.2",
+      "bun": "1.3.14"
+    },
+    {
+      "caseId": "consumers",
+      "variant": "reference",
+      "typecheckExitCode": 0,
+      "typescript": "5.9.2",
+      "bun": "1.3.14"
+    },
+    {
+      "caseId": "consumers",
+      "variant": "broken",
+      "typecheckExitCode": 0,
+      "typescript": "5.9.2",
+      "bun": "1.3.14"
+    }
+  ],
+  "caseInputs": {
+    "intake": {
+      "hashes": {
+        "CHANGE.md": "efb817d38b0f22a7bf1f1a6afebd9deebe8999a00a544172c942c399c81cdb05",
+        "case.json": "a1d5a2f4868bf220f53edfe6c598440478083b855e69d730912895e370e72e30",
+        "starter/API.md": "2a73bbdecbd4ab7f5845370df2f75d4dbc2e73dbfaea5598c4371ad0cf003526",
+        "starter/bun.lock": "0b538bafdfe48cc4abb0c2982c2e2f6bb81e75e660ed1d985ef5bb0d9df42933",
+        "starter/package.json": "99f3960e9e4eb2c78f31fd459b23e5e33f8ddfd8b4c754206e1e3cc3624acd7f",
+        "starter/src/batch.ts": "6bfabd77b882d9b528babd9f84553370329fd7e8b7349a3ad7fad89681293ff6",
+        "starter/src/index.ts": "21098ebc3535dd36bc5cf2e4719e9fa2abccedd87bc41541064252ecdaa042d1",
+        "starter/src/orders.ts": "1157cf8091b67e5e185ebeec40bd558a3bb7758f269289b8c76f239ecbf9da7e",
+        "starter/src/single.ts": "be5b9b817c24c28e80b1b61f0cb35a718e29938ec7e591219b8fb9647e5b0dd3",
+        "starter/src/types.ts": "45bfb5b1261efbea2912b9de9c850b50ca145fa87286b3cd75a474774c42cef0",
+        "starter/src/validation.ts": "3b6df6bc069c14502dfc39a456d217b97bd6a6b4719db98a6a0dab817f97226a",
+        "starter/tsconfig.json": "5458480a74d38b295c0e5e1439b6b91f2929b8242e3e50c57951e34f9834106c"
+      },
+      "controlHashes": {
+        "broken/IMPLEMENTATION.md": "605b704215d32f0bf97735885b5d3521ae4a9fde877bf12296485ec7f3d3d594",
+        "broken/src/batch.ts": "6f20bc37cb850217d860936e9d25eefaa8a60df83789332ebcb69f9a9ea8d855",
+        "broken/src/index.ts": "21098ebc3535dd36bc5cf2e4719e9fa2abccedd87bc41541064252ecdaa042d1",
+        "broken/src/orders.ts": "1157cf8091b67e5e185ebeec40bd558a3bb7758f269289b8c76f239ecbf9da7e",
+        "broken/src/single.ts": "a47b202feb17a522a794bca42a28cf1f3b9cd9a4c8d84c3a58f1d75651760b1c",
+        "broken/src/types.ts": "45bfb5b1261efbea2912b9de9c850b50ca145fa87286b3cd75a474774c42cef0",
+        "broken/src/validation.ts": "cb192cc4defa36c34b1c14e63c1a3fa5d96f19c853c6e39e0356031604a6ea7f",
+        "control.json": "44d5e82413977bff06eb0ff842a85a68f54626d8600fb3f79c0eb92d54abdad2",
+        "reference/IMPLEMENTATION.md": "605b704215d32f0bf97735885b5d3521ae4a9fde877bf12296485ec7f3d3d594",
+        "reference/src/batch.ts": "266f6c2bdc05d904a22a74bcfe5ad48bbdf185f49e932c945c8417a49869f5ec",
+        "reference/src/index.ts": "21098ebc3535dd36bc5cf2e4719e9fa2abccedd87bc41541064252ecdaa042d1",
+        "reference/src/orders.ts": "1157cf8091b67e5e185ebeec40bd558a3bb7758f269289b8c76f239ecbf9da7e",
+        "reference/src/single.ts": "a47b202feb17a522a794bca42a28cf1f3b9cd9a4c8d84c3a58f1d75651760b1c",
+        "reference/src/types.ts": "45bfb5b1261efbea2912b9de9c850b50ca145fa87286b3cd75a474774c42cef0",
+        "reference/src/validation.ts": "cb192cc4defa36c34b1c14e63c1a3fa5d96f19c853c6e39e0356031604a6ea7f"
+      }
+    },
+    "recovery": {
+      "hashes": {
+        "CHANGE.md": "291adf524e7917869baa72aedc391eaa49ff4a06049860bef315cecde604500b",
+        "case.json": "b8938ea234714fa1f672b0780b2de4d2877fa68eb470043eaff26c0863b6bdfc",
+        "starter/API.md": "a5e0dbd586026e9bd2af33c21b054063d44b735e0eac12a2971094b205e766a2",
+        "starter/bun.lock": "089ff7705f9105eeb02c7b5fa524c4750f0331df55040111aca97344cbaebb60",
+        "starter/package.json": "07936bfc58b44e6f7141e91febf49f66a8ecd88c20e04a05360d58af4e935f49",
+        "starter/src/index.ts": "4a4bc3854cdfcc3bd81925f191d9df521ff25e81abf72777311b5950e367bbb2",
+        "starter/tsconfig.json": "04888c7a467b4ddb2ecf203009dd7c22e45feebb66eac7d73a08ee3bee1ab443"
+      },
+      "controlHashes": {
+        "broken/IMPLEMENTATION.md": "fd09614853a639160933d46dec143540948f653d24e535aeb812543e184bb09d",
+        "broken/src/index.ts": "a1b8ea9068dc3b7a4910a841cf8a0439ebb5c206ccb6ee4e43abf3e0f6cd4d92",
+        "control.json": "2b663ce782c165b23f291bd3a10fba791656af53a8f3f5543039290595d36fb2",
+        "reference/IMPLEMENTATION.md": "fd09614853a639160933d46dec143540948f653d24e535aeb812543e184bb09d",
+        "reference/src/index.ts": "a565ca990bb933e5cfc513d2c3ecc0174470d75db516ae867d7c7f7a30eb332b"
+      }
+    },
+    "consumers": {
+      "hashes": {
+        "CHANGE.md": "26c0b050563680281135afde7634adef81ed40cd958cd18e3a620e1ad338e24c",
+        "case.json": "3ac68b8b1d5453c9d897f2f9d2f875caa8cab86c326ce92ced2e790bb02919a6",
+        "starter/API.md": "b437b345aeb67f14651cad799b276decdee4042ad9957874422b6bb97c85e9d8",
+        "starter/bun.lock": "6215c72e5b4771222ef2d4285e67ff8acaeec91fdb3db7ae851c3651e9e6f26a",
+        "starter/package.json": "f8d3be3c165070357e3c2704c3ed6122aae874a2d8b88c8c1088a2b7df89eb48",
+        "starter/src/index.ts": "af3f71ea46b366cfcbbe7b86d775a0c1110b7f2b577b97259d2ccd367863bda1",
+        "starter/src/reservation.ts": "f496e4e5d7abf3572df2b0cd3849b36bb71072339928069e170528d4288e648a",
+        "starter/src/types.ts": "78d40716acc93a2ea780192e56c1273905f9fa8e1b7a96e96407d51b0257ef38",
+        "starter/src/validation.ts": "e28f1b2777d5992bdb2b44e7dc22034114f3a651dea0bc860a50e9ff5867a262",
+        "starter/tsconfig.json": "b61964d6330fdcd129503d83215dd89330ae6c4ba0e853bbc58015d203d70e03"
+      },
+      "controlHashes": {
+        "broken/IMPLEMENTATION.md": "7ae62e066494f7bb7ccbbe0460a251aaafa85683d3d2989452afaa8f41d97d34",
+        "broken/src/index.ts": "f642710fa5c9de6cd377e60a8c5535b81956404eed87fadefac62e0f02b7a478",
+        "broken/src/observation-receiver.ts": "126ec78793f4275ce0a822d414212e3b1eb344b35a1c89bc63e5ad9a66274250",
+        "broken/src/provider-b.ts": "7c0ec08baa98b2dd722b95a5d91f072052788f2c63d3898d345aa3c69b08b04c",
+        "broken/src/reservation.ts": "8c50884c8dba721ac586dfeda64bfc0144cacb41d7a66927e15c89bcddc2be0e",
+        "broken/src/stock-report.ts": "d4d28ebc6ad676f05b6d2b836eafea55265a4567caa11e5d5987679c3dc7767d",
+        "broken/src/types.ts": "78d40716acc93a2ea780192e56c1273905f9fa8e1b7a96e96407d51b0257ef38",
+        "broken/src/validation.ts": "e28f1b2777d5992bdb2b44e7dc22034114f3a651dea0bc860a50e9ff5867a262",
+        "control.json": "61b4434d8ad021f512cf1bf08ee19cbc7609635f10cf6384da73ec9af7ae0e45",
+        "reference/IMPLEMENTATION.md": "7ae62e066494f7bb7ccbbe0460a251aaafa85683d3d2989452afaa8f41d97d34",
+        "reference/src/index.ts": "f642710fa5c9de6cd377e60a8c5535b81956404eed87fadefac62e0f02b7a478",
+        "reference/src/observation-receiver.ts": "126ec78793f4275ce0a822d414212e3b1eb344b35a1c89bc63e5ad9a66274250",
+        "reference/src/provider-b.ts": "7c0ec08baa98b2dd722b95a5d91f072052788f2c63d3898d345aa3c69b08b04c",
+        "reference/src/reservation.ts": "f496e4e5d7abf3572df2b0cd3849b36bb71072339928069e170528d4288e648a",
+        "reference/src/stock-report.ts": "d4d28ebc6ad676f05b6d2b836eafea55265a4567caa11e5d5987679c3dc7767d",
+        "reference/src/types.ts": "78d40716acc93a2ea780192e56c1273905f9fa8e1b7a96e96407d51b0257ef38",
+        "reference/src/validation.ts": "e28f1b2777d5992bdb2b44e7dc22034114f3a651dea0bc860a50e9ff5867a262"
+      }
+    }
+  },
+  "independentAudits": [
+    "benchmarks/change/planning/intake-audit.md",
+    "benchmarks/change/planning/recovery-audit.md",
+    "benchmarks/change/planning/consumers-audit.md"
+  ]
+}

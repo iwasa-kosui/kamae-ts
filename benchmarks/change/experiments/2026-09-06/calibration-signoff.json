@@ -1,0 +1,30 @@
+{
+  "accepted": true,
+  "recordedAt": "2026-09-06T04:06:32.223Z",
+  "decisionMaker": "Supervising source-review agent with independent source audits",
+  "rubricHash": "b166c590886ed4ad61da712c768ffaa4f02cead9cfe8a116c8ba8e7e17178b91",
+  "manifestHash": "bf27df54f797d0e9a2d327302ee6d73ebbeb0d013e5404fccd51731b6d4a58a7",
+  "reviewHashes": {
+    "K001": "6e35f30af24143cb8e360d72daf0b96465c8c9c7fd17848d15c2edc3fd95d931",
+    "K002": "fd9370ae6d4cfe8096ff711109904b5233c0c5aac17a673ca47733c087c16db9",
+    "K003": "1673bd2572e089a54365a8c66ad6ef7381b3e1a6deb6214cd2b1571cef642597",
+    "K004": "afab7785d27ae8968f5173a1492083dea127015a848c23cd7f199e8b67d07d50",
+    "K005": "614516a143c8dc95c81dc94949a850cc2946cd97398aeb432dabc39d7b2be40f",
+    "K006": "2e03cdaeeb2dc3d916f5c35cae4ee36f86a3d72c726618b48bf64d3a7039cd1d"
+  },
+  "rationale": "All three reference changes support the product contracts; all three defective changes require the concrete correction established independently by both critics and retained by adjudication. Source checks confirm the permitted counterexamples and one underlying cause per control. This is a supervisory judgment, not an automatic outcome-label match.",
+  "scope": "Authorize the frozen 72-change experiment and compare concrete necessary corrections and whole-change outcomes. Do not sum supported requirement rows or use obligation counts as release scores.",
+  "limitations": [
+    "Recovery impact enumeration omitted C2/C5 consequences of the same established cause. Preserve the raw profile and separate source audit; this does not create extra root causes.",
+    "Known-control discrimination does not prove detection of all defects; same-family critics may share blind spots.",
+    "Test-named runtime source imports must be inspected as a possible packaging limitation, not silently attributed to the candidate."
+  ],
+  "evidence": [
+    "calibration-report.md",
+    "calibration-intake-audit.md",
+    "calibration-recovery-audit.md",
+    "calibration-consumers-audit.md",
+    "fixture-verification.json",
+    "verification.json"
+  ]
+}

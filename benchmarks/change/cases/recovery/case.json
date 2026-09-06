@@ -1,0 +1,50 @@
+{
+  "id": "recovery",
+  "name": "Carrier recovery with retained refusal context",
+  "requirements": [
+    {
+      "id": "B1",
+      "statement": "Keep createShippingService(dependencies).handle(command) and get/dispatch commands. Validate every required command field before repository lookup, including dispatches of missing or terminal shipments. Invalid commands resolve to 400 {code:'invalid_command'}, missing shipments to 404 {code:'not_found'}. IDs are nonempty strings; dispatch nowMs is a nonnegative safe integer; recipient.name and recipient.postalAddress are nonblank strings. Ignore extra command fields."
+    },
+    {
+      "id": "B2",
+      "statement": "Keep the starter's schemaVersion 1 queued and dispatched JSON records readable. Preserve immutable id, routeCode, and parcelGrams. A successful get returns 200 with the current public shipment, including new states, and does not call a provider, write, or log. Public shipments omit schemaVersion and recipient."
+    },
+    {
+      "id": "B3",
+      "statement": "A queued shipment still tries Atlas first. A valid Atlas confirmation becomes a dispatched record with provider 'atlas', its exact bookingId, and dispatchedAtMs equal to the command's nowMs. Save before the dispatched event and 200 response. Dispatch of an already dispatched shipment returns the saved 200 body with no provider call, write, or log."
+    },
+    {
+      "id": "B4",
+      "statement": "Every carrier request contains the unchanged shipmentId, routeCode, parcelGrams, the command's exact recipient name/postalAddress, and idempotencyKey equal to shipmentId. Use only the supplied nowMs for temporal decisions and dispatchedAtMs. The host supplies the same recipient and nondecreasing nowMs for every dispatch of a shipment."
+    },
+    {
+      "id": "C1",
+      "statement": "Add Beacon reserve as the backup. Only a documented definitive Atlas refusal authorizes one immediate Beacon attempt. Preserve each refusal's carrier and exact allowed reason in attempt order. Normalize Beacon's nonempty reference to public bookingId. Two refusals produce a saved unavailable shipment and 422; dispatch of that terminal shipment returns the same 422 with no effects. Never retry a carrier whose permanent refusal is retained in the current invocation or stored plan. Calls are sequential, with at most one attempt per eligible carrier per invocation."
+    },
+    {
+      "id": "C2",
+      "statement": "A documented rate limit with a safe-integer retryAtMs strictly greater than the current nowMs stops carrier calls, saves a deferred plan for that same carrier with the exact deadline and prior refusals, emits its committed event, and returns 202. Atlas throttling must not try Beacon. Beacon throttling after Atlas refusal must retain Atlas's reason and Beacon selection."
+    },
+    {
+      "id": "C3",
+      "statement": "For a deferred shipment before its deadline, return the saved 202 body without carrier calls, writes, or logs. At or after the deadline, resume only the saved next carrier. A new valid throttle replaces the deadline and preserves prior refusals. A resumed Atlas refusal can authorize Beacon; a resumed Beacon refusal combines with the retained Atlas refusal. Get and resumption must work in a new service instance after JSON round-tripping repository records."
+    },
+    {
+      "id": "C4",
+      "statement": "Unknown carrier rejections, malformed known failure signals, and unusable resolved confirmations stop the invocation with 500 {code:'dispatch_aborted',shipmentId,failedAt,classification,rejections}. Identify the attempted carrier and all prior established refusals. Use unknown_failure for unrecognized rejections and invalid_provider_response for malformed known signals or unusable confirmations. Do not call another carrier or write a new decision. Inspect only documented structured signal fields, not message text. Preserve the last successfully saved record; schedule no retries. A later explicit host dispatch is allowed."
+    },
+    {
+      "id": "C5",
+      "statement": "Treat repository get/save rejection as 500 dispatch_aborted with failedAt 'repository', classification 'repository_failure', and established refusals (empty before a record is read). A get rejection occurs before provider calls. Save a booked, deferred, or unavailable decision before returning its business outcome or logging it as committed. A save rejection leaves the old record intact, causes no more provider calls and no committed-decision event, and emits only the abort event. Repository failures never authorize carrier recovery, even if their values resemble carrier signals."
+    },
+    {
+      "id": "C6",
+      "statement": "Emit exactly one allowlisted diagnostic event for each newly persisted decision or aborted invocation. Dispatched events contain shipmentId, action 'dispatched', and provider. Deferred events contain shipmentId, action 'deferred', provider, exact retryAtMs, and ordered rejections. Unavailable events contain shipmentId, action 'unavailable', and ordered rejections. Abort events contain shipmentId, action 'aborted', failedAt, classification, and ordered rejections. Successful get, invalid/missing commands, early deferred polls, and terminal/idempotent reads emit none. A repository get rejection, including on a get command, emits one abort event. Keep reason and carrier provenance distinguishable even when raw messages are identical."
+    },
+    {
+      "id": "C7",
+      "statement": "Recipient name and postalAddress may exist in transient command/memory and be sent to Atlas and Beacon; they must never flow into repository writes, public responses, or diagnostic events. This applies to all confirmation, fallback, deferral, unknown-failure, and write-failure paths. Do not forward raw command, request, provider response, rejected value, or Error metadata to those surfaces. Select only the documented public business fields; independent contractually non-PII public values need no content-based DLP."
+    }
+  ]
+}

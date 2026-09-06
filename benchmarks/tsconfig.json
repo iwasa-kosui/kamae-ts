@@ -9,5 +9,5 @@
     "skipLibCheck": true,
     "types": ["bun"]
   },
-  "include": ["runner/**/*.ts"]
+  "include": ["runner/**/*.ts", "change/*.ts"]
 }

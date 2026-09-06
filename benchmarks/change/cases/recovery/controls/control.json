@@ -1,0 +1,75 @@
+{
+  "case_id": "recovery",
+  "purpose": "Calibration metadata for the benchmark maintainer. Exclude this file and control labels from candidate and judge inputs.",
+  "reference": {
+    "source": "reference/src",
+    "implementation_notes": "reference/IMPLEMENTATION.md",
+    "expected_result": "Satisfies B1-B4 and C1-C7 under the documented host and dependency assumptions.",
+    "validation_status": "Authored and reviewed statically; maintainer performs type checking separately."
+  },
+  "broken": {
+    "source": "broken/src",
+    "implementation_notes": "broken/IMPLEMENTATION.md",
+    "root_cause_count": 1,
+    "difference_from_reference": "Exactly one source line changes: the classifier's final unknown outcome becomes a fabricated unsupported_route refusal. All other source text and implementation notes are identical.",
+    "expected_defects": [
+      {
+        "id": "D1",
+        "requirement_ids": [
+          "C4",
+          "C1"
+        ],
+        "claim": "An unrecognized carrier rejection is converted to definitive inability, allowing unauthorized fallback or terminal unavailability when the invocation must abort.",
+        "source_evidence": [
+          {
+            "file": "controls/broken/src/index.ts",
+            "line_start": 227,
+            "line_end": 227,
+            "explanation": "The classifier's unrecognized-rejection fallback fabricates a definitive unsupported_route refusal instead of preserving an unknown failure."
+          },
+          {
+            "file": "controls/broken/src/index.ts",
+            "line_start": 373,
+            "line_end": 377,
+            "explanation": "The existing refusal branch uses that fabricated outcome to move from Atlas to Beacon immediately."
+          },
+          {
+            "file": "controls/reference/src/index.ts",
+            "line_start": 227,
+            "line_end": 227,
+            "explanation": "The reference leaves unrecognized rejections classified as unknown, which reaches the contextual abort response without a write or fallback."
+          }
+        ],
+        "counterexample": {
+          "initial_record": {
+            "schemaVersion": 1,
+            "id": "shipment-1",
+            "routeCode": "ZONE-N",
+            "parcelGrams": 500,
+            "state": "queued"
+          },
+          "command": {
+            "op": "dispatch",
+            "shipmentId": "shipment-1",
+            "nowMs": 1000,
+            "recipient": {
+              "name": "Avery Example",
+              "postalAddress": "14 Example Avenue"
+            }
+          },
+          "dependency_outcomes": [
+            "repository.get resolves the queued record.",
+            "atlas.book rejects Error('Unknown booking outcome for Avery Example'). The error has no documented code or type.",
+            "beacon.reserve would resolve {reference:'beacon-1'} if called.",
+            "repository.save resolves if called; logger.info records its event."
+          ],
+          "required_behavior": "Atlas is the only attempted carrier. Return 500 dispatch_aborted with failedAt atlas, classification unknown_failure, and rejections []. Leave the queued record unchanged and emit one sanitized aborted event.",
+          "actual_behavior": "The unknown Atlas failure becomes an unsupported_route refusal. Beacon is called, a Beacon booking is saved, a dispatched event is emitted, and the response is 200.",
+          "consequence": "The service reports a booked outcome and attempts a second carrier even though Atlas may already have accepted the booking; the contract promises no cross-carrier idempotency."
+        },
+        "additional_manifestation": "After a genuine Atlas refusal, an unknown Beacon rejection becomes a fabricated Beacon refusal and a saved 422 unavailable decision instead of a 500 abort with only Atlas's established refusal.",
+        "non_defects": "Known refusals, valid/malformed rate-limit signals, unusable resolved confirmations, repository failure classification, time gating, and recipient projections have the same implementation as the reference. Do not count each manifestation of the one fallback-classification change as an independent root cause."
+      }
+    ]
+  }
+}

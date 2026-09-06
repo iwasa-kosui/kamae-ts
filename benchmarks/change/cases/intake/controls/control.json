@@ -1,0 +1,67 @@
+{
+  "case_id": "intake",
+  "do_not_supply_to_judge": true,
+  "reference": {
+    "path": "controls/reference",
+    "intent": "A plausible complete implementation of the requested change; assess it independently rather than assuming correctness.",
+    "validation": "Source-authored only; type checking and calibration are performed separately."
+  },
+  "broken": {
+    "path": "controls/broken",
+    "derived_from": "controls/reference",
+    "changed_files": [
+      "src/batch.ts"
+    ],
+    "expected_defect": {
+      "id": "batch_total_units",
+      "requirement_ids": [
+        "B5",
+        "C6"
+      ],
+      "claim": "Batch totalAcceptedCents sums major-unit values instead of canonical cents.",
+      "evidence": [
+        {
+          "file": "controls/broken/src/batch.ts",
+          "line_start": 36,
+          "line_end": 36,
+          "explanation": "Every accepted canonical cent amount is divided by 100 before entering totalAcceptedCents."
+        }
+      ],
+      "call_path": "createOrderIntake.importOrders -> importOrders -> saveOrder success -> totalAcceptedCents accumulation",
+      "counterexample": {
+        "repository": "Initially empty; get and save succeed under the documented contract.",
+        "method": "importOrders",
+        "value": [
+          {
+            "formatVersion": 2,
+            "id": "ORDER_1",
+            "customerId": "BUYER_1",
+            "amount": {
+              "decimal": "1.15"
+            }
+          }
+        ],
+        "context": {
+          "receivedOn": "2028-02-29"
+        }
+      },
+      "actual_behavior": "Status 200; one row succeeds and stores/returns amountCents 115; acceptedCount is 1, latestShipOn is 2028-02-29, but totalAcceptedCents is 1.15.",
+      "required_behavior": "The same successful row, record and other summary values, with totalAcceptedCents 115.",
+      "minimal_correction": "Add order.amountCents directly without dividing by 100.",
+      "regression_obligations": [
+        "A version 2 decimal 1.15 contributes 115 cents.",
+        "Version 1 rows continue to contribute their canonical cent amount.",
+        "Mixed batches exclude invalid, duplicate and failed-save rows."
+      ],
+      "unchanged_behaviors": [
+        "Admission and normalization",
+        "Persistence and row bodies",
+        "Single intake and retrieval",
+        "Accepted count and latest shipping date",
+        "Per-row failure isolation"
+      ],
+      "confidence": "high"
+    }
+  }
+}
+

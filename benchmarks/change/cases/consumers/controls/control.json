@@ -1,0 +1,32 @@
+{
+  "visibility": "Calibration metadata: do not supply this file to the judge or generation sessions.",
+  "reference": {
+    "path": "controls/reference",
+    "role": "Expected behaviorally correct maintenance solution",
+    "known_defects": [],
+    "design_note": "Intentionally acceptable compact alternative: preserve a combined legacy storage interface, use direct minimal host contracts for the two new consumers, and map provider B through a facade. Do not penalize interface count or file placement."
+  },
+  "broken": {
+    "path": "controls/broken",
+    "role": "Single behavioral defect control",
+    "expected_defect": {
+      "id": "missing_reservation_outbox_event",
+      "primary_requirement": "B3",
+      "severity": "high",
+      "file": "src/reservation.ts",
+      "line_start": 98,
+      "line_end": 110,
+      "operation": "reserve",
+      "source_change": "In the otherwise unchanged reference commit request, replace events: [event] with events: [].",
+      "precondition": "Existing stock with sufficient availability, fresh reservationId, matching revision, successful host commit.",
+      "actual_behavior": "Stock and reservation commit and the service returns 201, but no reservation.created event is submitted or retained. The provider B facade faithfully maps that empty array into outboxRows: [], so the same defect is observable on either backend.",
+      "required_behavior": "Every successful new reservation must atomically commit exactly one matching reservation.created outbox event together with stock and reservation state.",
+      "consequence": "Downstream reservation-event consumers miss successful reservations; the service reports success without completing the specified atomic business change.",
+      "minimal_correction": "Restore the event as the sole events array entry in the existing atomic commit.",
+      "counterevidence": "The host does not automatically synthesize events; its contract explicitly persists only the supplied array. Merely calling an atomic host operation does not establish the required event was included.",
+      "unchanged_behaviors": "All other source files and logic remain identical, including quantities/revision updates, responses, retries, failure mapping, report, observations and provider translation."
+    }
+  },
+  "pair_constraint": "Reference and broken production trees differ in exactly one line. Judge should identify the missing event from source and public contract, not from metadata or implementation-note labels.",
+  "validation_performed": "Static author inspection only; no code/tests/models/network were executed by this author."
+}

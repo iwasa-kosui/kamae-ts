@@ -1,0 +1,1533 @@
+{
+  "exportedAt": "2026-09-06T05:33:45.302Z",
+  "originalManifestSha256": "bf27df54f797d0e9a2d327302ee6d73ebbeb0d013e5404fccd51731b6d4a58a7",
+  "manifest": {
+    "protocol": 1,
+    "createdAt": "2026-09-06T03:47:07.490Z",
+    "action": "prepare",
+    "model": "gpt-5.5",
+    "judgeModel": "gpt-5.5",
+    "effort": "medium",
+    "judgeEffort": "high",
+    "cases": [
+      "intake",
+      "recovery",
+      "consumers"
+    ],
+    "refs": [
+      "baseline",
+      "v1.0.0",
+      "v1.1.0",
+      "v1.2.0",
+      "v1.3.0",
+      "v1.4.0"
+    ],
+    "runs": 4,
+    "workers": 4,
+    "timeoutSeconds": 1200,
+    "seed": "change-benchmark-20260906-v1",
+    "dryRun": false,
+    "watch": false,
+    "isolation": "macos",
+    "binary": "codex",
+    "rubricHash": "b166c590886ed4ad61da712c768ffaa4f02cead9cfe8a116c8ba8e7e17178b91",
+    "generationPromptHashes": {
+      "baseline": "8cd2d2bad5fff19009a058e01c1faaafded111d09b6024247bf42af6bac048fd",
+      "skill": "44318f5c13d370ce6a4aaa0ea354d5e96c5197e83ed9e4def27c940e91afb336"
+    },
+    "reviewPromptHashes": {
+      "critic-a": "7eba7526d719eb0ae5f926ba6e994c22d440fbc6b436f82fd70f2e1300c08f83",
+      "critic-b": "91633cb1eaa7ece9b86ab73334289dc7a35cf30f7e8cbd802b1474ceed3af4b1",
+      "adjudicator": "12902ed1c170023c76d99e7120b4bb8c9a0830a6640e0d43e6f297e15c0696af"
+    },
+    "caseData": {
+      "intake": {
+        "id": "intake",
+        "name": "Order intake wire-format evolution",
+        "requirements": [
+          {
+            "id": "B1",
+            "statement": "Preserve version 1 admission and validation: omitted or numeric 1 formatVersion; 1–64 ASCII alphanumeric/underscore/hyphen IDs; integer 1–1,000,000 amountCents; required valid YYYY-MM-DD shipOn in 2000–2099; ignored extra fields; no trimming or coercion."
+          },
+          {
+            "id": "B2",
+            "statement": "Preserve exactly the canonical stored and successful-response fields id, customerId, amountCents, currency='USD', shipOn and receivedOn. Stored JSON survives service instances; intact old records remain readable and must not be rewritten on read or conflict."
+          },
+          {
+            "id": "B3",
+            "statement": "Preserve the public factory and operations, single success 201, read success 200, and documented 400 invalid_order, 404 order_not_found, 409 duplicate_order, 500 storage_unavailable and outer-batch 400 invalid_batch responses."
+          },
+          {
+            "id": "B4",
+            "statement": "Validate a complete intake value before any repository operation. Invalid input performs no get/save. A valid duplicate preserves the original with no save, across calls, rows and service instances under sequential requests."
+          },
+          {
+            "id": "B5",
+            "statement": "A batch is an array of 0–100 rows, otherwise 400 with no repository operation. A valid batch returns 200 and ordered row responses. acceptedCount, totalAcceptedCents and latestShipOn use only successfully saved canonical orders; empty success sets are 0, 0 and null."
+          },
+          {
+            "id": "B6",
+            "statement": "Contain repository rejections as 500. A save rejection commits nothing, contributes no accepted row and does not reserve an ID. Batch rows are sequential; row errors do not stop later rows. Keep host context.receivedOn unchanged on stored orders."
+          },
+          {
+            "id": "C1",
+            "statement": "Accept numeric formatVersion 2 in both intake consumers while preserving numeric 1 and omitted-version behavior. All other version values are invalid. Validate only the selected version; do not infer versions from fields or fall back after a failed version parse."
+          },
+          {
+            "id": "C2",
+            "statement": "Version 2 requires amount.decimal as unsigned decimal text with integer part 0 or a nonzero leading digit and optional one or two fractional digits. Convert exactly to integer cents within 1–1,000,000; reject signs, whitespace, exponents, commas, leading zeros, empty or excess fraction, nonstrings and out-of-range values without rounding or clamping."
+          },
+          {
+            "id": "C3",
+            "statement": "Version 2 amount.currency defaults to USD only when omitted. A present value must be exactly USD; invalid presence is not a default. Extra amount fields may be ignored."
+          },
+          {
+            "id": "C4",
+            "statement": "A present version 2 shipOn is an object containing integer year, month and day denoting a real Gregorian date in 2000–2099. Convert to canonical YYYY-MM-DD without overflow normalization or time-zone shifts. Reject wrong types, invalid/incomplete dates and null; ignore extra date fields."
+          },
+          {
+            "id": "C5",
+            "statement": "An omitted version 2 shipOn defaults to that call's trusted context.receivedOn. A whole batch shares that context. Do not default invalid present values or permit missing version 1 shipOn; do not consult a clock."
+          },
+          {
+            "id": "C6",
+            "statement": "Apply version 2 conversions and defaults through single intake and each mixed-version batch row. Downstream save, response and summary behavior must consume normalized cents and canonical dates, with the existing ordered partial-success semantics."
+          },
+          {
+            "id": "C7",
+            "statement": "Keep both versions' storage and public success bodies in the old canonical format, with no formatVersion, amount object or date object. Old records still read and conflict correctly; no migration, storage marker or incidental rewrite is requested."
+          }
+        ],
+        "hashes": {
+          "CHANGE.md": "efb817d38b0f22a7bf1f1a6afebd9deebe8999a00a544172c942c399c81cdb05",
+          "case.json": "a1d5a2f4868bf220f53edfe6c598440478083b855e69d730912895e370e72e30",
+          "starter/API.md": "2a73bbdecbd4ab7f5845370df2f75d4dbc2e73dbfaea5598c4371ad0cf003526",
+          "starter/bun.lock": "0b538bafdfe48cc4abb0c2982c2e2f6bb81e75e660ed1d985ef5bb0d9df42933",
+          "starter/package.json": "99f3960e9e4eb2c78f31fd459b23e5e33f8ddfd8b4c754206e1e3cc3624acd7f",
+          "starter/src/batch.ts": "6bfabd77b882d9b528babd9f84553370329fd7e8b7349a3ad7fad89681293ff6",
+          "starter/src/index.ts": "21098ebc3535dd36bc5cf2e4719e9fa2abccedd87bc41541064252ecdaa042d1",
+          "starter/src/orders.ts": "1157cf8091b67e5e185ebeec40bd558a3bb7758f269289b8c76f239ecbf9da7e",
+          "starter/src/single.ts": "be5b9b817c24c28e80b1b61f0cb35a718e29938ec7e591219b8fb9647e5b0dd3",
+          "starter/src/types.ts": "45bfb5b1261efbea2912b9de9c850b50ca145fa87286b3cd75a474774c42cef0",
+          "starter/src/validation.ts": "3b6df6bc069c14502dfc39a456d217b97bd6a6b4719db98a6a0dab817f97226a",
+          "starter/tsconfig.json": "5458480a74d38b295c0e5e1439b6b91f2929b8242e3e50c57951e34f9834106c"
+        },
+        "controlHashes": {
+          "broken/IMPLEMENTATION.md": "605b704215d32f0bf97735885b5d3521ae4a9fde877bf12296485ec7f3d3d594",
+          "broken/src/batch.ts": "6f20bc37cb850217d860936e9d25eefaa8a60df83789332ebcb69f9a9ea8d855",
+          "broken/src/index.ts": "21098ebc3535dd36bc5cf2e4719e9fa2abccedd87bc41541064252ecdaa042d1",
+          "broken/src/orders.ts": "1157cf8091b67e5e185ebeec40bd558a3bb7758f269289b8c76f239ecbf9da7e",
+          "broken/src/single.ts": "a47b202feb17a522a794bca42a28cf1f3b9cd9a4c8d84c3a58f1d75651760b1c",
+          "broken/src/types.ts": "45bfb5b1261efbea2912b9de9c850b50ca145fa87286b3cd75a474774c42cef0",
+          "broken/src/validation.ts": "cb192cc4defa36c34b1c14e63c1a3fa5d96f19c853c6e39e0356031604a6ea7f",
+          "control.json": "44d5e82413977bff06eb0ff842a85a68f54626d8600fb3f79c0eb92d54abdad2",
+          "reference/IMPLEMENTATION.md": "605b704215d32f0bf97735885b5d3521ae4a9fde877bf12296485ec7f3d3d594",
+          "reference/src/batch.ts": "266f6c2bdc05d904a22a74bcfe5ad48bbdf185f49e932c945c8417a49869f5ec",
+          "reference/src/index.ts": "21098ebc3535dd36bc5cf2e4719e9fa2abccedd87bc41541064252ecdaa042d1",
+          "reference/src/orders.ts": "1157cf8091b67e5e185ebeec40bd558a3bb7758f269289b8c76f239ecbf9da7e",
+          "reference/src/single.ts": "a47b202feb17a522a794bca42a28cf1f3b9cd9a4c8d84c3a58f1d75651760b1c",
+          "reference/src/types.ts": "45bfb5b1261efbea2912b9de9c850b50ca145fa87286b3cd75a474774c42cef0",
+          "reference/src/validation.ts": "cb192cc4defa36c34b1c14e63c1a3fa5d96f19c853c6e39e0356031604a6ea7f"
+        }
+      },
+      "recovery": {
+        "id": "recovery",
+        "name": "Carrier recovery with retained refusal context",
+        "requirements": [
+          {
+            "id": "B1",
+            "statement": "Keep createShippingService(dependencies).handle(command) and get/dispatch commands. Validate every required command field before repository lookup, including dispatches of missing or terminal shipments. Invalid commands resolve to 400 {code:'invalid_command'}, missing shipments to 404 {code:'not_found'}. IDs are nonempty strings; dispatch nowMs is a nonnegative safe integer; recipient.name and recipient.postalAddress are nonblank strings. Ignore extra command fields."
+          },
+          {
+            "id": "B2",
+            "statement": "Keep the starter's schemaVersion 1 queued and dispatched JSON records readable. Preserve immutable id, routeCode, and parcelGrams. A successful get returns 200 with the current public shipment, including new states, and does not call a provider, write, or log. Public shipments omit schemaVersion and recipient."
+          },
+          {
+            "id": "B3",
+            "statement": "A queued shipment still tries Atlas first. A valid Atlas confirmation becomes a dispatched record with provider 'atlas', its exact bookingId, and dispatchedAtMs equal to the command's nowMs. Save before the dispatched event and 200 response. Dispatch of an already dispatched shipment returns the saved 200 body with no provider call, write, or log."
+          },
+          {
+            "id": "B4",
+            "statement": "Every carrier request contains the unchanged shipmentId, routeCode, parcelGrams, the command's exact recipient name/postalAddress, and idempotencyKey equal to shipmentId. Use only the supplied nowMs for temporal decisions and dispatchedAtMs. The host supplies the same recipient and nondecreasing nowMs for every dispatch of a shipment."
+          },
+          {
+            "id": "C1",
+            "statement": "Add Beacon reserve as the backup. Only a documented definitive Atlas refusal authorizes one immediate Beacon attempt. Preserve each refusal's carrier and exact allowed reason in attempt order. Normalize Beacon's nonempty reference to public bookingId. Two refusals produce a saved unavailable shipment and 422; dispatch of that terminal shipment returns the same 422 with no effects. Never retry a carrier whose permanent refusal is retained in the current invocation or stored plan. Calls are sequential, with at most one attempt per eligible carrier per invocation."
+          },
+          {
+            "id": "C2",
+            "statement": "A documented rate limit with a safe-integer retryAtMs strictly greater than the current nowMs stops carrier calls, saves a deferred plan for that same carrier with the exact deadline and prior refusals, emits its committed event, and returns 202. Atlas throttling must not try Beacon. Beacon throttling after Atlas refusal must retain Atlas's reason and Beacon selection."
+          },
+          {
+            "id": "C3",
+            "statement": "For a deferred shipment before its deadline, return the saved 202 body without carrier calls, writes, or logs. At or after the deadline, resume only the saved next carrier. A new valid throttle replaces the deadline and preserves prior refusals. A resumed Atlas refusal can authorize Beacon; a resumed Beacon refusal combines with the retained Atlas refusal. Get and resumption must work in a new service instance after JSON round-tripping repository records."
+          },
+          {
+            "id": "C4",
+            "statement": "Unknown carrier rejections, malformed known failure signals, and unusable resolved confirmations stop the invocation with 500 {code:'dispatch_aborted',shipmentId,failedAt,classification,rejections}. Identify the attempted carrier and all prior established refusals. Use unknown_failure for unrecognized rejections and invalid_provider_response for malformed known signals or unusable confirmations. Do not call another carrier or write a new decision. Inspect only documented structured signal fields, not message text. Preserve the last successfully saved record; schedule no retries. A later explicit host dispatch is allowed."
+          },
+          {
+            "id": "C5",
+            "statement": "Treat repository get/save rejection as 500 dispatch_aborted with failedAt 'repository', classification 'repository_failure', and established refusals (empty before a record is read). A get rejection occurs before provider calls. Save a booked, deferred, or unavailable decision before returning its business outcome or logging it as committed. A save rejection leaves the old record intact, causes no more provider calls and no committed-decision event, and emits only the abort event. Repository failures never authorize carrier recovery, even if their values resemble carrier signals."
+          },
+          {
+            "id": "C6",
+            "statement": "Emit exactly one allowlisted diagnostic event for each newly persisted decision or aborted invocation. Dispatched events contain shipmentId, action 'dispatched', and provider. Deferred events contain shipmentId, action 'deferred', provider, exact retryAtMs, and ordered rejections. Unavailable events contain shipmentId, action 'unavailable', and ordered rejections. Abort events contain shipmentId, action 'aborted', failedAt, classification, and ordered rejections. Successful get, invalid/missing commands, early deferred polls, and terminal/idempotent reads emit none. A repository get rejection, including on a get command, emits one abort event. Keep reason and carrier provenance distinguishable even when raw messages are identical."
+          },
+          {
+            "id": "C7",
+            "statement": "Recipient name and postalAddress may exist in transient command/memory and be sent to Atlas and Beacon; they must never flow into repository writes, public responses, or diagnostic events. This applies to all confirmation, fallback, deferral, unknown-failure, and write-failure paths. Do not forward raw command, request, provider response, rejected value, or Error metadata to those surfaces. Select only the documented public business fields; independent contractually non-PII public values need no content-based DLP."
+          }
+        ],
+        "hashes": {
+          "CHANGE.md": "291adf524e7917869baa72aedc391eaa49ff4a06049860bef315cecde604500b",
+          "case.json": "b8938ea234714fa1f672b0780b2de4d2877fa68eb470043eaff26c0863b6bdfc",
+          "starter/API.md": "a5e0dbd586026e9bd2af33c21b054063d44b735e0eac12a2971094b205e766a2",
+          "starter/bun.lock": "089ff7705f9105eeb02c7b5fa524c4750f0331df55040111aca97344cbaebb60",
+          "starter/package.json": "07936bfc58b44e6f7141e91febf49f66a8ecd88c20e04a05360d58af4e935f49",
+          "starter/src/index.ts": "4a4bc3854cdfcc3bd81925f191d9df521ff25e81abf72777311b5950e367bbb2",
+          "starter/tsconfig.json": "04888c7a467b4ddb2ecf203009dd7c22e45feebb66eac7d73a08ee3bee1ab443"
+        },
+        "controlHashes": {
+          "broken/IMPLEMENTATION.md": "fd09614853a639160933d46dec143540948f653d24e535aeb812543e184bb09d",
+          "broken/src/index.ts": "a1b8ea9068dc3b7a4910a841cf8a0439ebb5c206ccb6ee4e43abf3e0f6cd4d92",
+          "control.json": "2b663ce782c165b23f291bd3a10fba791656af53a8f3f5543039290595d36fb2",
+          "reference/IMPLEMENTATION.md": "fd09614853a639160933d46dec143540948f653d24e535aeb812543e184bb09d",
+          "reference/src/index.ts": "a565ca990bb933e5cfc513d2c3ecc0174470d75db516ae867d7c7f7a30eb332b"
+        }
+      },
+      "consumers": {
+        "id": "consumers",
+        "name": "Inventory consumers and an alternative storage provider",
+        "requirements": [
+          {
+            "id": "B1",
+            "statement": "Preserve createReservationService({ storage }).handle(command) and the three legacy commands, response shapes, status codes, required-field validation before I/O, and ignored extra fields described in starter/API.md."
+          },
+          {
+            "id": "B2",
+            "statement": "Reserve only existing stock with sufficient availability. Exact duplicate reservation payloads return the existing reservation with 200; conflicting reuse returns 409 without replacing the original."
+          },
+          {
+            "id": "B3",
+            "statement": "A successful new reservation atomically increases reservedUnits, advances revision by one, inserts its reservation, and appends exactly one matching reservation.created outbox event. Use the loaded revision as expectedRevision; revision conflict or commit rejection leaves all resources unchanged."
+          },
+          {
+            "id": "B4",
+            "statement": "Legacy storage rejection, unusable result, invalid self-owned record, or exhausted safe-integer revision produces 500 storage_unavailable; revision_conflict produces 409 commit_conflict; public errors contain only the fixed code."
+          },
+          {
+            "id": "B5",
+            "statement": "Preserve exact nonempty identifiers and required stock/reservation/event data in storage and responses. Persisted records written by the implementation work across fresh service instances."
+          },
+          {
+            "id": "B6",
+            "statement": "Queries, invalid commands, business-rule failures, and completed-reservation retries do not commit state or events. Failed commits can be retried without creating duplicate events."
+          },
+          {
+            "id": "C1",
+            "statement": "Add createStockReport({ source }).handle({ op: 'lowStock', belowUnits }) using only readSnapshot. Return SKU-sorted items with availableUnits strictly below the threshold; empty results return items: []."
+          },
+          {
+            "id": "C2",
+            "statement": "Add createObservationReceiver({ sink }).handle({ op: 'recordObservation', observationId, sku, observedUnits }) using only appendObservation. Accept unknown SKUs, never query or change inventory/reservations, and map stored/duplicate outcomes to the specified 201/200 bodies with first accepted observation winning."
+          },
+          {
+            "id": "C3",
+            "statement": "Add createProviderBReservationService({ storage }) for provider B's documented lookup envelopes, decimal-string rows and atomic batch API, retaining all existing reservation behavior and self-written record round trips without requiring provider A or migration."
+          },
+          {
+            "id": "C4",
+            "statement": "Each factory must work with only its documented host methods: legacy lookup/commit methods, report readSnapshot, observation appendObservation, or provider B read/commitBatch. Typed callers must not need dummy operations, casts, another provider, or unrelated initialization."
+          },
+          {
+            "id": "C5",
+            "statement": "Validate all new commands before I/O: exact nonempty IDs and integer report/observation quantities from 0 through 1000000. Unknown operations and missing/invalid required fields return 400 invalid_command. Extra fields are ignored and do not enter observation payloads."
+          },
+          {
+            "id": "C6",
+            "statement": "Reject unusable report snapshots, duplicate snapshot SKUs, malformed provider B envelopes/rows/canonical decimal strings, and invalid stock quantities with 500; distinguish provider B NO_SUCH_KEY from TEMPORARY_FAILURE and preserve exact keys and numeric public quantities."
+          },
+          {
+            "id": "C7",
+            "statement": "Contain rejection/unusable outcomes from every new host operation as 500 storage_unavailable without provider messages/request IDs or envelopes in public responses. Map provider B revision_conflict to 409 commit_conflict, and preserve reservation atomicity and idempotency on that backend."
+          }
+        ],
+        "hashes": {
+          "CHANGE.md": "26c0b050563680281135afde7634adef81ed40cd958cd18e3a620e1ad338e24c",
+          "case.json": "3ac68b8b1d5453c9d897f2f9d2f875caa8cab86c326ce92ced2e790bb02919a6",
+          "starter/API.md": "b437b345aeb67f14651cad799b276decdee4042ad9957874422b6bb97c85e9d8",
+          "starter/bun.lock": "6215c72e5b4771222ef2d4285e67ff8acaeec91fdb3db7ae851c3651e9e6f26a",
+          "starter/package.json": "f8d3be3c165070357e3c2704c3ed6122aae874a2d8b88c8c1088a2b7df89eb48",
+          "starter/src/index.ts": "af3f71ea46b366cfcbbe7b86d775a0c1110b7f2b577b97259d2ccd367863bda1",
+          "starter/src/reservation.ts": "f496e4e5d7abf3572df2b0cd3849b36bb71072339928069e170528d4288e648a",
+          "starter/src/types.ts": "78d40716acc93a2ea780192e56c1273905f9fa8e1b7a96e96407d51b0257ef38",
+          "starter/src/validation.ts": "e28f1b2777d5992bdb2b44e7dc22034114f3a651dea0bc860a50e9ff5867a262",
+          "starter/tsconfig.json": "b61964d6330fdcd129503d83215dd89330ae6c4ba0e853bbc58015d203d70e03"
+        },
+        "controlHashes": {
+          "broken/IMPLEMENTATION.md": "7ae62e066494f7bb7ccbbe0460a251aaafa85683d3d2989452afaa8f41d97d34",
+          "broken/src/index.ts": "f642710fa5c9de6cd377e60a8c5535b81956404eed87fadefac62e0f02b7a478",
+          "broken/src/observation-receiver.ts": "126ec78793f4275ce0a822d414212e3b1eb344b35a1c89bc63e5ad9a66274250",
+          "broken/src/provider-b.ts": "7c0ec08baa98b2dd722b95a5d91f072052788f2c63d3898d345aa3c69b08b04c",
+          "broken/src/reservation.ts": "8c50884c8dba721ac586dfeda64bfc0144cacb41d7a66927e15c89bcddc2be0e",
+          "broken/src/stock-report.ts": "d4d28ebc6ad676f05b6d2b836eafea55265a4567caa11e5d5987679c3dc7767d",
+          "broken/src/types.ts": "78d40716acc93a2ea780192e56c1273905f9fa8e1b7a96e96407d51b0257ef38",
+          "broken/src/validation.ts": "e28f1b2777d5992bdb2b44e7dc22034114f3a651dea0bc860a50e9ff5867a262",
+          "control.json": "61b4434d8ad021f512cf1bf08ee19cbc7609635f10cf6384da73ec9af7ae0e45",
+          "reference/IMPLEMENTATION.md": "7ae62e066494f7bb7ccbbe0460a251aaafa85683d3d2989452afaa8f41d97d34",
+          "reference/src/index.ts": "f642710fa5c9de6cd377e60a8c5535b81956404eed87fadefac62e0f02b7a478",
+          "reference/src/observation-receiver.ts": "126ec78793f4275ce0a822d414212e3b1eb344b35a1c89bc63e5ad9a66274250",
+          "reference/src/provider-b.ts": "7c0ec08baa98b2dd722b95a5d91f072052788f2c63d3898d345aa3c69b08b04c",
+          "reference/src/reservation.ts": "f496e4e5d7abf3572df2b0cd3849b36bb71072339928069e170528d4288e648a",
+          "reference/src/stock-report.ts": "d4d28ebc6ad676f05b6d2b836eafea55265a4567caa11e5d5987679c3dc7767d",
+          "reference/src/types.ts": "78d40716acc93a2ea780192e56c1273905f9fa8e1b7a96e96407d51b0257ef38",
+          "reference/src/validation.ts": "e28f1b2777d5992bdb2b44e7dc22034114f3a651dea0bc860a50e9ff5867a262"
+        }
+      }
+    },
+    "skillSnapshots": {
+      "v1.0.0": {
+        "revision": "e08fbeaa8379780ff0eadbe3b221a45476a7583e",
+        "folder": "v1.0.0",
+        "skill": {
+          "SKILL.md": "7783fd5e761d82f1c69b83e721752e0d217c23fd1586086e129ea07ef410fcc8",
+          "boundary-defense.md": "686d9c546322d191544bf958fb0df28039ae7c1aff88fad882eb57e1ef2efbd1",
+          "declarative-style.md": "73075feb91ba67f1b6c55b4d66f89b32828a1b385c2f359230b1d6b18ccae5a6",
+          "domain-modeling.md": "4f9ad180830e92680e985bae4ed7b9ab7f4edf0858ff61117dce960ba39dfb83",
+          "error-handling.md": "8192e3c933035c9bc3bcd6767443bbde1d5129cda65e8eed1dccfe2e4c69fd51",
+          "examples/sensitive-type-arktype.ts": "024c3636b0460f0b4072c2e0b508739ff13e1cbabe3e460f2f308b30eb023f63",
+          "examples/sensitive-type-valibot.ts": "c553fe4949e7401fc020301df96b85f887f47d1898497a2d884a02da3e98018b",
+          "examples/sensitive-type.ts": "ca8016e0874c67ab7033344192230d66e6d62ddff122bcb8eb0e925a255ea3ee",
+          "examples/taxi-request-arktype.ts": "4bf46a7ecde4cbd43947535a9871e372c144ae6fd7c333d20f19f48da471de09",
+          "examples/taxi-request-valibot.ts": "bac3a6ce80db6661a64017902a83cd178116f1725c5681b64444c02cae585077",
+          "examples/taxi-request.ts": "06e8fa1e67956f939be4a613ea348990c54cf029b11fdf037004e959a9705828",
+          "result-libraries/byethrow.md": "a3d049f708373d354a266443367f8bf78fe1ba1eac511f623e835231da3c7894",
+          "result-libraries/fp-ts.md": "ed204179a1e265e4f9b1e37ca78be1709366d5ee28362f6abeba4d9bf9dcc0aa",
+          "result-libraries/neverthrow.md": "32fe653e373c6f9164b6d9a132205f55fc521409d9049d303a76c99ec1a8b689",
+          "result-libraries/option-t.md": "defd1717ce1ffd3c155837a3cc5acd3822bdf38648afcd5f741532ddf601747c",
+          "state-modeling.md": "4c6dac0bb704f6ca90a6256c7ea062a3b0a340bc71a7970aade8e49489cdf669",
+          "test-data.md": "536551464f406d3a6766094f9dbd0c49c0fb0248040a30518120e68c009c7106",
+          "validation-libraries/arktype.md": "8cb80b86c2215f7cea94b75edae9124a962b7b03f5ecadb4f31c9a70601129ea",
+          "validation-libraries/valibot.md": "549bd161095ceae698ec8c6e17aaa2b64c36e59ee2a9c4505c5173d94172ae81",
+          "validation-libraries/zod.md": "f7c968e2d0ad8b5ae256c8c97cf46b25fe568ddb3aae1f96e1fadfafb09659c6"
+        },
+        "rules": {
+          "README.md": "4a8fd2a30f6da896ff4f5c53fbcfc4b458371ec47f9d76e1bb8657c17383f916",
+          "defaults/result-library-detection.md": "4cc32005f4935686862fe76ef8c085b9b3146b89ca32318d2d576ced66e77b50",
+          "defaults/validation-library-detection.md": "c5a7b93ebc8e9a8648e917013e6a93c362a299f6d1aec7a1196271528ab35622"
+        }
+      },
+      "v1.1.0": {
+        "revision": "38510824c3714055092439fbf79fbd10c8e19cdd",
+        "folder": "v1.1.0",
+        "skill": {
+          "SKILL.md": "7783fd5e761d82f1c69b83e721752e0d217c23fd1586086e129ea07ef410fcc8",
+          "boundary-defense.md": "686d9c546322d191544bf958fb0df28039ae7c1aff88fad882eb57e1ef2efbd1",
+          "declarative-style.md": "73075feb91ba67f1b6c55b4d66f89b32828a1b385c2f359230b1d6b18ccae5a6",
+          "domain-modeling.md": "4f9ad180830e92680e985bae4ed7b9ab7f4edf0858ff61117dce960ba39dfb83",
+          "error-handling.md": "f4357c2aa9811763bc16a76dc89110a60b07fb6ec036bad0ef2408f7bbc31e3a",
+          "examples/sensitive-type-arktype.ts": "024c3636b0460f0b4072c2e0b508739ff13e1cbabe3e460f2f308b30eb023f63",
+          "examples/sensitive-type-valibot.ts": "c553fe4949e7401fc020301df96b85f887f47d1898497a2d884a02da3e98018b",
+          "examples/sensitive-type.ts": "ca8016e0874c67ab7033344192230d66e6d62ddff122bcb8eb0e925a255ea3ee",
+          "examples/taxi-request-arktype.ts": "4bf46a7ecde4cbd43947535a9871e372c144ae6fd7c333d20f19f48da471de09",
+          "examples/taxi-request-valibot.ts": "bac3a6ce80db6661a64017902a83cd178116f1725c5681b64444c02cae585077",
+          "examples/taxi-request.ts": "06e8fa1e67956f939be4a613ea348990c54cf029b11fdf037004e959a9705828",
+          "result-libraries/byethrow.md": "a3d049f708373d354a266443367f8bf78fe1ba1eac511f623e835231da3c7894",
+          "result-libraries/fp-ts.md": "ed204179a1e265e4f9b1e37ca78be1709366d5ee28362f6abeba4d9bf9dcc0aa",
+          "result-libraries/neverthrow.md": "32fe653e373c6f9164b6d9a132205f55fc521409d9049d303a76c99ec1a8b689",
+          "result-libraries/option-t.md": "defd1717ce1ffd3c155837a3cc5acd3822bdf38648afcd5f741532ddf601747c",
+          "state-modeling.md": "4c6dac0bb704f6ca90a6256c7ea062a3b0a340bc71a7970aade8e49489cdf669",
+          "test-data.md": "536551464f406d3a6766094f9dbd0c49c0fb0248040a30518120e68c009c7106",
+          "validation-libraries/arktype.md": "8cb80b86c2215f7cea94b75edae9124a962b7b03f5ecadb4f31c9a70601129ea",
+          "validation-libraries/valibot.md": "549bd161095ceae698ec8c6e17aaa2b64c36e59ee2a9c4505c5173d94172ae81",
+          "validation-libraries/zod.md": "f7c968e2d0ad8b5ae256c8c97cf46b25fe568ddb3aae1f96e1fadfafb09659c6"
+        },
+        "rules": {
+          "README.md": "4a8fd2a30f6da896ff4f5c53fbcfc4b458371ec47f9d76e1bb8657c17383f916",
+          "defaults/result-library-detection.md": "4cc32005f4935686862fe76ef8c085b9b3146b89ca32318d2d576ced66e77b50",
+          "defaults/validation-library-detection.md": "c5a7b93ebc8e9a8648e917013e6a93c362a299f6d1aec7a1196271528ab35622"
+        }
+      },
+      "v1.2.0": {
+        "revision": "58268afcb8fd3074a638e4daaf247ae9c7d01e65",
+        "folder": "v1.2.0",
+        "skill": {
+          "SKILL.md": "000e8ccfa3f30bf6be31f56dc0334a3aa041dc3c0658dedc48934323a4b73665",
+          "boundary-defense.md": "5ee2ba3000a8dcf197c508d13d244de419d87fce77fedbec1e86068dd1446d45",
+          "declarative-style.md": "73075feb91ba67f1b6c55b4d66f89b32828a1b385c2f359230b1d6b18ccae5a6",
+          "domain-modeling.md": "4f9ad180830e92680e985bae4ed7b9ab7f4edf0858ff61117dce960ba39dfb83",
+          "error-handling.md": "f4357c2aa9811763bc16a76dc89110a60b07fb6ec036bad0ef2408f7bbc31e3a",
+          "examples/sensitive-type-arktype.ts": "024c3636b0460f0b4072c2e0b508739ff13e1cbabe3e460f2f308b30eb023f63",
+          "examples/sensitive-type-valibot.ts": "c553fe4949e7401fc020301df96b85f887f47d1898497a2d884a02da3e98018b",
+          "examples/sensitive-type.ts": "ca8016e0874c67ab7033344192230d66e6d62ddff122bcb8eb0e925a255ea3ee",
+          "examples/taxi-request-arktype.ts": "4bf46a7ecde4cbd43947535a9871e372c144ae6fd7c333d20f19f48da471de09",
+          "examples/taxi-request-valibot.ts": "bac3a6ce80db6661a64017902a83cd178116f1725c5681b64444c02cae585077",
+          "examples/taxi-request.ts": "06e8fa1e67956f939be4a613ea348990c54cf029b11fdf037004e959a9705828",
+          "result-libraries/byethrow.md": "a3d049f708373d354a266443367f8bf78fe1ba1eac511f623e835231da3c7894",
+          "result-libraries/fp-ts.md": "ed204179a1e265e4f9b1e37ca78be1709366d5ee28362f6abeba4d9bf9dcc0aa",
+          "result-libraries/neverthrow.md": "32fe653e373c6f9164b6d9a132205f55fc521409d9049d303a76c99ec1a8b689",
+          "result-libraries/option-t.md": "0dc701081c36f25b9143730395564732ead7e0ae067c70fe991af49f92cc5028",
+          "state-modeling.md": "4c6dac0bb704f6ca90a6256c7ea062a3b0a340bc71a7970aade8e49489cdf669",
+          "test-data.md": "536551464f406d3a6766094f9dbd0c49c0fb0248040a30518120e68c009c7106",
+          "validation-libraries/arktype.md": "d6e4152e9262c01429d1e6ed704184334bb41747b76706436126652b2c28909c",
+          "validation-libraries/valibot.md": "a502f222214481bb1d89f11dc865965e416d6a088019f3ce8a4b62b2e8bda479",
+          "validation-libraries/zod.md": "ab53056c2bfc6750899f1077293b5be7a31392adc15eab6718135ec8d9139f44"
+        },
+        "rules": {
+          "README.md": "4a8fd2a30f6da896ff4f5c53fbcfc4b458371ec47f9d76e1bb8657c17383f916",
+          "defaults/result-library-detection.md": "4cc32005f4935686862fe76ef8c085b9b3146b89ca32318d2d576ced66e77b50",
+          "defaults/validation-library-detection.md": "c5a7b93ebc8e9a8648e917013e6a93c362a299f6d1aec7a1196271528ab35622"
+        }
+      },
+      "v1.3.0": {
+        "revision": "16fade90d3583eb164ff755a6910ec6c37ee4714",
+        "folder": "v1.3.0",
+        "skill": {
+          "SKILL.md": "5cf681585f4e4ba3265e3d7e3f1c11b5f3eda7e830334ffbb5e4b97c0839f15f",
+          "boundary-defense.md": "5ee2ba3000a8dcf197c508d13d244de419d87fce77fedbec1e86068dd1446d45",
+          "declarative-style.md": "73075feb91ba67f1b6c55b4d66f89b32828a1b385c2f359230b1d6b18ccae5a6",
+          "domain-modeling.md": "4f9ad180830e92680e985bae4ed7b9ab7f4edf0858ff61117dce960ba39dfb83",
+          "error-handling.md": "2364722df17690ae9eff2316b3d96341a087db1345a6ff9f7af06027a38a6bd9",
+          "examples/sensitive-type-arktype.ts": "024c3636b0460f0b4072c2e0b508739ff13e1cbabe3e460f2f308b30eb023f63",
+          "examples/sensitive-type-valibot.ts": "c553fe4949e7401fc020301df96b85f887f47d1898497a2d884a02da3e98018b",
+          "examples/sensitive-type.ts": "ca8016e0874c67ab7033344192230d66e6d62ddff122bcb8eb0e925a255ea3ee",
+          "examples/taxi-request-arktype.ts": "4bf46a7ecde4cbd43947535a9871e372c144ae6fd7c333d20f19f48da471de09",
+          "examples/taxi-request-valibot.ts": "bac3a6ce80db6661a64017902a83cd178116f1725c5681b64444c02cae585077",
+          "examples/taxi-request.ts": "06e8fa1e67956f939be4a613ea348990c54cf029b11fdf037004e959a9705828",
+          "result-libraries/byethrow.md": "32e55d236fb8b72aa511c7361a00bc9e286d7b614d607eeb326be78c0766e650",
+          "result-libraries/fp-ts.md": "7930f8e378b5fcf2cdb3b1b1bab9220f2342e4103f91514414e78f57b3e896ef",
+          "result-libraries/neverthrow.md": "7547e9b2af5f2acf5ab3255b99bdeb556dec1ddfe3b29cc87c997153226d674d",
+          "result-libraries/option-t.md": "320cece370dd084c8899c9ab0b9b158eec9395f759d8eccb22bf05786ceca886",
+          "state-modeling.md": "f156a2d77a49501fb067865010c40d4f2b04148abf0031bdadb7ec5217df6d1e",
+          "test-data.md": "536551464f406d3a6766094f9dbd0c49c0fb0248040a30518120e68c009c7106",
+          "validation-libraries/arktype.md": "d6e4152e9262c01429d1e6ed704184334bb41747b76706436126652b2c28909c",
+          "validation-libraries/valibot.md": "a502f222214481bb1d89f11dc865965e416d6a088019f3ce8a4b62b2e8bda479",
+          "validation-libraries/zod.md": "ab53056c2bfc6750899f1077293b5be7a31392adc15eab6718135ec8d9139f44"
+        },
+        "rules": {
+          "README.md": "4a8fd2a30f6da896ff4f5c53fbcfc4b458371ec47f9d76e1bb8657c17383f916",
+          "defaults/result-library-detection.md": "4cc32005f4935686862fe76ef8c085b9b3146b89ca32318d2d576ced66e77b50",
+          "defaults/validation-library-detection.md": "c5a7b93ebc8e9a8648e917013e6a93c362a299f6d1aec7a1196271528ab35622"
+        }
+      },
+      "v1.4.0": {
+        "revision": "a65a117aad1d3831cc7b855bb3d9af377188a8e4",
+        "folder": "v1.4.0",
+        "skill": {
+          "SKILL.md": "0618096843d6d3d0ff024cb56bce586bd9b410542e24475144b5081b211571be",
+          "boundary-defense.md": "5ee2ba3000a8dcf197c508d13d244de419d87fce77fedbec1e86068dd1446d45",
+          "declarative-style.md": "73075feb91ba67f1b6c55b4d66f89b32828a1b385c2f359230b1d6b18ccae5a6",
+          "domain-modeling.md": "0abe7d972d992a59f5e07c480d2e85739c249358db4e8b25b0a2bbdcd748bc4a",
+          "error-handling.md": "2364722df17690ae9eff2316b3d96341a087db1345a6ff9f7af06027a38a6bd9",
+          "examples/sensitive-type-arktype.ts": "024c3636b0460f0b4072c2e0b508739ff13e1cbabe3e460f2f308b30eb023f63",
+          "examples/sensitive-type-valibot.ts": "c553fe4949e7401fc020301df96b85f887f47d1898497a2d884a02da3e98018b",
+          "examples/sensitive-type.ts": "ca8016e0874c67ab7033344192230d66e6d62ddff122bcb8eb0e925a255ea3ee",
+          "examples/taxi-request-arktype.ts": "4bf46a7ecde4cbd43947535a9871e372c144ae6fd7c333d20f19f48da471de09",
+          "examples/taxi-request-valibot.ts": "bac3a6ce80db6661a64017902a83cd178116f1725c5681b64444c02cae585077",
+          "examples/taxi-request.ts": "06e8fa1e67956f939be4a613ea348990c54cf029b11fdf037004e959a9705828",
+          "result-libraries/byethrow.md": "32e55d236fb8b72aa511c7361a00bc9e286d7b614d607eeb326be78c0766e650",
+          "result-libraries/fp-ts.md": "7930f8e378b5fcf2cdb3b1b1bab9220f2342e4103f91514414e78f57b3e896ef",
+          "result-libraries/neverthrow.md": "7547e9b2af5f2acf5ab3255b99bdeb556dec1ddfe3b29cc87c997153226d674d",
+          "result-libraries/option-t.md": "320cece370dd084c8899c9ab0b9b158eec9395f759d8eccb22bf05786ceca886",
+          "state-modeling.md": "271a3ddca2566725447add595b39d947aa575bb4333d656b3680b8a1d817bd89",
+          "test-data.md": "536551464f406d3a6766094f9dbd0c49c0fb0248040a30518120e68c009c7106",
+          "validation-libraries/arktype.md": "d6e4152e9262c01429d1e6ed704184334bb41747b76706436126652b2c28909c",
+          "validation-libraries/valibot.md": "a502f222214481bb1d89f11dc865965e416d6a088019f3ce8a4b62b2e8bda479",
+          "validation-libraries/zod.md": "ab53056c2bfc6750899f1077293b5be7a31392adc15eab6718135ec8d9139f44"
+        },
+        "rules": {
+          "README.md": "4a8fd2a30f6da896ff4f5c53fbcfc4b458371ec47f9d76e1bb8657c17383f916",
+          "defaults/result-library-detection.md": "4cc32005f4935686862fe76ef8c085b9b3146b89ca32318d2d576ced66e77b50",
+          "defaults/validation-library-detection.md": "c5a7b93ebc8e9a8648e917013e6a93c362a299f6d1aec7a1196271528ab35622"
+        }
+      }
+    },
+    "tasks": [
+      {
+        "caseId": "intake",
+        "repetition": 2,
+        "ref": "v1.3.0",
+        "candidate_id": "C023"
+      },
+      {
+        "caseId": "intake",
+        "repetition": 2,
+        "ref": "v1.2.0",
+        "candidate_id": "C035"
+      },
+      {
+        "caseId": "intake",
+        "repetition": 2,
+        "ref": "v1.4.0",
+        "candidate_id": "C062"
+      },
+      {
+        "caseId": "intake",
+        "repetition": 2,
+        "ref": "v1.1.0",
+        "candidate_id": "C034"
+      },
+      {
+        "caseId": "intake",
+        "repetition": 2,
+        "ref": "baseline",
+        "candidate_id": "C021"
+      },
+      {
+        "caseId": "intake",
+        "repetition": 2,
+        "ref": "v1.0.0",
+        "candidate_id": "C008"
+      },
+      {
+        "caseId": "recovery",
+        "repetition": 1,
+        "ref": "v1.2.0",
+        "candidate_id": "C010"
+      },
+      {
+        "caseId": "recovery",
+        "repetition": 1,
+        "ref": "v1.4.0",
+        "candidate_id": "C017"
+      },
+      {
+        "caseId": "recovery",
+        "repetition": 1,
+        "ref": "v1.1.0",
+        "candidate_id": "C055"
+      },
+      {
+        "caseId": "recovery",
+        "repetition": 1,
+        "ref": "baseline",
+        "candidate_id": "C007"
+      },
+      {
+        "caseId": "recovery",
+        "repetition": 1,
+        "ref": "v1.0.0",
+        "candidate_id": "C061"
+      },
+      {
+        "caseId": "recovery",
+        "repetition": 1,
+        "ref": "v1.3.0",
+        "candidate_id": "C014"
+      },
+      {
+        "caseId": "consumers",
+        "repetition": 2,
+        "ref": "v1.4.0",
+        "candidate_id": "C058"
+      },
+      {
+        "caseId": "consumers",
+        "repetition": 2,
+        "ref": "v1.1.0",
+        "candidate_id": "C002"
+      },
+      {
+        "caseId": "consumers",
+        "repetition": 2,
+        "ref": "baseline",
+        "candidate_id": "C052"
+      },
+      {
+        "caseId": "consumers",
+        "repetition": 2,
+        "ref": "v1.0.0",
+        "candidate_id": "C026"
+      },
+      {
+        "caseId": "consumers",
+        "repetition": 2,
+        "ref": "v1.3.0",
+        "candidate_id": "C044"
+      },
+      {
+        "caseId": "consumers",
+        "repetition": 2,
+        "ref": "v1.2.0",
+        "candidate_id": "C057"
+      },
+      {
+        "caseId": "recovery",
+        "repetition": 4,
+        "ref": "v1.1.0",
+        "candidate_id": "C053"
+      },
+      {
+        "caseId": "recovery",
+        "repetition": 4,
+        "ref": "baseline",
+        "candidate_id": "C064"
+      },
+      {
+        "caseId": "recovery",
+        "repetition": 4,
+        "ref": "v1.0.0",
+        "candidate_id": "C001"
+      },
+      {
+        "caseId": "recovery",
+        "repetition": 4,
+        "ref": "v1.3.0",
+        "candidate_id": "C029"
+      },
+      {
+        "caseId": "recovery",
+        "repetition": 4,
+        "ref": "v1.2.0",
+        "candidate_id": "C051"
+      },
+      {
+        "caseId": "recovery",
+        "repetition": 4,
+        "ref": "v1.4.0",
+        "candidate_id": "C047"
+      },
+      {
+        "caseId": "intake",
+        "repetition": 3,
+        "ref": "baseline",
+        "candidate_id": "C012"
+      },
+      {
+        "caseId": "intake",
+        "repetition": 3,
+        "ref": "v1.0.0",
+        "candidate_id": "C048"
+      },
+      {
+        "caseId": "intake",
+        "repetition": 3,
+        "ref": "v1.3.0",
+        "candidate_id": "C067"
+      },
+      {
+        "caseId": "intake",
+        "repetition": 3,
+        "ref": "v1.2.0",
+        "candidate_id": "C030"
+      },
+      {
+        "caseId": "intake",
+        "repetition": 3,
+        "ref": "v1.4.0",
+        "candidate_id": "C070"
+      },
+      {
+        "caseId": "intake",
+        "repetition": 3,
+        "ref": "v1.1.0",
+        "candidate_id": "C066"
+      },
+      {
+        "caseId": "intake",
+        "repetition": 4,
+        "ref": "v1.0.0",
+        "candidate_id": "C069"
+      },
+      {
+        "caseId": "intake",
+        "repetition": 4,
+        "ref": "v1.3.0",
+        "candidate_id": "C050"
+      },
+      {
+        "caseId": "intake",
+        "repetition": 4,
+        "ref": "v1.2.0",
+        "candidate_id": "C060"
+      },
+      {
+        "caseId": "intake",
+        "repetition": 4,
+        "ref": "v1.4.0",
+        "candidate_id": "C004"
+      },
+      {
+        "caseId": "intake",
+        "repetition": 4,
+        "ref": "v1.1.0",
+        "candidate_id": "C038"
+      },
+      {
+        "caseId": "intake",
+        "repetition": 4,
+        "ref": "baseline",
+        "candidate_id": "C072"
+      },
+      {
+        "caseId": "consumers",
+        "repetition": 1,
+        "ref": "v1.3.0",
+        "candidate_id": "C019"
+      },
+      {
+        "caseId": "consumers",
+        "repetition": 1,
+        "ref": "v1.2.0",
+        "candidate_id": "C059"
+      },
+      {
+        "caseId": "consumers",
+        "repetition": 1,
+        "ref": "v1.4.0",
+        "candidate_id": "C015"
+      },
+      {
+        "caseId": "consumers",
+        "repetition": 1,
+        "ref": "v1.1.0",
+        "candidate_id": "C025"
+      },
+      {
+        "caseId": "consumers",
+        "repetition": 1,
+        "ref": "baseline",
+        "candidate_id": "C032"
+      },
+      {
+        "caseId": "consumers",
+        "repetition": 1,
+        "ref": "v1.0.0",
+        "candidate_id": "C049"
+      },
+      {
+        "caseId": "consumers",
+        "repetition": 4,
+        "ref": "v1.2.0",
+        "candidate_id": "C056"
+      },
+      {
+        "caseId": "consumers",
+        "repetition": 4,
+        "ref": "v1.4.0",
+        "candidate_id": "C037"
+      },
+      {
+        "caseId": "consumers",
+        "repetition": 4,
+        "ref": "v1.1.0",
+        "candidate_id": "C068"
+      },
+      {
+        "caseId": "consumers",
+        "repetition": 4,
+        "ref": "baseline",
+        "candidate_id": "C041"
+      },
+      {
+        "caseId": "consumers",
+        "repetition": 4,
+        "ref": "v1.0.0",
+        "candidate_id": "C033"
+      },
+      {
+        "caseId": "consumers",
+        "repetition": 4,
+        "ref": "v1.3.0",
+        "candidate_id": "C043"
+      },
+      {
+        "caseId": "recovery",
+        "repetition": 3,
+        "ref": "v1.4.0",
+        "candidate_id": "C003"
+      },
+      {
+        "caseId": "recovery",
+        "repetition": 3,
+        "ref": "v1.1.0",
+        "candidate_id": "C022"
+      },
+      {
+        "caseId": "recovery",
+        "repetition": 3,
+        "ref": "baseline",
+        "candidate_id": "C009"
+      },
+      {
+        "caseId": "recovery",
+        "repetition": 3,
+        "ref": "v1.0.0",
+        "candidate_id": "C027"
+      },
+      {
+        "caseId": "recovery",
+        "repetition": 3,
+        "ref": "v1.3.0",
+        "candidate_id": "C016"
+      },
+      {
+        "caseId": "recovery",
+        "repetition": 3,
+        "ref": "v1.2.0",
+        "candidate_id": "C011"
+      },
+      {
+        "caseId": "recovery",
+        "repetition": 2,
+        "ref": "v1.1.0",
+        "candidate_id": "C018"
+      },
+      {
+        "caseId": "recovery",
+        "repetition": 2,
+        "ref": "baseline",
+        "candidate_id": "C045"
+      },
+      {
+        "caseId": "recovery",
+        "repetition": 2,
+        "ref": "v1.0.0",
+        "candidate_id": "C046"
+      },
+      {
+        "caseId": "recovery",
+        "repetition": 2,
+        "ref": "v1.3.0",
+        "candidate_id": "C065"
+      },
+      {
+        "caseId": "recovery",
+        "repetition": 2,
+        "ref": "v1.2.0",
+        "candidate_id": "C006"
+      },
+      {
+        "caseId": "recovery",
+        "repetition": 2,
+        "ref": "v1.4.0",
+        "candidate_id": "C020"
+      },
+      {
+        "caseId": "consumers",
+        "repetition": 3,
+        "ref": "baseline",
+        "candidate_id": "C028"
+      },
+      {
+        "caseId": "consumers",
+        "repetition": 3,
+        "ref": "v1.0.0",
+        "candidate_id": "C040"
+      },
+      {
+        "caseId": "consumers",
+        "repetition": 3,
+        "ref": "v1.3.0",
+        "candidate_id": "C039"
+      },
+      {
+        "caseId": "consumers",
+        "repetition": 3,
+        "ref": "v1.2.0",
+        "candidate_id": "C071"
+      },
+      {
+        "caseId": "consumers",
+        "repetition": 3,
+        "ref": "v1.4.0",
+        "candidate_id": "C024"
+      },
+      {
+        "caseId": "consumers",
+        "repetition": 3,
+        "ref": "v1.1.0",
+        "candidate_id": "C005"
+      },
+      {
+        "caseId": "intake",
+        "repetition": 1,
+        "ref": "v1.0.0",
+        "candidate_id": "C054"
+      },
+      {
+        "caseId": "intake",
+        "repetition": 1,
+        "ref": "v1.3.0",
+        "candidate_id": "C042"
+      },
+      {
+        "caseId": "intake",
+        "repetition": 1,
+        "ref": "v1.2.0",
+        "candidate_id": "C063"
+      },
+      {
+        "caseId": "intake",
+        "repetition": 1,
+        "ref": "v1.4.0",
+        "candidate_id": "C036"
+      },
+      {
+        "caseId": "intake",
+        "repetition": 1,
+        "ref": "v1.1.0",
+        "candidate_id": "C031"
+      },
+      {
+        "caseId": "intake",
+        "repetition": 1,
+        "ref": "baseline",
+        "candidate_id": "C013"
+      }
+    ],
+    "controls": [
+      {
+        "caseId": "recovery",
+        "variant": "reference",
+        "candidate_id": "K001"
+      },
+      {
+        "caseId": "consumers",
+        "variant": "broken",
+        "candidate_id": "K002"
+      },
+      {
+        "caseId": "recovery",
+        "variant": "broken",
+        "candidate_id": "K003"
+      },
+      {
+        "caseId": "intake",
+        "variant": "broken",
+        "candidate_id": "K004"
+      },
+      {
+        "caseId": "intake",
+        "variant": "reference",
+        "candidate_id": "K005"
+      },
+      {
+        "caseId": "consumers",
+        "variant": "reference",
+        "candidate_id": "K006"
+      }
+    ],
+    "runner": {
+      "change/run.ts": "383fc35147e74cc33f998c6c1e7b83741887f34844ccf35badd100bd4d11bc32",
+      "change/protocol.ts": "f3f60c9a7025be666889535a5809e1f9ced02a44562c056b059b179879cb69db",
+      "change/schema.ts": "adac2f576832f61e03b8ac6b7bbe589dcbb5de4130cc02e44c2d4a5f3c07b8b4",
+      "change/validate.ts": "ac1a4ad503bb896c8a6ca7fca7dd067cf931f193bd6f2ede3b5d03c55209e2c1",
+      "change/report.ts": "eb427e46ed5c64dd9ac273986b9e8ed24bc844d16d82b7ffe87bb43762cf4917",
+      "runner/context.ts": "6fdce3688f4dc015ae846f72962fb5196bb5aac8284b95fd3892e961e6d23582",
+      "runner/process.ts": "96851d1c8436a4fcc77d2a95ad43c2bb4f2b560d4bc3b8ab97478074d32f83e3",
+      "runner/files.ts": "8a3ac1cca69ef05b2da250a95ac63b90c8899f6f285655ec566c0ba1171dad54",
+      "runner/protocol.ts": "64c18c691d52c3472c17d73aa2ad453023f93812d9193b3547733f9b8a87b610"
+    },
+    "schemaHashes": {
+      "intake": [
+        "424cf8443eedb4cc6330eee39f1bd7cbbabba1cad346774f4be13d6cebe1f3fa",
+        "84524dfbb3c0351aed345cd408edb2e538182951fd1420f62a0897b6c4755ab1"
+      ],
+      "recovery": [
+        "f449de6f600fd7c7602fff08bda6d681818105a52b01205fb8f7845b8f5674e3",
+        "8cb4566f5c700fff560e63411719c9e9b0c4c4568152f0898fcc507ca591874d"
+      ],
+      "consumers": [
+        "424cf8443eedb4cc6330eee39f1bd7cbbabba1cad346774f4be13d6cebe1f3fa",
+        "84524dfbb3c0351aed345cd408edb2e538182951fd1420f62a0897b6c4755ab1"
+      ]
+    },
+    "codexVersion": "codex-cli 0.150.1",
+    "bunVersion": "1.3.14",
+    "policy": "Freeze inputs and calibrate before generation. Same model/settings/deadline per condition. Independent critics precede adjudication. Quality is judged from actual source changes, not tests, strings, patterns or numeric totals. No quality-dependent retry or model substitution. Failed delivery/review stays in planned denominators. Context preflight is not capture of the remote request."
+  },
+  "analysisSourceHashes": {
+    "analyze.ts": "8bd1e37727efae07cd2f3346069f1808dc4657d8180d59013e1023b63d82aeb5",
+    "verify-audits.ts": "33ab717928194499791997b31ccb52c421186db74c5955ccc98cf38049b24930",
+    "verify-accounting.ts": "45481d0408223845e1e65c52c1b2b7a1e7df4af1b2443bb983e9a8917c564c2e",
+    "inspect-packaging.ts": "bec1c17de611bf9ac4e58d2dbbec1993f2339ce54d2fec4088d7846b07bed7ac",
+    "exposure-audit.ts": "b34e8aec44cf45ca1385de7f2453ed53e987ab8eeb2de432d638c30ba87285b0",
+    "export-evidence.ts": "b8e48806db6bf9f148cd069518a30c2dd39d4da9572b432c0eedd44cadcb0e58",
+    "verify-export.ts": "30173bdb6ef326fd2e611c455cd4716f9cef798239187cb179c4cf51a335df90"
+  },
+  "executionOverrides": {
+    "generationWorkers": 6,
+    "primaryReviewWorkers": 6
+  },
+  "notes": "Manifest output path omitted from this portable copy. Worker counts above are the actual invocation settings; prepare saved its default of 4. Original raw files remain unchanged in the local experiment archive.",
+  "index": [
+    {
+      "caseId": "intake",
+      "repetition": 2,
+      "ref": "v1.3.0",
+      "candidate_id": "C023",
+      "evidenceFile": "candidates/C023.json",
+      "sha256": "b55817907587346bb29dc9cc4df21e8b6e8978927d63dd10d93667788826455f"
+    },
+    {
+      "caseId": "intake",
+      "repetition": 2,
+      "ref": "v1.2.0",
+      "candidate_id": "C035",
+      "evidenceFile": "candidates/C035.json",
+      "sha256": "0179b5118f03d900d373690ae89ae08adc6bf3e2502a3a60a0693ed28c76ffc2"
+    },
+    {
+      "caseId": "intake",
+      "repetition": 2,
+      "ref": "v1.4.0",
+      "candidate_id": "C062",
+      "evidenceFile": "candidates/C062.json",
+      "sha256": "a1e0ee761360156f646f7fc872e195a4e3dd41cf16597de77982f27947702d89"
+    },
+    {
+      "caseId": "intake",
+      "repetition": 2,
+      "ref": "v1.1.0",
+      "candidate_id": "C034",
+      "evidenceFile": "candidates/C034.json",
+      "sha256": "7c3812d8cbe773aefaaa26123138363eb500d519f630c9cc7a06b4cafd93b288"
+    },
+    {
+      "caseId": "intake",
+      "repetition": 2,
+      "ref": "baseline",
+      "candidate_id": "C021",
+      "evidenceFile": "candidates/C021.json",
+      "sha256": "5d81753679e5fa4ebfffeb9c65577eb56eba619aa4ed80faba99e9bedab90747"
+    },
+    {
+      "caseId": "intake",
+      "repetition": 2,
+      "ref": "v1.0.0",
+      "candidate_id": "C008",
+      "evidenceFile": "candidates/C008.json",
+      "sha256": "dc1288c6238a8211894c3aafaf8ac7c7219b732ae99b2d066257a62a2d822d57"
+    },
+    {
+      "caseId": "recovery",
+      "repetition": 1,
+      "ref": "v1.2.0",
+      "candidate_id": "C010",
+      "evidenceFile": "candidates/C010.json",
+      "sha256": "1d21f56644891a4d954077b03a1c9a3b56ddc7b1262a283d273601f1e84d524a"
+    },
+    {
+      "caseId": "recovery",
+      "repetition": 1,
+      "ref": "v1.4.0",
+      "candidate_id": "C017",
+      "evidenceFile": "candidates/C017.json",
+      "sha256": "9b53f75f392a874a47a79985106bf6653bbe2e7792a79d7252cc6386abd4afbf"
+    },
+    {
+      "caseId": "recovery",
+      "repetition": 1,
+      "ref": "v1.1.0",
+      "candidate_id": "C055",
+      "evidenceFile": "candidates/C055.json",
+      "sha256": "786249cc0398d9400b949965fa10913b1ec56d889a65281742cc4e2dcc1f4a65"
+    },
+    {
+      "caseId": "recovery",
+      "repetition": 1,
+      "ref": "baseline",
+      "candidate_id": "C007",
+      "evidenceFile": "candidates/C007.json",
+      "sha256": "b2e8f588135e8662279df7ce76d23b206c8d0c0ae4440cc580d7576e1b4f897d"
+    },
+    {
+      "caseId": "recovery",
+      "repetition": 1,
+      "ref": "v1.0.0",
+      "candidate_id": "C061",
+      "evidenceFile": "candidates/C061.json",
+      "sha256": "1a8f5966e352b9a5a3c691ef089b83acab20ba49d6e2b3534cff34c332101ca2"
+    },
+    {
+      "caseId": "recovery",
+      "repetition": 1,
+      "ref": "v1.3.0",
+      "candidate_id": "C014",
+      "evidenceFile": "candidates/C014.json",
+      "sha256": "61450a7111a4cb03dc2e9478015b6d903f5a546fadb907aa932686161e1a613b"
+    },
+    {
+      "caseId": "consumers",
+      "repetition": 2,
+      "ref": "v1.4.0",
+      "candidate_id": "C058",
+      "evidenceFile": "candidates/C058.json",
+      "sha256": "93228a5e7d768099f38c71d1ff618a2eeea1302084235cc482fdce7e25982060"
+    },
+    {
+      "caseId": "consumers",
+      "repetition": 2,
+      "ref": "v1.1.0",
+      "candidate_id": "C002",
+      "evidenceFile": "candidates/C002.json",
+      "sha256": "2d9bfd5db7566d42093c8bc2690690d58d0678e1dcf97cc732b94840dd245b7f"
+    },
+    {
+      "caseId": "consumers",
+      "repetition": 2,
+      "ref": "baseline",
+      "candidate_id": "C052",
+      "evidenceFile": "candidates/C052.json",
+      "sha256": "7325d2e37ea32f4dacca8e73b48a41722aedc509d07fa77425f1c755f85d0bba"
+    },
+    {
+      "caseId": "consumers",
+      "repetition": 2,
+      "ref": "v1.0.0",
+      "candidate_id": "C026",
+      "evidenceFile": "candidates/C026.json",
+      "sha256": "914059ef59e725f8ed23861cb802300944f73e03c11ab1354a8059d078728f71"
+    },
+    {
+      "caseId": "consumers",
+      "repetition": 2,
+      "ref": "v1.3.0",
+      "candidate_id": "C044",
+      "evidenceFile": "candidates/C044.json",
+      "sha256": "0ef543aa066cba87bd13477faae9b74963d1d9c66848c0023e7e50d03e4f57cb"
+    },
+    {
+      "caseId": "consumers",
+      "repetition": 2,
+      "ref": "v1.2.0",
+      "candidate_id": "C057",
+      "evidenceFile": "candidates/C057.json",
+      "sha256": "23c3de338bf110a5dee58e407c0b24cdff6fdf2ece7770cdbb45c8b0e2a67b28"
+    },
+    {
+      "caseId": "recovery",
+      "repetition": 4,
+      "ref": "v1.1.0",
+      "candidate_id": "C053",
+      "evidenceFile": "candidates/C053.json",
+      "sha256": "efc6ca6dc93a01fc77ae90a78a310ef549e861fe2322098a6753722ddd6ea0a3"
+    },
+    {
+      "caseId": "recovery",
+      "repetition": 4,
+      "ref": "baseline",
+      "candidate_id": "C064",
+      "evidenceFile": "candidates/C064.json",
+      "sha256": "fe6c5ff8792589f4b05e3059397715b7562ae00236fbc6d5516dc669e2ef997a"
+    },
+    {
+      "caseId": "recovery",
+      "repetition": 4,
+      "ref": "v1.0.0",
+      "candidate_id": "C001",
+      "evidenceFile": "candidates/C001.json",
+      "sha256": "6c3df648fa29e06b6e704aeb6695c5c45c4962da87c423a858c07acc95edbeb1"
+    },
+    {
+      "caseId": "recovery",
+      "repetition": 4,
+      "ref": "v1.3.0",
+      "candidate_id": "C029",
+      "evidenceFile": "candidates/C029.json",
+      "sha256": "2d097653b725f5f7605180b2e0f997e515c8fdb94e96fb70b00eee0cc58c959d"
+    },
+    {
+      "caseId": "recovery",
+      "repetition": 4,
+      "ref": "v1.2.0",
+      "candidate_id": "C051",
+      "evidenceFile": "candidates/C051.json",
+      "sha256": "aab52809f01d8ed5e2e3c415464cf87d1d234c21535a2a0f12eeafa2c766addd"
+    },
+    {
+      "caseId": "recovery",
+      "repetition": 4,
+      "ref": "v1.4.0",
+      "candidate_id": "C047",
+      "evidenceFile": "candidates/C047.json",
+      "sha256": "69cfce069d45e040d44c5b80f65d4ddbb3b8cfed5808809d4396646a3bb5faa1"
+    },
+    {
+      "caseId": "intake",
+      "repetition": 3,
+      "ref": "baseline",
+      "candidate_id": "C012",
+      "evidenceFile": "candidates/C012.json",
+      "sha256": "2189c245306265a828da9836fee4f593014ffd4553aacf2aed1c14889a769331"
+    },
+    {
+      "caseId": "intake",
+      "repetition": 3,
+      "ref": "v1.0.0",
+      "candidate_id": "C048",
+      "evidenceFile": "candidates/C048.json",
+      "sha256": "ee725212df622912e3eca27d777c736cee34ebab65745e77783c60a2cbc84151"
+    },
+    {
+      "caseId": "intake",
+      "repetition": 3,
+      "ref": "v1.3.0",
+      "candidate_id": "C067",
+      "evidenceFile": "candidates/C067.json",
+      "sha256": "abb4b65c99770e022e3522b907003f795427eddd49deec7a73a827d78fdfe263"
+    },
+    {
+      "caseId": "intake",
+      "repetition": 3,
+      "ref": "v1.2.0",
+      "candidate_id": "C030",
+      "evidenceFile": "candidates/C030.json",
+      "sha256": "934ae6cfa946ea4b5222f6e50df48c7c735976bd3e930ee093349d7bc04cd064"
+    },
+    {
+      "caseId": "intake",
+      "repetition": 3,
+      "ref": "v1.4.0",
+      "candidate_id": "C070",
+      "evidenceFile": "candidates/C070.json",
+      "sha256": "4c7a3b1c28191e1de0217a7bf219186e83a9f42e9697963272f1a055c50974b3"
+    },
+    {
+      "caseId": "intake",
+      "repetition": 3,
+      "ref": "v1.1.0",
+      "candidate_id": "C066",
+      "evidenceFile": "candidates/C066.json",
+      "sha256": "d825759f533726563de9b01ae25ec4f1c4c84a6997af3a167ba6dc5066cbf166"
+    },
+    {
+      "caseId": "intake",
+      "repetition": 4,
+      "ref": "v1.0.0",
+      "candidate_id": "C069",
+      "evidenceFile": "candidates/C069.json",
+      "sha256": "c97ffe80c6363c6c9374157a5d190e12c6e8e36b575dbe97094442c5ff8a975d"
+    },
+    {
+      "caseId": "intake",
+      "repetition": 4,
+      "ref": "v1.3.0",
+      "candidate_id": "C050",
+      "evidenceFile": "candidates/C050.json",
+      "sha256": "2ef78b52315da2008a20ac92829536ddcc85179a38bc7a83245c252b8520ebf8"
+    },
+    {
+      "caseId": "intake",
+      "repetition": 4,
+      "ref": "v1.2.0",
+      "candidate_id": "C060",
+      "evidenceFile": "candidates/C060.json",
+      "sha256": "7152a485ccc3acca76f6eda82310ae2537d0f6b40fa02f8d0b3cd70b609ef559"
+    },
+    {
+      "caseId": "intake",
+      "repetition": 4,
+      "ref": "v1.4.0",
+      "candidate_id": "C004",
+      "evidenceFile": "candidates/C004.json",
+      "sha256": "fd1c5b8a168ebfcbee12ff1fa5e4ee06d7ab8fd64eef2c274991ba9dcf1f7c4e"
+    },
+    {
+      "caseId": "intake",
+      "repetition": 4,
+      "ref": "v1.1.0",
+      "candidate_id": "C038",
+      "evidenceFile": "candidates/C038.json",
+      "sha256": "a07fe5432f6003feb0acb017ec2a7f65aeed73252bf842cc6c3eed4d859d7433"
+    },
+    {
+      "caseId": "intake",
+      "repetition": 4,
+      "ref": "baseline",
+      "candidate_id": "C072",
+      "evidenceFile": "candidates/C072.json",
+      "sha256": "cc2991541982638e00b1b9a49eeb425b4cf3ab94fd50c825454cc51c63b354f0"
+    },
+    {
+      "caseId": "consumers",
+      "repetition": 1,
+      "ref": "v1.3.0",
+      "candidate_id": "C019",
+      "evidenceFile": "candidates/C019.json",
+      "sha256": "498dce91a13c89a6972bab3da0b86bbb30b7acf0ade5cfda71c62ba0c758407f"
+    },
+    {
+      "caseId": "consumers",
+      "repetition": 1,
+      "ref": "v1.2.0",
+      "candidate_id": "C059",
+      "evidenceFile": "candidates/C059.json",
+      "sha256": "50d613ab1e3d31c462bf56fca1dcf7c4c4fdaf7b935edbe1b5396196511d334d"
+    },
+    {
+      "caseId": "consumers",
+      "repetition": 1,
+      "ref": "v1.4.0",
+      "candidate_id": "C015",
+      "evidenceFile": "candidates/C015.json",
+      "sha256": "2d9bb09536457d1eefde01574da255bc93822371fef7a91eae403995ab9044d2"
+    },
+    {
+      "caseId": "consumers",
+      "repetition": 1,
+      "ref": "v1.1.0",
+      "candidate_id": "C025",
+      "evidenceFile": "candidates/C025.json",
+      "sha256": "9f6204593b4121807e2a05530e2fcfeb8ac562ad043d74a4c2a0d383a663738d"
+    },
+    {
+      "caseId": "consumers",
+      "repetition": 1,
+      "ref": "baseline",
+      "candidate_id": "C032",
+      "evidenceFile": "candidates/C032.json",
+      "sha256": "b85f6e2530d7c6e600f8e10384665c4d10c4d5dac4bd04bf197df56c811b3d7d"
+    },
+    {
+      "caseId": "consumers",
+      "repetition": 1,
+      "ref": "v1.0.0",
+      "candidate_id": "C049",
+      "evidenceFile": "candidates/C049.json",
+      "sha256": "4b4db7d343d94f051f517c0695e4545b189ca6a9cce610b70edd94bca84b986b"
+    },
+    {
+      "caseId": "consumers",
+      "repetition": 4,
+      "ref": "v1.2.0",
+      "candidate_id": "C056",
+      "evidenceFile": "candidates/C056.json",
+      "sha256": "b5143a81272906cba8a4b21f77f338f74fa16d116a6d6c5eb5e26d111ec47c37"
+    },
+    {
+      "caseId": "consumers",
+      "repetition": 4,
+      "ref": "v1.4.0",
+      "candidate_id": "C037",
+      "evidenceFile": "candidates/C037.json",
+      "sha256": "581fbf86701b36b1534a06fef66e9322fc9f9a021fd47d60910dd361f05a6b60"
+    },
+    {
+      "caseId": "consumers",
+      "repetition": 4,
+      "ref": "v1.1.0",
+      "candidate_id": "C068",
+      "evidenceFile": "candidates/C068.json",
+      "sha256": "53ccf52270a231861f81a0304ef9d83364f0594b729d2d25b09fa9aea2fc0b3a"
+    },
+    {
+      "caseId": "consumers",
+      "repetition": 4,
+      "ref": "baseline",
+      "candidate_id": "C041",
+      "evidenceFile": "candidates/C041.json",
+      "sha256": "b3893cd3f224b22aead24e6cfdd9c51e140da49ac89d12add3edb00749fe0525"
+    },
+    {
+      "caseId": "consumers",
+      "repetition": 4,
+      "ref": "v1.0.0",
+      "candidate_id": "C033",
+      "evidenceFile": "candidates/C033.json",
+      "sha256": "982b6bb5c4677d512411eb4c08a4a2f5e72234daf414765f04ac29d46a8b911f"
+    },
+    {
+      "caseId": "consumers",
+      "repetition": 4,
+      "ref": "v1.3.0",
+      "candidate_id": "C043",
+      "evidenceFile": "candidates/C043.json",
+      "sha256": "c8e4757bdd4c067e8ef35263068424c125b70e71b9c00593e0748db336dc3ab6"
+    },
+    {
+      "caseId": "recovery",
+      "repetition": 3,
+      "ref": "v1.4.0",
+      "candidate_id": "C003",
+      "evidenceFile": "candidates/C003.json",
+      "sha256": "d76aa31fa042b48c2a7379299de41d28b9ada4ea5d001e2406187b8a23697e6d"
+    },
+    {
+      "caseId": "recovery",
+      "repetition": 3,
+      "ref": "v1.1.0",
+      "candidate_id": "C022",
+      "evidenceFile": "candidates/C022.json",
+      "sha256": "72be6242cd3e85be798bf20e7c707f188e373e434b8bf2248cf52a5deb9252d2"
+    },
+    {
+      "caseId": "recovery",
+      "repetition": 3,
+      "ref": "baseline",
+      "candidate_id": "C009",
+      "evidenceFile": "candidates/C009.json",
+      "sha256": "abb687d78bd6f8ae4eb4e24a4b3f42fa0fd79efe783da8801b7db6bfbd827839"
+    },
+    {
+      "caseId": "recovery",
+      "repetition": 3,
+      "ref": "v1.0.0",
+      "candidate_id": "C027",
+      "evidenceFile": "candidates/C027.json",
+      "sha256": "b0f7d27eec6f231b01a280da560b0adcd3b0cc3d75d8c545bdd9dd9367d9608d"
+    },
+    {
+      "caseId": "recovery",
+      "repetition": 3,
+      "ref": "v1.3.0",
+      "candidate_id": "C016",
+      "evidenceFile": "candidates/C016.json",
+      "sha256": "7e10cf3bb53f490eb24e629cac20398282d0a269af9ad9b91f3956d89ffa8fff"
+    },
+    {
+      "caseId": "recovery",
+      "repetition": 3,
+      "ref": "v1.2.0",
+      "candidate_id": "C011",
+      "evidenceFile": "candidates/C011.json",
+      "sha256": "d6911df2e0e3570c39c4e95afaf7bfce8cacb6600d31e59065e0fc2ab4908cc2"
+    },
+    {
+      "caseId": "recovery",
+      "repetition": 2,
+      "ref": "v1.1.0",
+      "candidate_id": "C018",
+      "evidenceFile": "candidates/C018.json",
+      "sha256": "a82c320cbbbe09a8e326ce3bc929613c749243043fce8f0669f0a468cedf66ff"
+    },
+    {
+      "caseId": "recovery",
+      "repetition": 2,
+      "ref": "baseline",
+      "candidate_id": "C045",
+      "evidenceFile": "candidates/C045.json",
+      "sha256": "d0b8bef9a2512a7c7e6de9a2e8082b26170ed8eaa777cb000f5816f289a0e07c"
+    },
+    {
+      "caseId": "recovery",
+      "repetition": 2,
+      "ref": "v1.0.0",
+      "candidate_id": "C046",
+      "evidenceFile": "candidates/C046.json",
+      "sha256": "34113f69db7308a871687e80d9444c63c1836bc960ce551dade4ee2b8745e1d7"
+    },
+    {
+      "caseId": "recovery",
+      "repetition": 2,
+      "ref": "v1.3.0",
+      "candidate_id": "C065",
+      "evidenceFile": "candidates/C065.json",
+      "sha256": "269143e2dac5f1c152f949bca6ece8a5889ea7899976a8429a5cd5df1a6bc13b"
+    },
+    {
+      "caseId": "recovery",
+      "repetition": 2,
+      "ref": "v1.2.0",
+      "candidate_id": "C006",
+      "evidenceFile": "candidates/C006.json",
+      "sha256": "61cee005b869f85f6dbb848ec6f0dedc1c90d3ee22d068a6c98872c9fda4dc6b"
+    },
+    {
+      "caseId": "recovery",
+      "repetition": 2,
+      "ref": "v1.4.0",
+      "candidate_id": "C020",
+      "evidenceFile": "candidates/C020.json",
+      "sha256": "5baad91cd80c9dd98651c9ed342e00ce20833b7e54910ec5b11fd953bfb9605c"
+    },
+    {
+      "caseId": "consumers",
+      "repetition": 3,
+      "ref": "baseline",
+      "candidate_id": "C028",
+      "evidenceFile": "candidates/C028.json",
+      "sha256": "010c20ccdfb913b5430ab03ea5bf10d49a5aa2f6b6d6a43737cea5399c691be5"
+    },
+    {
+      "caseId": "consumers",
+      "repetition": 3,
+      "ref": "v1.0.0",
+      "candidate_id": "C040",
+      "evidenceFile": "candidates/C040.json",
+      "sha256": "59a76439f88bf91f9baf547b519ee4205ec58308e77f272785818c8404b6d457"
+    },
+    {
+      "caseId": "consumers",
+      "repetition": 3,
+      "ref": "v1.3.0",
+      "candidate_id": "C039",
+      "evidenceFile": "candidates/C039.json",
+      "sha256": "bfb12d9492d1e917dfef23c2635fbbe48df0b3521e250d2bec224dba20a1ccf4"
+    },
+    {
+      "caseId": "consumers",
+      "repetition": 3,
+      "ref": "v1.2.0",
+      "candidate_id": "C071",
+      "evidenceFile": "candidates/C071.json",
+      "sha256": "cc66f1afa02e1cda658f69d6712f96298d87143e95348c5ef71d832d6e77f481"
+    },
+    {
+      "caseId": "consumers",
+      "repetition": 3,
+      "ref": "v1.4.0",
+      "candidate_id": "C024",
+      "evidenceFile": "candidates/C024.json",
+      "sha256": "a3867ab59f2c718111bb39d6ac9e38f43d0636144d5adb416705aae01ad7264e"
+    },
+    {
+      "caseId": "consumers",
+      "repetition": 3,
+      "ref": "v1.1.0",
+      "candidate_id": "C005",
+      "evidenceFile": "candidates/C005.json",
+      "sha256": "70f5b20335097c5d759227584c52caff4acd79246ba67bf7e113ebbc98b7f67f"
+    },
+    {
+      "caseId": "intake",
+      "repetition": 1,
+      "ref": "v1.0.0",
+      "candidate_id": "C054",
+      "evidenceFile": "candidates/C054.json",
+      "sha256": "31e6441cba70a49a4b760be22716e8d1386632295d4ccca7f7d529805df207e9"
+    },
+    {
+      "caseId": "intake",
+      "repetition": 1,
+      "ref": "v1.3.0",
+      "candidate_id": "C042",
+      "evidenceFile": "candidates/C042.json",
+      "sha256": "4227c139005e4841f2301e33ce697fe707ed5cf635ce77ab5d4a8d65defb4b8a"
+    },
+    {
+      "caseId": "intake",
+      "repetition": 1,
+      "ref": "v1.2.0",
+      "candidate_id": "C063",
+      "evidenceFile": "candidates/C063.json",
+      "sha256": "0452b1b8add974a987f79381c6dd791aefdf2d731efadd69f310341b1ca23318"
+    },
+    {
+      "caseId": "intake",
+      "repetition": 1,
+      "ref": "v1.4.0",
+      "candidate_id": "C036",
+      "evidenceFile": "candidates/C036.json",
+      "sha256": "2df9b5a800d304a61361b027866215d8ce0a1b658fbe07827ccbf87d6a6b1647"
+    },
+    {
+      "caseId": "intake",
+      "repetition": 1,
+      "ref": "v1.1.0",
+      "candidate_id": "C031",
+      "evidenceFile": "candidates/C031.json",
+      "sha256": "4a46feccee7d0b77eb557653e785d0966c1765ee945139358725595f214f7adc"
+    },
+    {
+      "caseId": "intake",
+      "repetition": 1,
+      "ref": "baseline",
+      "candidate_id": "C013",
+      "evidenceFile": "candidates/C013.json",
+      "sha256": "48b574202311be8247191d2b642108c530d72c08971f2693a14aab437fb5e961"
+    }
+  ]
+}

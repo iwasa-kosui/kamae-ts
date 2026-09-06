@@ -1,0 +1,854 @@
+{
+  "candidate": {
+    "caseId": "intake",
+    "repetition": 4,
+    "ref": "baseline",
+    "candidate_id": "C072"
+  },
+  "generationStatus": "completed",
+  "primaryStatus": "completed",
+  "primaryError": null,
+  "source": {
+    "after/src/batch.ts": "import { saveOrder } from \"./orders\";\nimport { parseOrder } from \"./validation\";\nimport type {\n  BatchResponse,\n  BatchRow,\n  IntakeContext,\n  Repository,\n  SubmitResponse,\n} from \"./types\";\n\nexport async function importOrders(\n  repository: Repository,\n  value: unknown,\n  context: IntakeContext,\n): Promise<BatchResponse> {\n  if (!Array.isArray(value) || value.length > 100) {\n    return { status: 400, body: { code: \"invalid_batch\" } };\n  }\n\n  const rows: BatchRow[] = [];\n  let acceptedCount = 0;\n  let totalAcceptedCents = 0;\n  let latestShipOn: string | null = null;\n\n  for (let index = 0; index < value.length; index += 1) {\n    const input = parseOrder(value[index], context);\n    const result: SubmitResponse =\n      input === undefined\n        ? { status: 400, body: { code: \"invalid_order\" } }\n        : await saveOrder(repository, input, context);\n    rows.push({ index, ...result });\n\n    if (result.status === 201) {\n      const order = result.body;\n      acceptedCount += 1;\n      totalAcceptedCents += order.amountCents;\n      if (latestShipOn === null || order.shipOn > latestShipOn) {\n        latestShipOn = order.shipOn;\n      }\n    }\n  }\n\n  return {\n    status: 200,\n    body: { rows, acceptedCount, totalAcceptedCents, latestShipOn },\n  };\n}\n",
+    "after/src/index.ts": "import { importOrders } from \"./batch\";\nimport { getOrder, submitOrder } from \"./single\";\nimport type { IntakeContext, Repository } from \"./types\";\n\nexport function createOrderIntake(dependencies: { repository: Repository }) {\n  const { repository } = dependencies;\n  return {\n    submitOrder: (value: unknown, context: IntakeContext) =>\n      submitOrder(repository, value, context),\n    importOrders: (value: unknown, context: IntakeContext) =>\n      importOrders(repository, value, context),\n    getOrder: (id: unknown) => getOrder(repository, id),\n  };\n}\n\nexport type {\n  BatchResponse,\n  GetResponse,\n  IntakeContext,\n  Repository,\n  StoredOrder,\n  SubmitResponse,\n} from \"./types\";\n\n",
+    "after/src/orders.ts": "import type {\n  IntakeContext,\n  OrderInput,\n  Repository,\n  StoredOrder,\n  SubmitResponse,\n} from \"./types\";\n\nexport async function saveOrder(\n  repository: Repository,\n  input: OrderInput,\n  context: IntakeContext,\n): Promise<SubmitResponse> {\n  try {\n    const existing = await repository.get(input.id);\n    if (existing !== undefined) {\n      return { status: 409, body: { code: \"duplicate_order\" } };\n    }\n    const order: StoredOrder = {\n      id: input.id,\n      customerId: input.customerId,\n      amountCents: input.amountCents,\n      currency: \"USD\",\n      shipOn: input.shipOn,\n      receivedOn: context.receivedOn,\n    };\n    await repository.save(order.id, order);\n    return { status: 201, body: order };\n  } catch {\n    return { status: 500, body: { code: \"storage_unavailable\" } };\n  }\n}\n\n",
+    "after/src/single.ts": "import { saveOrder } from \"./orders\";\nimport { isOrderId, parseOrder } from \"./validation\";\nimport type {\n  GetResponse,\n  IntakeContext,\n  Repository,\n  SubmitResponse,\n} from \"./types\";\n\nexport async function submitOrder(\n  repository: Repository,\n  value: unknown,\n  context: IntakeContext,\n): Promise<SubmitResponse> {\n  const input = parseOrder(value, context);\n  if (input === undefined) {\n    return { status: 400, body: { code: \"invalid_order\" } };\n  }\n  return saveOrder(repository, input, context);\n}\n\nexport async function getOrder(\n  repository: Repository,\n  id: unknown,\n): Promise<GetResponse> {\n  if (!isOrderId(id)) {\n    return { status: 400, body: { code: \"invalid_order\" } };\n  }\n  try {\n    const order = await repository.get(id);\n    return order === undefined\n      ? { status: 404, body: { code: \"order_not_found\" } }\n      : { status: 200, body: order };\n  } catch {\n    return { status: 500, body: { code: \"storage_unavailable\" } };\n  }\n}\n",
+    "after/src/types.ts": "export interface IntakeContext {\n  receivedOn: string;\n}\n\nexport interface OrderInput {\n  id: string;\n  customerId: string;\n  amountCents: number;\n  shipOn: string;\n}\n\nexport interface StoredOrder extends OrderInput {\n  currency: \"USD\";\n  receivedOn: string;\n}\n\nexport interface Repository {\n  get(id: string): Promise<StoredOrder | undefined>;\n  save(id: string, order: StoredOrder): Promise<void>;\n}\n\nexport interface ErrorResponse {\n  status: 400 | 404 | 409 | 500;\n  body: {\n    code:\n      | \"invalid_order\"\n      | \"invalid_batch\"\n      | \"duplicate_order\"\n      | \"order_not_found\"\n      | \"storage_unavailable\";\n  };\n}\n\nexport interface AcceptedResponse {\n  status: 201;\n  body: StoredOrder;\n}\n\nexport type SubmitResponse = AcceptedResponse | ErrorResponse;\nexport type GetResponse =\n  | { status: 200; body: StoredOrder }\n  | ErrorResponse;\nexport type BatchRow = { index: number } & SubmitResponse;\nexport type BatchResponse =\n  | {\n      status: 200;\n      body: {\n        rows: BatchRow[];\n        acceptedCount: number;\n        totalAcceptedCents: number;\n        latestShipOn: string | null;\n      };\n    }\n  | ErrorResponse;\n\n",
+    "after/src/validation.ts": "import { z } from \"zod\";\nimport type { IntakeContext, OrderInput } from \"./types\";\n\nfunction matchesEntire(pattern: RegExp, value: string): boolean {\n  return pattern.exec(value)?.[0] === value;\n}\n\nconst identifier = z.string().refine((value) =>\n  matchesEntire(/^[A-Za-z0-9_-]{1,64}$/, value),\n);\n\nfunction isCalendarDate(year: number, month: number, day: number): boolean {\n  if (\n    !Number.isInteger(year) ||\n    !Number.isInteger(month) ||\n    !Number.isInteger(day) ||\n    year < 2000 ||\n    year > 2099 ||\n    month < 1 ||\n    month > 12 ||\n    day < 1\n  ) {\n    return false;\n  }\n  const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);\n  const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];\n  return day <= days[month - 1];\n}\n\nfunction isCanonicalDate(value: string): boolean {\n  if (!matchesEntire(/^20\\d{2}-\\d{2}-\\d{2}$/, value)) return false;\n  const [year, month, day] = value.split(\"-\").map(Number);\n  return isCalendarDate(year, month, day);\n}\n\nfunction canonicalDate(year: number, month: number, day: number): string {\n  return `${year}-${String(month).padStart(2, \"0\")}-${String(day).padStart(2, \"0\")}`;\n}\n\nfunction decimalToCents(value: string): number | undefined {\n  const match = /^(0|[1-9]\\d*)(?:\\.(\\d{1,2}))?$/.exec(value);\n  if (match === null) return undefined;\n\n  const whole = BigInt(match[1]);\n  const fraction = BigInt((match[2] ?? \"\").padEnd(2, \"0\"));\n  const cents = whole * 100n + fraction;\n  if (cents < 1n || cents > 1_000_000n) return undefined;\n  return Number(cents);\n}\n\nconst versionOne = z.object({\n  formatVersion: z.literal(1).optional(),\n  id: identifier,\n  customerId: identifier,\n  amountCents: z.number().int().min(1).max(1_000_000),\n  shipOn: z.string().refine(isCanonicalDate),\n});\n\nconst versionTwo = z.object({\n  formatVersion: z.literal(2),\n  id: identifier,\n  customerId: identifier,\n  amount: z.object({\n    decimal: z.string().transform((value, context) => {\n      const cents = decimalToCents(value);\n      if (cents === undefined) {\n        context.addIssue({ code: \"custom\", message: \"Invalid decimal amount\" });\n        return z.NEVER;\n      }\n      return cents;\n    }),\n    currency: z.literal(\"USD\").optional(),\n  }),\n  shipOn: z\n    .object({\n      year: z.number().int(),\n      month: z.number().int(),\n      day: z.number().int(),\n    })\n    .refine(({ year, month, day }) => isCalendarDate(year, month, day))\n    .transform(({ year, month, day }) => canonicalDate(year, month, day))\n    .optional(),\n});\n\nexport function isOrderId(value: unknown): value is string {\n  return identifier.safeParse(value).success;\n}\n\nfunction selectedFormatVersion(value: unknown): 1 | 2 | undefined {\n  if (typeof value !== \"object\" || value === null || Array.isArray(value)) {\n    return undefined;\n  }\n  const formatVersion = (value as { formatVersion?: unknown }).formatVersion;\n  if (formatVersion === undefined || formatVersion === 1) return 1;\n  if (formatVersion === 2) return 2;\n  return undefined;\n}\n\nexport function parseOrder(\n  value: unknown,\n  context: IntakeContext,\n): OrderInput | undefined {\n  const formatVersion = selectedFormatVersion(value);\n  if (formatVersion === undefined) return undefined;\n\n  if (formatVersion === 2) {\n    const parsed = versionTwo.safeParse(value);\n    if (!parsed.success) return undefined;\n    return {\n      id: parsed.data.id,\n      customerId: parsed.data.customerId,\n      amountCents: parsed.data.amount.decimal,\n      shipOn: parsed.data.shipOn ?? context.receivedOn,\n    };\n  }\n\n  const parsed = versionOne.safeParse(value);\n  if (!parsed.success) return undefined;\n  return {\n    id: parsed.data.id,\n    customerId: parsed.data.customerId,\n    amountCents: parsed.data.amountCents,\n    shipOn: parsed.data.shipOn,\n  };\n}\n"
+  },
+  "implementationNotes": "# Implementation\n\n## Changed Behavior\n\nThe intake parser now accepts two explicit wire formats and normalizes both into the existing canonical `OrderInput` shape before any repository access.\n\nVersion 1 remains unchanged: omitted `formatVersion` or numeric `1` selects the legacy fields, `amountCents` remains required, and `shipOn` remains a required canonical `YYYY-MM-DD` date.\n\nVersion 2 is selected only by numeric `formatVersion: 2`. It requires the existing `id` and `customerId` rules, plus `amount.decimal` as exact decimal text. The decimal is converted to integer cents only when it matches the required unsigned form and falls within 1 through 1,000,000 cents. `amount.currency` defaults only when omitted; a present value must be exactly `\"USD\"`.\n\nVersion 2 `shipOn` accepts a present object with integer `year`, `month`, and `day` in the supported Gregorian range and stores it as zero-padded `YYYY-MM-DD`. If the entire `shipOn` property is omitted, the parser uses the trusted `context.receivedOn` value for that call. Invalid present date values are rejected rather than defaulted.\n\nAll accepted orders are still saved and returned with exactly `id`, `customerId`, `amountCents`, `currency`, `shipOn`, and `receivedOn`. No version marker, amount object, or date object is persisted or exposed.\n\n## Affected Call Paths\n\n`submitOrder` now calls `parseOrder(value, context)` so version 2 can use the call's received date when `shipOn` is omitted. Invalid input still returns `400 invalid_order` before repository access.\n\n`importOrders` also calls `parseOrder(value[index], context)` for each row, so mixed-version batches use the same validation, normalization, and date defaulting rules as single intake. Batch row ordering, partial-success behavior, duplicate handling, and summaries still flow through the existing sequential `saveOrder` path.\n\n`saveOrder` and `getOrder` were not changed. Duplicate checks, storage failure handling, canonical order construction, and reads remain on the existing repository call paths.\n\n## Validation Notes\n\nFormat selection happens before field validation. Omitted `formatVersion` and numeric `1` select version 1; numeric `2` selects version 2; strings, `null`, `3`, and other values are invalid. A malformed version 2 order is not retried as version 1, even if it includes legacy fields.\n\nDecimal amounts are parsed from strings with a regular expression and converted using integer arithmetic. There is no rounding, clamping, currency conversion, or floating-point parsing.\n\nCalendar dates are checked with explicit Gregorian month lengths and leap-year rules, then formatted directly. The implementation does not use `Date`, a clock, or time zone conversion.\n\n## Tests and Validation\n\nAdded `src/order-intake.test.ts` covering mixed-version batch behavior, canonical storage, accepted summaries, version 2 decimal and date boundaries, invalid decimal forms, explicit version fallback prevention, and unchanged version 1 required `shipOn`.\n\nLocal validation performed:\n\n- `bun test src/order-intake.test.ts` passed.\n- `./node_modules/.bin/tsc --noEmit` passed.\n- `bun run typecheck` was attempted several times but failed before running the script with Bun's internal `CouldntReadCurrentDirectory` error in this temporary workspace. The package script resolves to `tsc --noEmit`, which was run directly and passed.\n\n## Remaining Limitations\n\nThe implementation assumes the documented host contract for `context.receivedOn` and does not repair invalid context dates. It does not add storage migration, damaged-record handling, retries, concurrency controls, or transaction semantics beyond the existing repository contract.\n",
+  "primaryAssessment": {
+    "candidate_id": "C072",
+    "files_read": [
+      "RUBRIC.md",
+      "CHANGE.md",
+      "API.md",
+      "BEFORE.md",
+      "AFTER.md",
+      "DIFF.patch",
+      "IMPLEMENTATION.md",
+      "before/src/batch.ts",
+      "before/src/index.ts",
+      "before/src/orders.ts",
+      "before/src/single.ts",
+      "before/src/types.ts",
+      "before/src/validation.ts",
+      "after/src/batch.ts",
+      "after/src/index.ts",
+      "after/src/orders.ts",
+      "after/src/single.ts",
+      "after/src/types.ts",
+      "after/src/validation.ts",
+      "CRITIQUE.json"
+    ],
+    "requirements": [
+      {
+        "id": "B1",
+        "status": "supported",
+        "rationale": "Version 1 still selects only omitted or numeric formatVersion 1, uses the legacy id/customerId, integer cents and required canonical shipOn validation, ignores extras through the same object-schema behavior, and performs no trimming or coercion.",
+        "evidence": [
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 8,
+            "line_end": 10,
+            "explanation": "Identifier validation remains the exact legacy ASCII pattern."
+          },
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 51,
+            "line_end": 57,
+            "explanation": "Version 1 keeps optional literal numeric 1, amountCents integer range, and required canonical shipOn."
+          },
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 117,
+            "line_end": 124,
+            "explanation": "The version 1 parse returns only the legacy canonical input fields."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "B2",
+        "status": "supported",
+        "rationale": "Canonical record and response body fields remain stable, reads return existing repository records without writing, and duplicates return before save so originals are preserved.",
+        "evidence": [
+          {
+            "file": "after/src/types.ts",
+            "line_start": 5,
+            "line_end": 15,
+            "explanation": "OrderInput and StoredOrder retain the same canonical field types, including currency USD and receivedOn."
+          },
+          {
+            "file": "after/src/orders.ts",
+            "line_start": 15,
+            "line_end": 28,
+            "explanation": "Duplicate detection precedes canonical order construction and save; saved orders use only the stable fields."
+          },
+          {
+            "file": "after/src/single.ts",
+            "line_start": 29,
+            "line_end": 33,
+            "explanation": "getOrder returns the stored repository order directly without rewrite."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "B3",
+        "status": "supported",
+        "rationale": "The public factory and methods remain, and documented success and error response paths are preserved.",
+        "evidence": [
+          {
+            "file": "after/src/index.ts",
+            "line_start": 5,
+            "line_end": 13,
+            "explanation": "createOrderIntake still exposes submitOrder, importOrders and getOrder."
+          },
+          {
+            "file": "after/src/single.ts",
+            "line_start": 15,
+            "line_end": 19,
+            "explanation": "submitOrder preserves invalid-order handling and delegates valid input to the save path."
+          },
+          {
+            "file": "after/src/single.ts",
+            "line_start": 26,
+            "line_end": 35,
+            "explanation": "getOrder preserves invalid id, missing order and storage failure responses."
+          },
+          {
+            "file": "after/src/batch.ts",
+            "line_start": 16,
+            "line_end": 18,
+            "explanation": "Invalid outer batches still return 400 invalid_batch."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "B4",
+        "status": "supported",
+        "rationale": "Single intake and each batch row validate before repository access; valid duplicates are detected by repository.get and return 409 before save.",
+        "evidence": [
+          {
+            "file": "after/src/single.ts",
+            "line_start": 15,
+            "line_end": 19,
+            "explanation": "Single intake parses before calling saveOrder."
+          },
+          {
+            "file": "after/src/batch.ts",
+            "line_start": 25,
+            "line_end": 31,
+            "explanation": "Each batch row parses before saveOrder; invalid rows get 400 with no repository operation."
+          },
+          {
+            "file": "after/src/orders.ts",
+            "line_start": 15,
+            "line_end": 18,
+            "explanation": "Existing IDs return duplicate_order before any save call."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "B5",
+        "status": "supported",
+        "rationale": "Batch behavior preserves arrays of 0-100 rows, outer validation before row effects, ordered row responses, status 200 for valid batches, and summaries computed only from successful 201 rows.",
+        "evidence": [
+          {
+            "file": "after/src/batch.ts",
+            "line_start": 16,
+            "line_end": 18,
+            "explanation": "Non-arrays and arrays longer than 100 are rejected before row processing."
+          },
+          {
+            "file": "after/src/batch.ts",
+            "line_start": 25,
+            "line_end": 31,
+            "explanation": "Rows are processed sequentially by input index and pushed in order."
+          },
+          {
+            "file": "after/src/batch.ts",
+            "line_start": 33,
+            "line_end": 40,
+            "explanation": "acceptedCount, totalAcceptedCents and latestShipOn update only when result.status is 201."
+          },
+          {
+            "file": "after/src/batch.ts",
+            "line_start": 43,
+            "line_end": 46,
+            "explanation": "Valid outer batches return status 200 with rows and summary fields."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "B6",
+        "status": "supported",
+        "rationale": "Repository failures are contained as 500 responses, failed saves do not count or reserve IDs under the host contract, later rows continue, and accepted orders retain context.receivedOn.",
+        "evidence": [
+          {
+            "file": "after/src/orders.ts",
+            "line_start": 14,
+            "line_end": 30,
+            "explanation": "saveOrder catches repository get/save rejection as storage_unavailable and sets receivedOn from context only for accepted orders."
+          },
+          {
+            "file": "after/src/batch.ts",
+            "line_start": 25,
+            "line_end": 40,
+            "explanation": "The batch loop awaits each row, records failures, updates summaries only for 201, and continues."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C1",
+        "status": "supported",
+        "rationale": "Numeric formatVersion 2 is explicitly accepted in the shared parser; omitted and numeric 1 select version 1; all other values are invalid; failed version 2 validation does not fall back to version 1 fields.",
+        "evidence": [
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 89,
+            "line_end": 97,
+            "explanation": "selectedFormatVersion accepts only omitted/1 or numeric 2."
+          },
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 103,
+            "line_end": 118,
+            "explanation": "parseOrder chooses the version before field validation and returns undefined on version 2 parse failure rather than retrying version 1."
+          },
+          {
+            "file": "after/src/single.ts",
+            "line_start": 15,
+            "line_end": 19,
+            "explanation": "Single intake uses parseOrder with context."
+          },
+          {
+            "file": "after/src/batch.ts",
+            "line_start": 25,
+            "line_end": 30,
+            "explanation": "Batch rows use the same parseOrder path."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C2",
+        "status": "supported",
+        "rationale": "Version 2 requires amount.decimal as a string, validates the exact unsigned decimal grammar, converts with integer arithmetic to cents, and rejects values outside 1-1,000,000 cents without rounding or clamping.",
+        "evidence": [
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 40,
+            "line_end": 48,
+            "explanation": "decimalToCents uses a full-match decimal regex, BigInt cent calculation, and exact cent bounds."
+          },
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 63,
+            "line_end": 71,
+            "explanation": "Version 2 amount.decimal is required as z.string and invalid conversions fail parsing."
+          },
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 109,
+            "line_end": 113,
+            "explanation": "The normalized decimal cents are assigned to canonical amountCents."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C3",
+        "status": "supported",
+        "rationale": "Version 2 amount.currency defaults only by omission and any present JSON value must be exactly USD; accepted orders always store canonical USD without conversion.",
+        "evidence": [
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 63,
+            "line_end": 73,
+            "explanation": "amount.currency is optional literal USD, so null, empty, lowercase and other strings are invalid."
+          },
+          {
+            "file": "after/src/orders.ts",
+            "line_start": 19,
+            "line_end": 26,
+            "explanation": "Canonical save construction sets currency to USD and does not persist the amount object."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C4",
+        "status": "supported",
+        "rationale": "Present version 2 shipOn must be an object with integer year/month/day, passes explicit Gregorian date validation for 2000-2099, and is formatted directly as zero-padded YYYY-MM-DD without Date/time-zone behavior.",
+        "evidence": [
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 12,
+            "line_end": 27,
+            "explanation": "isCalendarDate enforces integer components, supported range, month bounds and leap-year day limits."
+          },
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 36,
+            "line_end": 38,
+            "explanation": "canonicalDate formats components directly with zero padding."
+          },
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 74,
+            "line_end": 82,
+            "explanation": "Version 2 shipOn requires the component object when present, refines it as a real date, and transforms it to canonical text."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C5",
+        "status": "supported",
+        "rationale": "Only an omitted version 2 shipOn defaults to the supplied call context.receivedOn; invalid present values fail validation; version 1 still requires shipOn.",
+        "evidence": [
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 74,
+            "line_end": 82,
+            "explanation": "Version 2 shipOn is optional as a whole, while present JSON values must satisfy the object schema and calendar refinement."
+          },
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 109,
+            "line_end": 114,
+            "explanation": "The parsed version 2 input uses parsed shipOn or context.receivedOn when shipOn is absent."
+          },
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 51,
+            "line_end": 57,
+            "explanation": "Version 1 schema still requires shipOn."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C6",
+        "status": "supported",
+        "rationale": "Single intake and mixed-version batches share the same validation, normalization and defaulting logic; save and summary paths operate on canonical integer cents and date strings and count only completed saves.",
+        "evidence": [
+          {
+            "file": "after/src/single.ts",
+            "line_start": 15,
+            "line_end": 19,
+            "explanation": "Single intake passes value and context to parseOrder before saveOrder."
+          },
+          {
+            "file": "after/src/batch.ts",
+            "line_start": 25,
+            "line_end": 40,
+            "explanation": "Batch rows use the same parser and update summaries only after 201 results."
+          },
+          {
+            "file": "after/src/orders.ts",
+            "line_start": 19,
+            "line_end": 28,
+            "explanation": "saveOrder persists normalized amountCents and shipOn in the canonical StoredOrder after save succeeds."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C7",
+        "status": "supported",
+        "rationale": "Version 2 is normalized into the same canonical OrderInput and StoredOrder shape as version 1; saved and public order bodies do not include formatVersion, amount objects or date objects, and existing records still block duplicates by ID.",
+        "evidence": [
+          {
+            "file": "after/src/types.ts",
+            "line_start": 5,
+            "line_end": 15,
+            "explanation": "Canonical public record types contain only the old stored order fields."
+          },
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 109,
+            "line_end": 124,
+            "explanation": "Both version 2 and version 1 parse outputs contain only id, customerId, amountCents and shipOn."
+          },
+          {
+            "file": "after/src/orders.ts",
+            "line_start": 15,
+            "line_end": 28,
+            "explanation": "Duplicate checks use input.id and successful saves persist only the canonical StoredOrder object."
+          },
+          {
+            "file": "after/src/single.ts",
+            "line_start": 29,
+            "line_end": 33,
+            "explanation": "Existing records are returned directly without migration or rewrite."
+          }
+        ],
+        "finding_ids": []
+      }
+    ],
+    "findings": [],
+    "implemented_changes": [
+      {
+        "claim": "Added explicit version selection and version 2 normalization into the existing canonical order input shape.",
+        "evidence": [
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 59,
+            "line_end": 83,
+            "explanation": "Defines version 2 schema for amount, currency and optional component date."
+          },
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 89,
+            "line_end": 125,
+            "explanation": "Selects format version and returns canonical OrderInput fields for both versions."
+          }
+        ]
+      },
+      {
+        "claim": "Propagated the intake context into parsing for both consumers so version 2 omitted shipOn can default from context.receivedOn.",
+        "evidence": [
+          {
+            "file": "after/src/single.ts",
+            "line_start": 15,
+            "line_end": 19,
+            "explanation": "submitOrder now calls parseOrder(value, context)."
+          },
+          {
+            "file": "after/src/batch.ts",
+            "line_start": 25,
+            "line_end": 30,
+            "explanation": "importOrders now calls parseOrder(row, context) for each row."
+          }
+        ]
+      },
+      {
+        "claim": "Kept storage, duplicate handling, reads and batch summaries on the existing canonical save/get paths.",
+        "evidence": [
+          {
+            "file": "after/src/orders.ts",
+            "line_start": 15,
+            "line_end": 28,
+            "explanation": "saveOrder still checks duplicates, constructs canonical StoredOrder, saves, and returns it."
+          },
+          {
+            "file": "after/src/batch.ts",
+            "line_start": 33,
+            "line_end": 40,
+            "explanation": "Batch summaries derive only from successful canonical order bodies."
+          },
+          {
+            "file": "after/src/single.ts",
+            "line_start": 29,
+            "line_end": 33,
+            "explanation": "getOrder reads and returns existing records without writes."
+          }
+        ]
+      }
+    ],
+    "preserved_consumers": [
+      {
+        "consumer": "single-order portal submitOrder",
+        "assessment": "Preserved public response behavior while adding version 2 support and date defaulting through the shared parser.",
+        "evidence": [
+          {
+            "file": "after/src/index.ts",
+            "line_start": 7,
+            "line_end": 12,
+            "explanation": "The factory still exposes submitOrder with the same public method shape."
+          },
+          {
+            "file": "after/src/single.ts",
+            "line_start": 10,
+            "line_end": 19,
+            "explanation": "submitOrder validates first, returns 400 on invalid input, and delegates valid canonical input to saveOrder."
+          }
+        ]
+      },
+      {
+        "consumer": "batch import importOrders",
+        "assessment": "Preserved ordered partial-success batch behavior, outer validation, and summaries while applying the same version 2 rules per row.",
+        "evidence": [
+          {
+            "file": "after/src/index.ts",
+            "line_start": 7,
+            "line_end": 12,
+            "explanation": "The factory still exposes importOrders with the same public method shape."
+          },
+          {
+            "file": "after/src/batch.ts",
+            "line_start": 16,
+            "line_end": 46,
+            "explanation": "Batch import validates outer input, processes rows sequentially, records input-ordered results, and summarizes only 201 rows."
+          }
+        ]
+      },
+      {
+        "consumer": "getOrder/read path",
+        "assessment": "Read behavior remains unchanged and canonical existing records are not rewritten.",
+        "evidence": [
+          {
+            "file": "after/src/index.ts",
+            "line_start": 7,
+            "line_end": 12,
+            "explanation": "The factory still exposes getOrder."
+          },
+          {
+            "file": "after/src/single.ts",
+            "line_start": 22,
+            "line_end": 36,
+            "explanation": "getOrder validates ID, returns 404 for missing, returns the stored order directly, and maps storage failures to 500."
+          }
+        ]
+      }
+    ],
+    "overall_assessment": "The implementation satisfies the requested version 2 intake change while preserving the documented version 1, storage, response, duplicate, batch and dependency-failure behavior. No necessary correction is established.",
+    "uncertainties": [],
+    "outcome": "supported",
+    "decisions": []
+  },
+  "supplementalAssessment": {
+    "candidate_id": "C072",
+    "audit_outcome": "supported",
+    "files_read": [
+      "before/src/batch.ts",
+      "before/src/index.ts",
+      "before/src/orders.ts",
+      "before/src/single.ts",
+      "before/src/types.ts",
+      "before/src/validation.ts",
+      "after/src/batch.ts",
+      "after/src/index.ts",
+      "after/src/orders.ts",
+      "after/src/single.ts",
+      "after/src/types.ts",
+      "after/src/validation.ts"
+    ],
+    "requirement_assessments": [
+      {
+        "id": "B1",
+        "status": "supported",
+        "rationale": "The original strict IDs, cents and required real canonical-date schema remains selected for omitted/1 without coercion or new defaults.",
+        "evidence": [
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 4,
+            "line_end": 34,
+            "explanation": "Legacy ID/calendar validation."
+          },
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 51,
+            "line_end": 57,
+            "explanation": "Required legacy schema."
+          },
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 89,
+            "line_end": 124,
+            "explanation": "Explicit version routing."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "B2",
+        "status": "supported",
+        "rationale": "The canonical six-field order is constructed explicitly; reads return intact existing records and duplicates return before save.",
+        "evidence": [
+          {
+            "file": "after/src/orders.ts",
+            "line_start": 14,
+            "line_end": 28,
+            "explanation": "Read for duplicates and construct only canonical fields."
+          },
+          {
+            "file": "after/src/single.ts",
+            "line_start": 22,
+            "line_end": 35,
+            "explanation": "Read-only get returns the intact stored order."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "B3",
+        "status": "supported",
+        "rationale": "The factory delegates the same three methods, preserving accepted/get/missing/invalid/conflict/storage response pairs.",
+        "evidence": [
+          {
+            "file": "after/src/index.ts",
+            "line_start": 5,
+            "line_end": 13,
+            "explanation": "Public factory methods."
+          },
+          {
+            "file": "after/src/single.ts",
+            "line_start": 15,
+            "line_end": 35,
+            "explanation": "Single input and get statuses."
+          },
+          {
+            "file": "after/src/orders.ts",
+            "line_start": 14,
+            "line_end": 30,
+            "explanation": "Duplicate, accepted and repository error statuses."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "B4",
+        "status": "supported",
+        "rationale": "Both consumers parse before invoking saveOrder; its duplicate check precedes every save and relies on persistent repository state.",
+        "evidence": [
+          {
+            "file": "after/src/single.ts",
+            "line_start": 15,
+            "line_end": 19,
+            "explanation": "Invalid input stops before storage."
+          },
+          {
+            "file": "after/src/batch.ts",
+            "line_start": 25,
+            "line_end": 30,
+            "explanation": "Each row is fully parsed before saveOrder."
+          },
+          {
+            "file": "after/src/orders.ts",
+            "line_start": 14,
+            "line_end": 27,
+            "explanation": "Existing records return conflict without mutation."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "B5",
+        "status": "supported",
+        "rationale": "Outer arrays are limited to 100 before effects; rows await completion in order and only 201 canonical bodies enter summaries.",
+        "evidence": [
+          {
+            "file": "after/src/batch.ts",
+            "line_start": 16,
+            "line_end": 45,
+            "explanation": "Ordered partial success, cents sum and canonical date maximum."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "B6",
+        "status": "supported",
+        "rationale": "Repository failures resolve to 500 per row; no local ID reservation survives failure and the loop continues. receivedOn is the supplied context.",
+        "evidence": [
+          {
+            "file": "after/src/orders.ts",
+            "line_start": 14,
+            "line_end": 30,
+            "explanation": "Caught read/save failures and exact receivedOn."
+          },
+          {
+            "file": "after/src/batch.ts",
+            "line_start": 25,
+            "line_end": 41,
+            "explanation": "Sequential loop excludes failed rows and continues."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C1",
+        "status": "supported",
+        "rationale": "The explicit selector recognizes only omitted/1/2 on JSON objects, and numeric two requires its new amount with no fallback after failure.",
+        "evidence": [
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 59,
+            "line_end": 73,
+            "explanation": "Required new amount for numeric two."
+          },
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 89,
+            "line_end": 108,
+            "explanation": "Strict selection and failed-parse stop."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C2",
+        "status": "supported",
+        "rationale": "The required string uses a complete non-multiline decimal grammar and exact BigInt digit arithmetic. Bounds precede Number conversion, and invalid values become parse issues.",
+        "evidence": [
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 40,
+            "line_end": 49,
+            "explanation": "Complete grammar and exact bounded conversion."
+          },
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 63,
+            "line_end": 73,
+            "explanation": "Required decimal transform and failure issue."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C3",
+        "status": "supported",
+        "rationale": "Only omission or exact USD passes currency validation; canonical persistence writes USD.",
+        "evidence": [
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 63,
+            "line_end": 73,
+            "explanation": "Optional USD literal."
+          },
+          {
+            "file": "after/src/orders.ts",
+            "line_start": 19,
+            "line_end": 26,
+            "explanation": "Canonical USD."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C4",
+        "status": "supported",
+        "rationale": "Present date components must be integers representing a real Gregorian date; only then are they formatted without timezone operations.",
+        "evidence": [
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 12,
+            "line_end": 38,
+            "explanation": "Calendar checks and formatter."
+          },
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 74,
+            "line_end": 82,
+            "explanation": "Required components, refinement and transform."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C5",
+        "status": "supported",
+        "rationale": "A successful optional-date parse yields undefined only for omission within JSON scope. Invalid present dates fail before the context fallback, and legacy dates remain required.",
+        "evidence": [
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 51,
+            "line_end": 57,
+            "explanation": "Required legacy date."
+          },
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 74,
+            "line_end": 82,
+            "explanation": "Validated optional date."
+          },
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 106,
+            "line_end": 114,
+            "explanation": "Successful-parse gate before default."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C6",
+        "status": "supported",
+        "rationale": "Both consumers pass the same context to one normalization function; saves and successful batch summaries consume its canonical numeric/date output.",
+        "evidence": [
+          {
+            "file": "after/src/single.ts",
+            "line_start": 15,
+            "line_end": 19,
+            "explanation": "Single shared normalization."
+          },
+          {
+            "file": "after/src/batch.ts",
+            "line_start": 25,
+            "line_end": 39,
+            "explanation": "Batch shared normalization, awaited save and successful canonical aggregation."
+          },
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 103,
+            "line_end": 124,
+            "explanation": "Canonical normalized outputs after selected validation."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C7",
+        "status": "supported",
+        "rationale": "Version-two amount/date/version objects are removed by the normalization projection; persistence explicitly selects the existing six fields and does not migrate or rewrite existing records.",
+        "evidence": [
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 103,
+            "line_end": 124,
+            "explanation": "Canonical normalized outputs after selected validation."
+          },
+          {
+            "file": "after/src/orders.ts",
+            "line_start": 14,
+            "line_end": 28,
+            "explanation": "Duplicate preservation and exact canonical storage."
+          },
+          {
+            "file": "after/src/single.ts",
+            "line_start": 29,
+            "line_end": 35,
+            "explanation": "Existing records are returned without writes."
+          }
+        ],
+        "finding_ids": []
+      }
+    ],
+    "primary_finding_decisions": [],
+    "findings": [],
+    "external_semantics_sources": [
+      {
+        "url": "https://tc39.es/ecma262/multipage/text-processing.html",
+        "rule": "ECMAScript Assertion :: $ succeeds at input end; a position before a line terminator is accepted only when Multiline is true. These patterns have no m flag."
+      }
+    ],
+    "overall_assessment": "All 13 obligations are supported by the inspected source. Direct version selection, exact bounded money and validated optional dates preserve canonical values through both consumers, including duplicate protection and completed-save aggregation. Primary supported is maintained.",
+    "uncertainties": [
+      "Static review only; implementation and tests were not executed. Supported means no established necessary correction under the supplied JSON-input, intact-storage and trusted-context contract.",
+      "This disclosed supplemental pass is post-start, not preregistered. The case specialist retains context across assigned candidates and previously authored intake controls; release assignments remain withheld."
+    ]
+  },
+  "originalArtifactHashes": {
+    "generationResult": "a041b0c16d2cb3af8b4f3271fd643efa3a2ce0f31ffe2e2fd887aabb7e4965b2",
+    "primaryResult": "ae42fa8d1f684125d5f1bac8e809ebbb1950f5e14be221748cb19fc9cc2b4ccc",
+    "primaryAssessment": "df073ef456299adf9bfbfe4ff9b8e5a21ca0f8abdd4a817c3b9df94cc5141c9c",
+    "supplementalAssessment": "09848b7c0b3dca689258f10dec4266f8a3b51e06c59e6c1f500bdbb305fb1c6d",
+    "source": {
+      "batch.ts": "13785922304090db4babf9c1304906f959af7556a1048da767bbab502d8605eb",
+      "index.ts": "21098ebc3535dd36bc5cf2e4719e9fa2abccedd87bc41541064252ecdaa042d1",
+      "orders.ts": "1157cf8091b67e5e185ebeec40bd558a3bb7758f269289b8c76f239ecbf9da7e",
+      "single.ts": "bc9301706f45996a3c0a51227e077b7eb00a8a88ea409f2402ff5233872088f4",
+      "types.ts": "45bfb5b1261efbea2912b9de9c850b50ca145fa87286b3cd75a474774c42cef0",
+      "validation.ts": "ce77abc672f5ba86148286c610299c316c1fa346460be90650a0b8d08a9a550a"
+    }
+  }
+}

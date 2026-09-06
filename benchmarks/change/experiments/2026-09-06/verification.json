@@ -1,0 +1,13 @@
+{
+  "updatedAt": "2026-09-06T05:28:18.687Z",
+  "passed": false,
+  "finished": true,
+  "errors": [
+    "reviews/C052/adjudicator/adjudicator.stage.json: unclean stage"
+  ],
+  "completedStages": 316,
+  "contextSignatures": [
+    "c2a980bc28af132eb89e0b4c68ae884043faae83a1afd3fd4889f7e8a1ada7b0:b55930a0dd3978698f0182e55ce1999c1552f09927452d970a0049184ee8530e"
+  ],
+  "limitation": "Provenance and bookkeeping checks do not score code quality or prove the truth of an agent assessment. Context audits are loopback preflights, not captured remote requests."
+}

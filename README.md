@@ -87,6 +87,11 @@ generated implementation, shared acceptance-test results, and a design review sh
 Run `bun run benchmark --dry-run --runs 1` to inspect the protocol, or
 `bun run benchmark --model <model-id> --runs 3` for a real comparison.
 
+The [implemented-change benchmark](benchmarks/change/README.md) compares release
+snapshots through actual changes to existing applications and blinded corrective
+source assessment. [The v1.0–v1.4 experiment](benchmarks/change/experiments/2026-09-06/README.md)
+includes all 72 delivered sources and their structured judgments.
+
 ## Documentation
 
 A reading version of the principles is published at [https://iwasa-kosui.github.io/kamae-ts/](https://iwasa-kosui.github.io/kamae-ts/), in both [English (`/en/`)](https://iwasa-kosui.github.io/kamae-ts/en/) and [Japanese (`/ja/`)](https://iwasa-kosui.github.io/kamae-ts/ja/).

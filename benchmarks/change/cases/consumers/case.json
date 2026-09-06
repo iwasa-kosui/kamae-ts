@@ -1,0 +1,58 @@
+{
+  "id": "consumers",
+  "name": "Inventory consumers and an alternative storage provider",
+  "requirements": [
+    {
+      "id": "B1",
+      "statement": "Preserve createReservationService({ storage }).handle(command) and the three legacy commands, response shapes, status codes, required-field validation before I/O, and ignored extra fields described in starter/API.md."
+    },
+    {
+      "id": "B2",
+      "statement": "Reserve only existing stock with sufficient availability. Exact duplicate reservation payloads return the existing reservation with 200; conflicting reuse returns 409 without replacing the original."
+    },
+    {
+      "id": "B3",
+      "statement": "A successful new reservation atomically increases reservedUnits, advances revision by one, inserts its reservation, and appends exactly one matching reservation.created outbox event. Use the loaded revision as expectedRevision; revision conflict or commit rejection leaves all resources unchanged."
+    },
+    {
+      "id": "B4",
+      "statement": "Legacy storage rejection, unusable result, invalid self-owned record, or exhausted safe-integer revision produces 500 storage_unavailable; revision_conflict produces 409 commit_conflict; public errors contain only the fixed code."
+    },
+    {
+      "id": "B5",
+      "statement": "Preserve exact nonempty identifiers and required stock/reservation/event data in storage and responses. Persisted records written by the implementation work across fresh service instances."
+    },
+    {
+      "id": "B6",
+      "statement": "Queries, invalid commands, business-rule failures, and completed-reservation retries do not commit state or events. Failed commits can be retried without creating duplicate events."
+    },
+    {
+      "id": "C1",
+      "statement": "Add createStockReport({ source }).handle({ op: 'lowStock', belowUnits }) using only readSnapshot. Return SKU-sorted items with availableUnits strictly below the threshold; empty results return items: []."
+    },
+    {
+      "id": "C2",
+      "statement": "Add createObservationReceiver({ sink }).handle({ op: 'recordObservation', observationId, sku, observedUnits }) using only appendObservation. Accept unknown SKUs, never query or change inventory/reservations, and map stored/duplicate outcomes to the specified 201/200 bodies with first accepted observation winning."
+    },
+    {
+      "id": "C3",
+      "statement": "Add createProviderBReservationService({ storage }) for provider B's documented lookup envelopes, decimal-string rows and atomic batch API, retaining all existing reservation behavior and self-written record round trips without requiring provider A or migration."
+    },
+    {
+      "id": "C4",
+      "statement": "Each factory must work with only its documented host methods: legacy lookup/commit methods, report readSnapshot, observation appendObservation, or provider B read/commitBatch. Typed callers must not need dummy operations, casts, another provider, or unrelated initialization."
+    },
+    {
+      "id": "C5",
+      "statement": "Validate all new commands before I/O: exact nonempty IDs and integer report/observation quantities from 0 through 1000000. Unknown operations and missing/invalid required fields return 400 invalid_command. Extra fields are ignored and do not enter observation payloads."
+    },
+    {
+      "id": "C6",
+      "statement": "Reject unusable report snapshots, duplicate snapshot SKUs, malformed provider B envelopes/rows/canonical decimal strings, and invalid stock quantities with 500; distinguish provider B NO_SUCH_KEY from TEMPORARY_FAILURE and preserve exact keys and numeric public quantities."
+    },
+    {
+      "id": "C7",
+      "statement": "Contain rejection/unusable outcomes from every new host operation as 500 storage_unavailable without provider messages/request IDs or envelopes in public responses. Map provider B revision_conflict to 409 commit_conflict, and preserve reservation atomicity and idempotency on that backend."
+    }
+  ]
+}

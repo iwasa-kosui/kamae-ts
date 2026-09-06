@@ -1,0 +1,564 @@
+{
+  "control": {
+    "caseId": "intake",
+    "variant": "broken",
+    "candidate_id": "K004"
+  },
+  "originalAssessmentSha256": "afab7785d27ae8968f5173a1492083dea127015a848c23cd7f199e8b67d07d50",
+  "assessment": {
+    "candidate_id": "K004",
+    "files_read": [
+      "RUBRIC.md",
+      "CHANGE.md",
+      "API.md",
+      "BEFORE.md",
+      "AFTER.md",
+      "DIFF.patch",
+      "IMPLEMENTATION.md",
+      "CRITIQUE.json",
+      "RESPONSE.schema.json",
+      "before/src/index.ts",
+      "before/src/types.ts",
+      "before/src/validation.ts",
+      "before/src/single.ts",
+      "before/src/batch.ts",
+      "before/src/orders.ts",
+      "after/src/index.ts",
+      "after/src/types.ts",
+      "after/src/validation.ts",
+      "after/src/single.ts",
+      "after/src/batch.ts",
+      "after/src/orders.ts"
+    ],
+    "requirements": [
+      {
+        "id": "B1",
+        "status": "supported",
+        "rationale": "Version 1 still accepts omitted or numeric formatVersion 1 with the same ID, cents and required canonical date validation, and parsed values are returned without trimming or coercion.",
+        "evidence": [
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 36,
+            "line_end": 42,
+            "explanation": "The version 1 schema preserves optional literal 1, identifier validation, integer amountCents range and required canonical shipOn."
+          },
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 97,
+            "line_end": 102,
+            "explanation": "Version 1 parsed output carries through id, customerId, amountCents and shipOn as canonical input fields."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "B2",
+        "status": "supported",
+        "rationale": "Canonical records and public order bodies retain the original field set and types, and reads return existing repository records without rewriting them.",
+        "evidence": [
+          {
+            "file": "after/src/types.ts",
+            "line_start": 5,
+            "line_end": 15,
+            "explanation": "OrderInput and StoredOrder still define id, customerId, amountCents, shipOn, currency and receivedOn."
+          },
+          {
+            "file": "after/src/orders.ts",
+            "line_start": 19,
+            "line_end": 28,
+            "explanation": "Accepted saves construct and return only the canonical StoredOrder fields."
+          },
+          {
+            "file": "after/src/single.ts",
+            "line_start": 29,
+            "line_end": 33,
+            "explanation": "getOrder returns the stored order body directly on a hit and performs no save."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "B3",
+        "status": "supported",
+        "rationale": "The exported factory, public methods, success statuses and documented error status/code pairs remain available.",
+        "evidence": [
+          {
+            "file": "after/src/index.ts",
+            "line_start": 5,
+            "line_end": 13,
+            "explanation": "createOrderIntake still exposes submitOrder, importOrders and getOrder."
+          },
+          {
+            "file": "after/src/types.ts",
+            "line_start": 22,
+            "line_end": 55,
+            "explanation": "Response types preserve the documented success statuses and error code set."
+          },
+          {
+            "file": "after/src/single.ts",
+            "line_start": 26,
+            "line_end": 35,
+            "explanation": "getOrder preserves invalid ID, missing order, found order and storage rejection responses."
+          },
+          {
+            "file": "after/src/batch.ts",
+            "line_start": 16,
+            "line_end": 18,
+            "explanation": "Invalid outer batches still return 400 invalid_batch."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "B4",
+        "status": "supported",
+        "rationale": "Single and batch inputs are parsed before repository access, invalid inputs perform no repository operation, and duplicate IDs return conflict without saving.",
+        "evidence": [
+          {
+            "file": "after/src/single.ts",
+            "line_start": 15,
+            "line_end": 19,
+            "explanation": "submitOrder returns invalid_order before calling saveOrder when parsing fails."
+          },
+          {
+            "file": "after/src/batch.ts",
+            "line_start": 25,
+            "line_end": 30,
+            "explanation": "Each batch row parses before saveOrder is called; invalid rows receive row 400."
+          },
+          {
+            "file": "after/src/orders.ts",
+            "line_start": 15,
+            "line_end": 18,
+            "explanation": "saveOrder checks for an existing record and returns duplicate_order before any save."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "B5",
+        "status": "correction_needed",
+        "rationale": "Batch rows remain ordered and the summary is gated on successful saves, but totalAcceptedCents now divides each accepted order's cents by 100, regressing the required cents total.",
+        "evidence": [
+          {
+            "file": "after/src/batch.ts",
+            "line_start": 25,
+            "line_end": 31,
+            "explanation": "Rows are processed sequentially and pushed in input order."
+          },
+          {
+            "file": "after/src/batch.ts",
+            "line_start": 33,
+            "line_end": 39,
+            "explanation": "Only status 201 rows affect the summary, but line 36 adds order.amountCents / 100."
+          },
+          {
+            "file": "before/src/batch.ts",
+            "line_start": 33,
+            "line_end": 39,
+            "explanation": "The original preserved behavior added order.amountCents directly."
+          }
+        ],
+        "finding_ids": [
+          "A_F1"
+        ]
+      },
+      {
+        "id": "B6",
+        "status": "supported",
+        "rationale": "Repository rejections remain contained as 500 responses; failed saves do not count as accepted, later rows continue, and accepted records use host receivedOn.",
+        "evidence": [
+          {
+            "file": "after/src/orders.ts",
+            "line_start": 14,
+            "line_end": 30,
+            "explanation": "get/save rejections are caught as storage_unavailable and 201 is returned only after save resolves."
+          },
+          {
+            "file": "after/src/batch.ts",
+            "line_start": 25,
+            "line_end": 40,
+            "explanation": "Batch processing continues sequentially and updates summary state only for status 201 results."
+          },
+          {
+            "file": "after/src/orders.ts",
+            "line_start": 19,
+            "line_end": 28,
+            "explanation": "Saved records use context.receivedOn."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C1",
+        "status": "supported",
+        "rationale": "Format selection is explicit: omitted or numeric 1 uses version 1, numeric 2 uses version 2, and other values match neither schema.",
+        "evidence": [
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 36,
+            "line_end": 42,
+            "explanation": "Version 1 accepts only omitted formatVersion or literal numeric 1 and requires legacy fields."
+          },
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 64,
+            "line_end": 73,
+            "explanation": "Version 2 requires literal numeric 2 and its own amount/date shape."
+          },
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 75,
+            "line_end": 86,
+            "explanation": "parseOrder accepts only the union of those schemas and returns undefined on failure."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C2",
+        "status": "supported",
+        "rationale": "Version 2 amount.decimal is required as text, checked against the specified decimal grammar, converted to integer cents and range-validated without rounding or clamping.",
+        "evidence": [
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 44,
+            "line_end": 51,
+            "explanation": "decimalCents requires a string, full-matches the unsigned decimal pattern, pads at most two fractional digits and validates the 1-1,000,000 cent range."
+          },
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 68,
+            "line_end": 70,
+            "explanation": "The version 2 amount object requires decimal through decimalCents."
+          },
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 89,
+            "line_end": 95,
+            "explanation": "Accepted version 2 input is normalized to amountCents."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C3",
+        "status": "supported",
+        "rationale": "Version 2 amount.currency defaults when omitted and otherwise must be exactly USD; no conversion or persistence of wire currency is introduced.",
+        "evidence": [
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 68,
+            "line_end": 71,
+            "explanation": "currency is z.literal(\"USD\").default(\"USD\"), so omitted JSON currency defaults and present non-USD JSON values fail."
+          },
+          {
+            "file": "after/src/orders.ts",
+            "line_start": 19,
+            "line_end": 28,
+            "explanation": "Saved orders always use canonical currency USD."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C4",
+        "status": "supported",
+        "rationale": "Present version 2 shipOn must be an object with integer components, is validated as a real Gregorian date in 2000-2099, and is formatted without Date/time-zone overflow.",
+        "evidence": [
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 12,
+            "line_end": 28,
+            "explanation": "isCalendarDate enforces integer components, year/month/day bounds, month lengths and leap years."
+          },
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 53,
+            "line_end": 62,
+            "explanation": "calendarParts requires year, month and day, validates them, and formats a zero-padded YYYY-MM-DD string."
+          },
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 72,
+            "line_end": 72,
+            "explanation": "Version 2 shipOn uses calendarParts when present."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C5",
+        "status": "supported",
+        "rationale": "Only omitted version 2 shipOn defaults to the call's context.receivedOn; invalid present values remain invalid and version 1 still requires shipOn.",
+        "evidence": [
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 36,
+            "line_end": 42,
+            "explanation": "Version 1 still requires a canonical shipOn string."
+          },
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 72,
+            "line_end": 95,
+            "explanation": "Version 2 shipOn is optional and parseOrder defaults missing shipOn to the receivedOn argument."
+          },
+          {
+            "file": "after/src/single.ts",
+            "line_start": 15,
+            "line_end": 15,
+            "explanation": "Single intake passes context.receivedOn to parsing."
+          },
+          {
+            "file": "after/src/batch.ts",
+            "line_start": 25,
+            "line_end": 30,
+            "explanation": "Batch rows pass the shared batch context.receivedOn to parsing."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C6",
+        "status": "correction_needed",
+        "rationale": "Single and batch share normalization and save canonical cents/dates, but batch summary totals are computed in major units instead of integer cents.",
+        "evidence": [
+          {
+            "file": "after/src/single.ts",
+            "line_start": 15,
+            "line_end": 19,
+            "explanation": "Single intake uses parseOrder with context.receivedOn then saveOrder."
+          },
+          {
+            "file": "after/src/batch.ts",
+            "line_start": 25,
+            "line_end": 30,
+            "explanation": "Batch rows use the same parseOrder and saveOrder path sequentially."
+          },
+          {
+            "file": "after/src/batch.ts",
+            "line_start": 33,
+            "line_end": 39,
+            "explanation": "Successful rows are counted, but totalAcceptedCents adds order.amountCents / 100."
+          }
+        ],
+        "finding_ids": [
+          "A_F1"
+        ]
+      },
+      {
+        "id": "C7",
+        "status": "supported",
+        "rationale": "Version 2 wire fields are normalized before saving, and stored/public orders remain canonical without amount object, date object or formatVersion; existing records still block duplicates by ID.",
+        "evidence": [
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 89,
+            "line_end": 102,
+            "explanation": "parseOrder returns only id, customerId, amountCents and shipOn for both versions."
+          },
+          {
+            "file": "after/src/orders.ts",
+            "line_start": 15,
+            "line_end": 28,
+            "explanation": "Duplicate lookup uses input.id and accepted saves write only canonical StoredOrder fields."
+          },
+          {
+            "file": "after/src/single.ts",
+            "line_start": 29,
+            "line_end": 33,
+            "explanation": "Reads return existing records directly without migration or rewrite."
+          },
+          {
+            "file": "after/src/types.ts",
+            "line_start": 5,
+            "line_end": 15,
+            "explanation": "The canonical type contains only the original stored/public fields."
+          }
+        ],
+        "finding_ids": []
+      }
+    ],
+    "findings": [
+      {
+        "id": "A_F1",
+        "requirement_ids": [
+          "B5",
+          "C6"
+        ],
+        "kind": "both",
+        "impact": "localized_violation",
+        "claim": "Batch totalAcceptedCents is accumulated in major currency units instead of integer cents.",
+        "evidence": [
+          {
+            "file": "after/src/batch.ts",
+            "line_start": 33,
+            "line_end": 39,
+            "explanation": "For every successful row, the code adds order.amountCents / 100 to totalAcceptedCents."
+          },
+          {
+            "file": "before/src/batch.ts",
+            "line_start": 33,
+            "line_end": 39,
+            "explanation": "The original batch summary added order.amountCents directly."
+          }
+        ],
+        "call_path": "createOrderIntake(...).importOrders(value, context) -> after/src/batch.ts importOrders loop -> saveOrder returns status 201 -> summary update at after/src/batch.ts:36",
+        "counterexample": "With an empty repository and one valid version 1 batch row with amountCents 1250, the row succeeds but totalAcceptedCents becomes 12.5 instead of 1250. The CHANGE.md concrete example would report 13.66 instead of 1366.",
+        "actual_behavior": "Each accepted canonical amountCents value is divided by 100 before being added to totalAcceptedCents.",
+        "required_behavior": "Batch totalAcceptedCents must be the integer sum of canonical cents from successfully saved rows only.",
+        "consequence": "Batch callers receive incorrectly scaled and possibly fractional totals, even though saved row bodies contain integer cents.",
+        "minimal_correction": "In after/src/batch.ts line 36, add order.amountCents directly instead of order.amountCents / 100.",
+        "regression_obligations": [
+          "B5: existing version 1 batch summaries must continue to report integer cents from completed saves.",
+          "C6: mixed-version batch summaries must use normalized canonical integer cents, not decimal strings or major units."
+        ],
+        "counterevidence": "The status check still excludes invalid, duplicate and failed rows from the summary, and latestShipOn still compares canonical date strings; the defect is limited to totalAcceptedCents scaling.",
+        "confidence": "high"
+      }
+    ],
+    "implemented_changes": [
+      {
+        "claim": "Version 2 parsing was added for explicit formatVersion 2, decimal amount text and component shipOn dates.",
+        "evidence": [
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 44,
+            "line_end": 73,
+            "explanation": "The added decimalCents, calendarParts and versionTwo schemas implement the new wire shape."
+          },
+          {
+            "file": "after/src/validation.ts",
+            "line_start": 81,
+            "line_end": 95,
+            "explanation": "parseOrder accepts receivedOn and maps version 2 inputs to canonical OrderInput values."
+          }
+        ]
+      },
+      {
+        "claim": "Both single intake and batch import use the shared normalization path, including receivedOn for omitted version 2 shipOn.",
+        "evidence": [
+          {
+            "file": "after/src/single.ts",
+            "line_start": 15,
+            "line_end": 19,
+            "explanation": "submitOrder passes context.receivedOn to parseOrder and saves the normalized input."
+          },
+          {
+            "file": "after/src/batch.ts",
+            "line_start": 25,
+            "line_end": 30,
+            "explanation": "Each batch row passes the shared context.receivedOn to parseOrder before saveOrder."
+          }
+        ]
+      },
+      {
+        "claim": "Canonical storage and getOrder behavior were kept unchanged.",
+        "evidence": [
+          {
+            "file": "after/src/orders.ts",
+            "line_start": 19,
+            "line_end": 28,
+            "explanation": "saveOrder constructs the same StoredOrder fields as before."
+          },
+          {
+            "file": "after/src/single.ts",
+            "line_start": 29,
+            "line_end": 33,
+            "explanation": "getOrder returns existing repository records directly."
+          }
+        ]
+      }
+    ],
+    "preserved_consumers": [
+      {
+        "consumer": "Single-order portal submitOrder",
+        "assessment": "Preserved for version 1 and extended for version 2; invalid inputs still return 400 before storage and successful saves return canonical 201 bodies.",
+        "evidence": [
+          {
+            "file": "after/src/single.ts",
+            "line_start": 10,
+            "line_end": 19,
+            "explanation": "submitOrder parses first, returns invalid_order on failure and delegates valid inputs to saveOrder."
+          },
+          {
+            "file": "after/src/orders.ts",
+            "line_start": 19,
+            "line_end": 28,
+            "explanation": "Successful responses use canonical stored order bodies."
+          }
+        ]
+      },
+      {
+        "consumer": "Batch import",
+        "assessment": "Row ordering, partial success and acceptedCount/latestShipOn behavior are preserved, but totalAcceptedCents is not preserved because accepted cents are divided by 100.",
+        "evidence": [
+          {
+            "file": "after/src/batch.ts",
+            "line_start": 25,
+            "line_end": 31,
+            "explanation": "Rows are processed sequentially and pushed in input order."
+          },
+          {
+            "file": "after/src/batch.ts",
+            "line_start": 33,
+            "line_end": 39,
+            "explanation": "Summary updates are gated on 201 rows, but the cents total is scaled incorrectly."
+          }
+        ]
+      },
+      {
+        "consumer": "getOrder",
+        "assessment": "Preserved; ID validation, 200/404/500 responses and no-rewrite reads remain unchanged.",
+        "evidence": [
+          {
+            "file": "after/src/single.ts",
+            "line_start": 22,
+            "line_end": 35,
+            "explanation": "getOrder validates IDs, reads once, returns found/missing records or storage_unavailable, and performs no save."
+          }
+        ]
+      }
+    ],
+    "overall_assessment": "The implementation substantially adds the version 2 intake path while preserving canonical saves and reads. One necessary correction remains: batch totalAcceptedCents must sum integer cents directly rather than dividing by 100.",
+    "uncertainties": [],
+    "outcome": "correction_needed",
+    "decisions": [
+      {
+        "finding_id": "A_F1",
+        "verdict": "accepted",
+        "duplicate_of": null,
+        "reason": "The source shows the batch summary adding order.amountCents / 100, which violates both preserved cents summaries and the new mixed-version summary requirement.",
+        "evidence": [
+          {
+            "file": "after/src/batch.ts",
+            "line_start": 33,
+            "line_end": 39,
+            "explanation": "The accumulator divides amountCents by 100 for each successful row."
+          },
+          {
+            "file": "before/src/batch.ts",
+            "line_start": 33,
+            "line_end": 39,
+            "explanation": "The preserved implementation added amountCents directly."
+          }
+        ]
+      },
+      {
+        "finding_id": "B_F1",
+        "verdict": "duplicate",
+        "duplicate_of": "A_F1",
+        "reason": "This is the same underlying totalAcceptedCents unit-scaling defect as A_F1, with the same affected requirements and correction.",
+        "evidence": [
+          {
+            "file": "after/src/batch.ts",
+            "line_start": 33,
+            "line_end": 39,
+            "explanation": "Both critiques cite the same summary update that divides amountCents by 100."
+          }
+        ]
+      }
+    ]
+  }
+}

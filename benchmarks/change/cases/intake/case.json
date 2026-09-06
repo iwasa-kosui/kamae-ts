@@ -1,0 +1,59 @@
+{
+  "id": "intake",
+  "name": "Order intake wire-format evolution",
+  "requirements": [
+    {
+      "id": "B1",
+      "statement": "Preserve version 1 admission and validation: omitted or numeric 1 formatVersion; 1–64 ASCII alphanumeric/underscore/hyphen IDs; integer 1–1,000,000 amountCents; required valid YYYY-MM-DD shipOn in 2000–2099; ignored extra fields; no trimming or coercion."
+    },
+    {
+      "id": "B2",
+      "statement": "Preserve exactly the canonical stored and successful-response fields id, customerId, amountCents, currency='USD', shipOn and receivedOn. Stored JSON survives service instances; intact old records remain readable and must not be rewritten on read or conflict."
+    },
+    {
+      "id": "B3",
+      "statement": "Preserve the public factory and operations, single success 201, read success 200, and documented 400 invalid_order, 404 order_not_found, 409 duplicate_order, 500 storage_unavailable and outer-batch 400 invalid_batch responses."
+    },
+    {
+      "id": "B4",
+      "statement": "Validate a complete intake value before any repository operation. Invalid input performs no get/save. A valid duplicate preserves the original with no save, across calls, rows and service instances under sequential requests."
+    },
+    {
+      "id": "B5",
+      "statement": "A batch is an array of 0–100 rows, otherwise 400 with no repository operation. A valid batch returns 200 and ordered row responses. acceptedCount, totalAcceptedCents and latestShipOn use only successfully saved canonical orders; empty success sets are 0, 0 and null."
+    },
+    {
+      "id": "B6",
+      "statement": "Contain repository rejections as 500. A save rejection commits nothing, contributes no accepted row and does not reserve an ID. Batch rows are sequential; row errors do not stop later rows. Keep host context.receivedOn unchanged on stored orders."
+    },
+    {
+      "id": "C1",
+      "statement": "Accept numeric formatVersion 2 in both intake consumers while preserving numeric 1 and omitted-version behavior. All other version values are invalid. Validate only the selected version; do not infer versions from fields or fall back after a failed version parse."
+    },
+    {
+      "id": "C2",
+      "statement": "Version 2 requires amount.decimal as unsigned decimal text with integer part 0 or a nonzero leading digit and optional one or two fractional digits. Convert exactly to integer cents within 1–1,000,000; reject signs, whitespace, exponents, commas, leading zeros, empty or excess fraction, nonstrings and out-of-range values without rounding or clamping."
+    },
+    {
+      "id": "C3",
+      "statement": "Version 2 amount.currency defaults to USD only when omitted. A present value must be exactly USD; invalid presence is not a default. Extra amount fields may be ignored."
+    },
+    {
+      "id": "C4",
+      "statement": "A present version 2 shipOn is an object containing integer year, month and day denoting a real Gregorian date in 2000–2099. Convert to canonical YYYY-MM-DD without overflow normalization or time-zone shifts. Reject wrong types, invalid/incomplete dates and null; ignore extra date fields."
+    },
+    {
+      "id": "C5",
+      "statement": "An omitted version 2 shipOn defaults to that call's trusted context.receivedOn. A whole batch shares that context. Do not default invalid present values or permit missing version 1 shipOn; do not consult a clock."
+    },
+    {
+      "id": "C6",
+      "statement": "Apply version 2 conversions and defaults through single intake and each mixed-version batch row. Downstream save, response and summary behavior must consume normalized cents and canonical dates, with the existing ordered partial-success semantics."
+    },
+    {
+      "id": "C7",
+      "statement": "Keep both versions' storage and public success bodies in the old canonical format, with no formatVersion, amount object or date object. Old records still read and conflict correctly; no migration, storage marker or incidental rewrite is requested."
+    }
+  ]
+}
+

@@ -1,0 +1,911 @@
+{
+  "candidate": {
+    "caseId": "recovery",
+    "repetition": 2,
+    "ref": "v1.1.0",
+    "candidate_id": "C018"
+  },
+  "generationStatus": "completed",
+  "primaryStatus": "completed",
+  "primaryError": null,
+  "source": {
+    "after/src/index.ts": "export type Recipient = Readonly<{\n  name: string;\n  postalAddress: string;\n}>;\n\nexport type ProviderRequest = Readonly<{\n  shipmentId: string;\n  routeCode: string;\n  parcelGrams: number;\n  recipient: Recipient;\n  idempotencyKey: string;\n}>;\n\nexport type ShippingDependencies = Readonly<{\n  repository: Readonly<{\n    get: (shipmentId: string) => Promise<unknown>;\n    save: (shipmentId: string, record: unknown) => Promise<void>;\n  }>;\n  atlas: Readonly<{\n    book: (request: ProviderRequest) => Promise<unknown>;\n  }>;\n  beacon: Readonly<{\n    reserve: (request: ProviderRequest) => Promise<unknown>;\n  }>;\n  logger: Readonly<{\n    info: (event: Record<string, unknown>) => void;\n  }>;\n}>;\n\ntype Provider = \"atlas\" | \"beacon\";\ntype RefusalReason = \"unsupported_route\" | \"unsupported_parcel\";\n\ntype Rejection = Readonly<{\n  provider: Provider;\n  reason: RefusalReason;\n}>;\n\ntype ShipmentFields = Readonly<{\n  schemaVersion: 1;\n  id: string;\n  routeCode: string;\n  parcelGrams: number;\n}>;\n\ntype QueuedShipment = ShipmentFields &\n  Readonly<{\n    state: \"queued\";\n  }>;\n\ntype DispatchedShipment = ShipmentFields &\n  Readonly<{\n    state: \"dispatched\";\n    provider: Provider;\n    bookingId: string;\n    dispatchedAtMs: number;\n  }>;\n\ntype DeferredShipment = ShipmentFields &\n  Readonly<{\n    state: \"deferred\";\n    nextProvider: Provider;\n    retryAtMs: number;\n    rejections: readonly Rejection[];\n  }>;\n\ntype UnavailableShipment = ShipmentFields &\n  Readonly<{\n    state: \"unavailable\";\n    rejections: readonly Rejection[];\n  }>;\n\ntype StoredShipment =\n  | QueuedShipment\n  | DispatchedShipment\n  | DeferredShipment\n  | UnavailableShipment;\n\nexport type PublicShipment =\n  | Omit<QueuedShipment, \"schemaVersion\">\n  | Omit<DispatchedShipment, \"schemaVersion\">\n  | Omit<DeferredShipment, \"schemaVersion\">\n  | Omit<UnavailableShipment, \"schemaVersion\">;\n\ntype AbortBody = Readonly<{\n  code: \"dispatch_aborted\";\n  shipmentId: string;\n  failedAt: Provider | \"repository\";\n  classification:\n    | \"unknown_failure\"\n    | \"invalid_provider_response\"\n    | \"repository_failure\";\n  rejections: readonly Rejection[];\n}>;\n\nexport type ServiceResponse = Readonly<{\n  status: number;\n  body:\n    | PublicShipment\n    | AbortBody\n    | {\n        code: \"invalid_command\" | \"not_found\";\n      };\n}>;\n\ntype Command =\n  | Readonly<{ op: \"get\"; shipmentId: string }>\n  | Readonly<{\n      op: \"dispatch\";\n      shipmentId: string;\n      nowMs: number;\n      recipient: Recipient;\n    }>;\n\ntype Confirmation = Readonly<{\n  provider: Provider;\n  bookingId: string;\n}>;\n\ntype CarrierOutcome =\n  | Readonly<{ kind: \"confirmed\"; confirmation: Confirmation }>\n  | Readonly<{ kind: \"refused\"; rejection: Rejection }>\n  | Readonly<{ kind: \"throttled\"; retryAtMs: number }>\n  | Readonly<{\n      kind: \"aborted\";\n      classification: \"unknown_failure\" | \"invalid_provider_response\";\n    }>;\n\nfunction isObject(value: unknown): value is Record<string, unknown> {\n  return typeof value === \"object\" && value !== null && !Array.isArray(value);\n}\n\nfunction isNonemptyString(value: unknown): value is string {\n  return typeof value === \"string\" && value.length > 0;\n}\n\nfunction isNonblankString(value: unknown): value is string {\n  return typeof value === \"string\" && value.trim().length > 0;\n}\n\nfunction isSafeNonnegativeInteger(value: unknown): value is number {\n  return (\n    typeof value === \"number\" &&\n    Number.isSafeInteger(value) &&\n    value >= 0\n  );\n}\n\nfunction isProvider(value: unknown): value is Provider {\n  return value === \"atlas\" || value === \"beacon\";\n}\n\nfunction isRefusalReason(value: unknown): value is RefusalReason {\n  return value === \"unsupported_route\" || value === \"unsupported_parcel\";\n}\n\nfunction isRejection(value: unknown): value is Rejection {\n  return (\n    isObject(value) &&\n    isProvider(value.provider) &&\n    isRefusalReason(value.reason)\n  );\n}\n\nfunction areRejections(value: unknown): value is readonly Rejection[] {\n  return Array.isArray(value) && value.every(isRejection);\n}\n\nfunction parseCommand(value: unknown): Command | undefined {\n  if (\n    !isObject(value) ||\n    typeof value.shipmentId !== \"string\" ||\n    value.shipmentId.length === 0\n  ) {\n    return undefined;\n  }\n  if (value.op === \"get\") {\n    return { op: \"get\", shipmentId: value.shipmentId };\n  }\n  if (\n    value.op !== \"dispatch\" ||\n    !isSafeNonnegativeInteger(value.nowMs) ||\n    !isObject(value.recipient) ||\n    !isNonblankString(value.recipient.name) ||\n    !isNonblankString(value.recipient.postalAddress)\n  ) {\n    return undefined;\n  }\n  return {\n    op: \"dispatch\",\n    shipmentId: value.shipmentId,\n    nowMs: value.nowMs,\n    recipient: {\n      name: value.recipient.name,\n      postalAddress: value.recipient.postalAddress,\n    },\n  };\n}\n\nfunction hasShipmentFields(\n  value: Record<string, unknown>,\n): value is Record<string, unknown> & ShipmentFields {\n  return (\n    value.schemaVersion === 1 &&\n    typeof value.id === \"string\" &&\n    typeof value.routeCode === \"string\" &&\n    Number.isSafeInteger(value.parcelGrams)\n  );\n}\n\nfunction parseStoredShipment(value: unknown): StoredShipment | undefined {\n  if (!isObject(value) || !hasShipmentFields(value)) {\n    return undefined;\n  }\n  const fields = {\n    schemaVersion: 1,\n    id: value.id,\n    routeCode: value.routeCode,\n    parcelGrams: value.parcelGrams,\n  } as const;\n\n  if (value.state === \"queued\") {\n    return { ...fields, state: \"queued\" };\n  }\n  if (\n    value.state === \"dispatched\" &&\n    isProvider(value.provider) &&\n    isNonemptyString(value.bookingId) &&\n    isSafeNonnegativeInteger(value.dispatchedAtMs)\n  ) {\n    return {\n      ...fields,\n      state: \"dispatched\",\n      provider: value.provider,\n      bookingId: value.bookingId,\n      dispatchedAtMs: value.dispatchedAtMs,\n    };\n  }\n  if (\n    value.state === \"deferred\" &&\n    isProvider(value.nextProvider) &&\n    isSafeNonnegativeInteger(value.retryAtMs) &&\n    areRejections(value.rejections)\n  ) {\n    return {\n      ...fields,\n      state: \"deferred\",\n      nextProvider: value.nextProvider,\n      retryAtMs: value.retryAtMs,\n      rejections: [...value.rejections],\n    };\n  }\n  if (value.state === \"unavailable\" && areRejections(value.rejections)) {\n    return {\n      ...fields,\n      state: \"unavailable\",\n      rejections: [...value.rejections],\n    };\n  }\n  return undefined;\n}\n\nfunction publicShipment(shipment: StoredShipment): PublicShipment {\n  const fields = {\n    id: shipment.id,\n    routeCode: shipment.routeCode,\n    parcelGrams: shipment.parcelGrams,\n  };\n  switch (shipment.state) {\n    case \"queued\":\n      return { ...fields, state: \"queued\" };\n    case \"dispatched\":\n      return {\n        ...fields,\n        state: \"dispatched\",\n        provider: shipment.provider,\n        bookingId: shipment.bookingId,\n        dispatchedAtMs: shipment.dispatchedAtMs,\n      };\n    case \"deferred\":\n      return {\n        ...fields,\n        state: \"deferred\",\n        nextProvider: shipment.nextProvider,\n        retryAtMs: shipment.retryAtMs,\n        rejections: [...shipment.rejections],\n      };\n    case \"unavailable\":\n      return {\n        ...fields,\n        state: \"unavailable\",\n        rejections: [...shipment.rejections],\n      };\n  }\n}\n\nfunction abortBody(\n  shipmentId: string,\n  failedAt: Provider | \"repository\",\n  classification: AbortBody[\"classification\"],\n  rejections: readonly Rejection[],\n): AbortBody {\n  return {\n    code: \"dispatch_aborted\",\n    shipmentId,\n    failedAt,\n    classification,\n    rejections: [...rejections],\n  };\n}\n\nfunction emitAbort(\n  dependencies: ShippingDependencies,\n  body: AbortBody,\n): ServiceResponse {\n  dependencies.logger.info({\n    shipmentId: body.shipmentId,\n    action: \"aborted\",\n    failedAt: body.failedAt,\n    classification: body.classification,\n    rejections: [...body.rejections],\n  });\n  return { status: 500, body };\n}\n\nfunction providerRequest(\n  shipment: StoredShipment,\n  recipient: Recipient,\n): ProviderRequest {\n  return {\n    shipmentId: shipment.id,\n    routeCode: shipment.routeCode,\n    parcelGrams: shipment.parcelGrams,\n    recipient: {\n      name: recipient.name,\n      postalAddress: recipient.postalAddress,\n    },\n    idempotencyKey: shipment.id,\n  };\n}\n\nfunction parseAtlasRejection(value: unknown, nowMs: number): CarrierOutcome {\n  if (!isObject(value)) {\n    return { kind: \"aborted\", classification: \"unknown_failure\" };\n  }\n  if (value.code === \"cannot_ship\") {\n    if (isRefusalReason(value.reason)) {\n      return {\n        kind: \"refused\",\n        rejection: { provider: \"atlas\", reason: value.reason },\n      };\n    }\n    return { kind: \"aborted\", classification: \"invalid_provider_response\" };\n  }\n  if (value.code === \"rate_limited\") {\n    if (\n      typeof value.retryAtMs === \"number\" &&\n      Number.isSafeInteger(value.retryAtMs) &&\n      value.retryAtMs > nowMs\n    ) {\n      return { kind: \"throttled\", retryAtMs: value.retryAtMs };\n    }\n    return { kind: \"aborted\", classification: \"invalid_provider_response\" };\n  }\n  return { kind: \"aborted\", classification: \"unknown_failure\" };\n}\n\nfunction parseBeaconRejection(value: unknown, nowMs: number): CarrierOutcome {\n  if (!isObject(value)) {\n    return { kind: \"aborted\", classification: \"unknown_failure\" };\n  }\n  if (value.type === \"rejected\") {\n    if (isObject(value.details) && isRefusalReason(value.details.reason)) {\n      return {\n        kind: \"refused\",\n        rejection: { provider: \"beacon\", reason: value.details.reason },\n      };\n    }\n    return { kind: \"aborted\", classification: \"invalid_provider_response\" };\n  }\n  if (value.type === \"throttled\") {\n    if (\n      isObject(value.details) &&\n      typeof value.details.retryAtMs === \"number\" &&\n      Number.isSafeInteger(value.details.retryAtMs) &&\n      value.details.retryAtMs > nowMs\n    ) {\n      return { kind: \"throttled\", retryAtMs: value.details.retryAtMs };\n    }\n    return { kind: \"aborted\", classification: \"invalid_provider_response\" };\n  }\n  return { kind: \"aborted\", classification: \"unknown_failure\" };\n}\n\nfunction parseConfirmation(\n  provider: Provider,\n  confirmation: unknown,\n): CarrierOutcome {\n  if (!isObject(confirmation)) {\n    return { kind: \"aborted\", classification: \"invalid_provider_response\" };\n  }\n  if (provider === \"atlas\" && isNonemptyString(confirmation.bookingId)) {\n    return {\n      kind: \"confirmed\",\n      confirmation: { provider, bookingId: confirmation.bookingId },\n    };\n  }\n  if (provider === \"beacon\" && isNonemptyString(confirmation.reference)) {\n    return {\n      kind: \"confirmed\",\n      confirmation: { provider, bookingId: confirmation.reference },\n    };\n  }\n  return { kind: \"aborted\", classification: \"invalid_provider_response\" };\n}\n\nasync function callCarrier(\n  dependencies: ShippingDependencies,\n  provider: Provider,\n  request: ProviderRequest,\n  nowMs: number,\n): Promise<CarrierOutcome> {\n  try {\n    const confirmation =\n      provider === \"atlas\"\n        ? await dependencies.atlas.book(request)\n        : await dependencies.beacon.reserve(request);\n    return parseConfirmation(provider, confirmation);\n  } catch (error) {\n    return provider === \"atlas\"\n      ? parseAtlasRejection(error, nowMs)\n      : parseBeaconRejection(error, nowMs);\n  }\n}\n\nfunction baseShipment(shipment: StoredShipment): ShipmentFields {\n  return {\n    schemaVersion: 1,\n    id: shipment.id,\n    routeCode: shipment.routeCode,\n    parcelGrams: shipment.parcelGrams,\n  };\n}\n\nasync function saveDecision(\n  dependencies: ShippingDependencies,\n  shipment: StoredShipment,\n  record: StoredShipment,\n  event: Record<string, unknown>,\n  repositoryFailureRejections: readonly Rejection[],\n): Promise<ServiceResponse> {\n  try {\n    await dependencies.repository.save(shipment.id, record);\n  } catch {\n    return emitAbort(\n      dependencies,\n      abortBody(\n        shipment.id,\n        \"repository\",\n        \"repository_failure\",\n        repositoryFailureRejections,\n      ),\n    );\n  }\n  dependencies.logger.info(event);\n  const status =\n    record.state === \"deferred\" ? 202 : record.state === \"unavailable\" ? 422 : 200;\n  return { status, body: publicShipment(record) };\n}\n\nfunction hasPermanentRefusal(\n  rejections: readonly Rejection[],\n  provider: Provider,\n): boolean {\n  return rejections.some((rejection) => rejection.provider === provider);\n}\n\nasync function dispatchShipment(\n  dependencies: ShippingDependencies,\n  shipment: QueuedShipment | DeferredShipment,\n  command: Extract<Command, { op: \"dispatch\" }>,\n): Promise<ServiceResponse> {\n  if (shipment.state === \"deferred\" && command.nowMs < shipment.retryAtMs) {\n    return { status: 202, body: publicShipment(shipment) };\n  }\n\n  let nextProvider: Provider =\n    shipment.state === \"deferred\" ? shipment.nextProvider : \"atlas\";\n  let rejections: readonly Rejection[] =\n    shipment.state === \"deferred\" ? shipment.rejections : [];\n\n  while (!hasPermanentRefusal(rejections, nextProvider)) {\n    const outcome = await callCarrier(\n      dependencies,\n      nextProvider,\n      providerRequest(shipment, command.recipient),\n      command.nowMs,\n    );\n\n    if (outcome.kind === \"confirmed\") {\n      const dispatched: DispatchedShipment = {\n        ...baseShipment(shipment),\n        state: \"dispatched\",\n        provider: outcome.confirmation.provider,\n        bookingId: outcome.confirmation.bookingId,\n        dispatchedAtMs: command.nowMs,\n      };\n      return saveDecision(\n        dependencies,\n        shipment,\n        dispatched,\n        {\n          shipmentId: shipment.id,\n          action: \"dispatched\",\n          provider: dispatched.provider,\n        },\n        rejections,\n      );\n    }\n\n    if (outcome.kind === \"throttled\") {\n      const deferred: DeferredShipment = {\n        ...baseShipment(shipment),\n        state: \"deferred\",\n        nextProvider,\n        retryAtMs: outcome.retryAtMs,\n        rejections: [...rejections],\n      };\n      return saveDecision(\n        dependencies,\n        shipment,\n        deferred,\n        {\n          shipmentId: shipment.id,\n          action: \"deferred\",\n          provider: nextProvider,\n          retryAtMs: outcome.retryAtMs,\n          rejections: [...rejections],\n        },\n        rejections,\n      );\n    }\n\n    if (outcome.kind === \"aborted\") {\n      return emitAbort(\n        dependencies,\n        abortBody(\n          shipment.id,\n          nextProvider,\n          outcome.classification,\n          rejections,\n        ),\n      );\n    }\n\n    rejections = [...rejections, outcome.rejection];\n    if (nextProvider === \"atlas\" && !hasPermanentRefusal(rejections, \"beacon\")) {\n      nextProvider = \"beacon\";\n      continue;\n    }\n\n    const unavailable: UnavailableShipment = {\n      ...baseShipment(shipment),\n      state: \"unavailable\",\n      rejections: [...rejections],\n    };\n    return saveDecision(\n      dependencies,\n      shipment,\n      unavailable,\n      {\n        shipmentId: shipment.id,\n        action: \"unavailable\",\n        rejections: [...rejections],\n      },\n      rejections,\n    );\n  }\n\n  const unavailable: UnavailableShipment = {\n    ...baseShipment(shipment),\n    state: \"unavailable\",\n    rejections: [...rejections],\n  };\n  return saveDecision(\n    dependencies,\n    shipment,\n    unavailable,\n    {\n      shipmentId: shipment.id,\n      action: \"unavailable\",\n      rejections: [...rejections],\n    },\n    rejections,\n  );\n}\n\nexport function createShippingService(dependencies: ShippingDependencies) {\n  async function handle(input: unknown): Promise<ServiceResponse> {\n    const command = parseCommand(input);\n    if (!command) {\n      return { status: 400, body: { code: \"invalid_command\" } };\n    }\n\n    let storedValue: unknown;\n    try {\n      storedValue = await dependencies.repository.get(command.shipmentId);\n    } catch {\n      return emitAbort(\n        dependencies,\n        abortBody(\n          command.shipmentId,\n          \"repository\",\n          \"repository_failure\",\n          [],\n        ),\n      );\n    }\n    if (storedValue === undefined) {\n      return { status: 404, body: { code: \"not_found\" } };\n    }\n\n    const shipment = parseStoredShipment(storedValue);\n    if (!shipment) {\n      return emitAbort(\n        dependencies,\n        abortBody(\n          command.shipmentId,\n          \"repository\",\n          \"repository_failure\",\n          [],\n        ),\n      );\n    }\n\n    if (command.op === \"get\") {\n      return { status: 200, body: publicShipment(shipment) };\n    }\n\n    switch (shipment.state) {\n      case \"queued\":\n      case \"deferred\":\n        return dispatchShipment(dependencies, shipment, command);\n      case \"dispatched\":\n        return { status: 200, body: publicShipment(shipment) };\n      case \"unavailable\":\n        return { status: 422, body: publicShipment(shipment) };\n    }\n  }\n\n  return { handle };\n}\n"
+  },
+  "implementationNotes": "# Implementation Notes\n\n## Changed Behavior\n\nThe shipping service now accepts a `beacon.reserve` dependency and supports four shipment states: `queued`, `dispatched`, `deferred`, and `unavailable`.\n\nDispatch behavior is now carrier-decision based:\n\n- Queued shipments attempt Atlas first.\n- A valid Atlas refusal with an allowed reason immediately attempts Beacon.\n- Valid rate-limit signals persist a deferred plan for the same carrier and return 202.\n- Deferred shipments return the saved 202 body before `retryAtMs`; at or after the deadline they resume only `nextProvider`.\n- Two definitive refusals persist an unavailable shipment and return 422.\n- Already dispatched and unavailable shipments are terminal/idempotent for dispatch and do not call carriers, write, or log.\n- `get` returns the saved public shipment for every state without carrier, write, or log effects.\n\nAbort behavior now returns contextual 500 bodies with `code: \"dispatch_aborted\"`, `shipmentId`, `failedAt`, `classification`, and ordered established refusal reasons. Repository get/save failures are classified as `repository_failure`; unknown carrier rejections as `unknown_failure`; malformed known carrier signals and unusable confirmations as `invalid_provider_response`.\n\nRepository writes, public responses, and diagnostic events are allowlisted and never include recipient fields, raw commands, raw provider responses, rejected values, or error metadata.\n\n## Affected Call Paths\n\n- `createShippingService(...).handle(...)` still validates commands before repository lookup.\n- Repository read failure now emits one aborted event and returns a contextual 500, including for `get`.\n- `parseStoredShipment` reads schemaVersion 1 queued/dispatched records from the starter and the new deferred/unavailable records after JSON round trips.\n- `dispatchShipment` controls the Atlas/Beacon sequence, deferral polling, fallback, terminal unavailability, and save-before-event ordering.\n- `callCarrier`, `parseAtlasRejection`, `parseBeaconRejection`, and `parseConfirmation` classify only documented structured carrier fields.\n- `saveDecision` persists the selected business decision before emitting the committed event and response; failed saves emit only an abort event.\n\n## Justified Deviations\n\nNo validation or Result library was added because package files and dependencies are fixed. Runtime boundary checks and discriminated union outcomes are implemented directly in TypeScript instead.\n\nMalformed stored records are treated as repository failures. The supplied storage contract says arbitrary corrupt or foreign records are out of scope, so this path is defensive rather than a new public storage contract.\n\n## Remaining Limitations\n\nThere is no concurrency control, crash recovery, compensation, background retry, scheduling, or real-time behavior beyond the supplied `nowMs`, matching the documented exclusions.\n\n`bun run typecheck` was attempted but Bun failed before project execution with `CouldntReadCurrentDirectory`. The same compiler command was run directly as `./node_modules/.bin/tsc --noEmit` and passed.\n\n## Validation\n\n- `./node_modules/.bin/tsc --noEmit`: passed\n- `bun test src/index.test.ts`: 8 passed, 0 failed\n",
+  "primaryAssessment": {
+    "candidate_id": "C018",
+    "files_read": [
+      "RUBRIC.md",
+      "CHANGE.md",
+      "API.md",
+      "BEFORE.md",
+      "AFTER.md",
+      "DIFF.patch",
+      "IMPLEMENTATION.md",
+      "before/src/index.ts",
+      "after/src/index.ts",
+      "CRITIQUE.json"
+    ],
+    "requirements": [
+      {
+        "id": "B1",
+        "status": "supported",
+        "rationale": "Command validation remains before repository lookup, validates required get/dispatch fields, preserves 400/404 outcomes, and terminal dispatches are handled after validation without side effects.",
+        "evidence": [
+          {
+            "file": "after/src/index.ts",
+            "line_start": 168,
+            "line_end": 197,
+            "explanation": "parseCommand validates op, nonempty shipmentId, nonnegative safe-integer nowMs, and nonblank recipient fields while ignoring extra fields."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 599,
+            "line_end": 620,
+            "explanation": "handle parses commands before repository.get, returns 400 for invalid commands, and returns 404 for missing shipments."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 639,
+            "line_end": 646,
+            "explanation": "Dispatch of dispatched and unavailable terminal states returns saved public outcomes without entering the carrier/write/log path."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "B2",
+        "status": "supported",
+        "rationale": "Schema version 1 queued/dispatched JSON records remain readable; get returns public state for all supported states without provider, write, or log effects; public bodies omit schemaVersion and recipient.",
+        "evidence": [
+          {
+            "file": "after/src/index.ts",
+            "line_start": 210,
+            "line_end": 259,
+            "explanation": "parseStoredShipment reads schemaVersion 1 queued and dispatched records, plus JSON-compatible deferred/unavailable records."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 262,
+            "line_end": 293,
+            "explanation": "publicShipment constructs allowlisted public bodies without schemaVersion or recipient."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 635,
+            "line_end": 636,
+            "explanation": "Successful get returns the public shipment directly after read/parse and before any dispatch side effects."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "B3",
+        "status": "supported",
+        "rationale": "Queued dispatch starts with Atlas, valid Atlas confirmations save exact bookingId and command nowMs before event/response, and already dispatched shipments are idempotent reads.",
+        "evidence": [
+          {
+            "file": "after/src/index.ts",
+            "line_start": 486,
+            "line_end": 497,
+            "explanation": "Queued shipments initialize nextProvider to atlas and call the selected carrier."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 394,
+            "line_end": 405,
+            "explanation": "Atlas confirmations are accepted only with a nonempty bookingId and preserve that identifier."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 499,
+            "line_end": 517,
+            "explanation": "Confirmed bookings are saved as dispatched with provider, bookingId, and dispatchedAtMs from command.nowMs, through saveDecision."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 451,
+            "line_end": 467,
+            "explanation": "saveDecision awaits repository.save before emitting the committed event and returning the response."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 643,
+            "line_end": 644,
+            "explanation": "Already dispatched shipments return the saved 200 public body without further effects."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "B4",
+        "status": "supported",
+        "rationale": "Carrier requests use immutable shipment fields, exact command recipient fields, idempotencyKey equal to shipment id, and only command nowMs for temporal decisions and dispatchedAtMs.",
+        "evidence": [
+          {
+            "file": "after/src/index.ts",
+            "line_start": 325,
+            "line_end": 338,
+            "explanation": "providerRequest builds requests with shipment id, routeCode, parcelGrams, exact recipient fields, and idempotencyKey equal to shipment id."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 482,
+            "line_end": 497,
+            "explanation": "Deferred deadline checks and carrier classification use command.nowMs."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 499,
+            "line_end": 506,
+            "explanation": "Dispatched records set dispatchedAtMs from command.nowMs."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C1",
+        "status": "supported",
+        "rationale": "Beacon reserve is added as backup after documented Atlas refusals only; refusal provenance/order is retained; Beacon reference is normalized; two refusals persist unavailable and terminal dispatch returns 422 without effects.",
+        "evidence": [
+          {
+            "file": "after/src/index.ts",
+            "line_start": 22,
+            "line_end": 24,
+            "explanation": "Dependencies include beacon.reserve."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 341,
+            "line_end": 352,
+            "explanation": "Only documented Atlas cannot_ship refusals with allowed reasons become refusal outcomes."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 491,
+            "line_end": 559,
+            "explanation": "The dispatch loop attempts eligible carriers sequentially, retains refusals, suppresses carriers already refused, and switches from Atlas to Beacon after Atlas refusal."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 407,
+            "line_end": 410,
+            "explanation": "Beacon's nonempty reference is normalized to bookingId."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 561,
+            "line_end": 576,
+            "explanation": "A second refusal saves unavailable with ordered rejections and returns through saveDecision."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 645,
+            "line_end": 646,
+            "explanation": "Stored unavailable shipments return 422 without carrier, write, or log effects."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C2",
+        "status": "supported",
+        "rationale": "Valid rate limits stop carrier calls, save deferred plans for the same carrier with exact retryAtMs and prior refusals, emit committed events after save, and malformed deadlines abort.",
+        "evidence": [
+          {
+            "file": "after/src/index.ts",
+            "line_start": 354,
+            "line_end": 363,
+            "explanation": "Atlas rate limits require a safe-integer retryAtMs greater than nowMs; otherwise they become invalid_provider_response."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 380,
+            "line_end": 389,
+            "explanation": "Beacon throttles require structured details.retryAtMs as a safe integer greater than nowMs."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 520,
+            "line_end": 540,
+            "explanation": "Throttle handling saves a deferred record for the current provider with exact retryAtMs and retained rejections, then returns immediately."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 451,
+            "line_end": 467,
+            "explanation": "saveDecision persists the deferred decision before logging and returns 202 for deferred records."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C3",
+        "status": "supported",
+        "rationale": "Deferred records survive JSON-style storage parsing, early polls return the saved 202 body without effects, due dispatch resumes only nextProvider, and resumed throttles/refusals preserve prior refusal context.",
+        "evidence": [
+          {
+            "file": "after/src/index.ts",
+            "line_start": 238,
+            "line_end": 250,
+            "explanation": "Deferred records are parsed from stored JSON-compatible fields nextProvider, retryAtMs, and rejections."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 482,
+            "line_end": 489,
+            "explanation": "Before retryAtMs dispatch returns the saved deferred public body; otherwise it resumes from stored nextProvider and rejections."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 520,
+            "line_end": 540,
+            "explanation": "A resumed throttle writes a replacement deferred plan for the same provider while preserving prior rejections."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 555,
+            "line_end": 576,
+            "explanation": "A resumed refusal is appended to retained refusals and can authorize fallback or produce unavailable in order."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 635,
+            "line_end": 636,
+            "explanation": "get exposes saved deferred/unavailable state without resuming."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C4",
+        "status": "supported",
+        "rationale": "Carrier unknown failures, malformed known signals, and unusable confirmations abort with contextual 500 bodies/events, preserve established refusals, avoid further carrier calls, and perform no writes.",
+        "evidence": [
+          {
+            "file": "after/src/index.ts",
+            "line_start": 341,
+            "line_end": 391,
+            "explanation": "Carrier rejection parsers use documented structured fields to distinguish refusals, throttles, malformed known signals, and unknown failures."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 394,
+            "line_end": 413,
+            "explanation": "Resolved confirmations without a valid Atlas bookingId or Beacon reference are invalid_provider_response; valid confirmation fields are authoritative."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 543,
+            "line_end": 552,
+            "explanation": "Aborted carrier outcomes immediately return an abort body with attempted carrier and prior rejections, without save or fallback."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 296,
+            "line_end": 323,
+            "explanation": "Abort bodies/events contain only the allowlisted contextual fields."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C5",
+        "status": "supported",
+        "rationale": "Repository get/save rejections become repository_failure aborts with established refusals, reads fail before carrier calls, decisions are saved before committed outcomes/logs, and save failures emit only aborts.",
+        "evidence": [
+          {
+            "file": "after/src/index.ts",
+            "line_start": 604,
+            "line_end": 617,
+            "explanation": "repository.get rejection is caught before provider calls and emits/returns repository_failure with empty rejections."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 451,
+            "line_end": 467,
+            "explanation": "repository.save is awaited before committed events and business responses; save rejection emits repository_failure abort."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 507,
+            "line_end": 517,
+            "explanation": "Booked decisions pass prior established refusals into saveDecision for save-failure abort context."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 528,
+            "line_end": 540,
+            "explanation": "Deferred decisions save before response/log and retain prior refusals on save failure."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 566,
+            "line_end": 576,
+            "explanation": "Unavailable decisions save before response/log and pass the full ordered refusal list on save failure."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C6",
+        "status": "supported",
+        "rationale": "Committed decisions and aborts emit exactly one allowlisted diagnostic event; successful get, invalid/missing commands, early deferred polls, and terminal/idempotent reads emit none.",
+        "evidence": [
+          {
+            "file": "after/src/index.ts",
+            "line_start": 311,
+            "line_end": 323,
+            "explanation": "emitAbort emits one allowlisted aborted event and returns the 500 response."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 451,
+            "line_end": 467,
+            "explanation": "saveDecision emits one committed event after successful save and emits only abort on save failure."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 511,
+            "line_end": 515,
+            "explanation": "Dispatched events contain shipmentId, action, and provider."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 532,
+            "line_end": 538,
+            "explanation": "Deferred events contain shipmentId, action, provider, retryAtMs, and ordered rejections."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 570,
+            "line_end": 574,
+            "explanation": "Unavailable events contain shipmentId, action, and ordered rejections."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 599,
+            "line_end": 646,
+            "explanation": "Invalid commands, missing shipments, gets, and terminal dispatches return without committed diagnostic events; repository get rejection logs one abort."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 482,
+            "line_end": 483,
+            "explanation": "Early deferred polls return the saved 202 body before any save/log path."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C7",
+        "status": "supported",
+        "rationale": "Recipient data is confined to command parsing and carrier requests; repository writes, public responses, abort bodies, and diagnostic events use allowlisted business fields and never forward raw commands, provider responses, rejected values, or error metadata.",
+        "evidence": [
+          {
+            "file": "after/src/index.ts",
+            "line_start": 188,
+            "line_end": 196,
+            "explanation": "Recipient fields are copied into the parsed dispatch command."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 325,
+            "line_end": 338,
+            "explanation": "Recipient name and postalAddress are included in carrier requests to Atlas/Beacon."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 435,
+            "line_end": 441,
+            "explanation": "Persisted base shipment fields exclude recipient."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 499,
+            "line_end": 526,
+            "explanation": "Dispatched and deferred records contain only selected business fields, not recipient or raw provider data."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 561,
+            "line_end": 574,
+            "explanation": "Unavailable records and events contain only base fields and ordered public rejections."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 262,
+            "line_end": 293,
+            "explanation": "Public responses are constructed from allowlisted shipment fields and omit recipient."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 296,
+            "line_end": 323,
+            "explanation": "Abort bodies/events include only shipmentId, failedAt, classification, and sanitized rejections."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 416,
+            "line_end": 432,
+            "explanation": "Caught provider rejection values are parsed into structured outcomes and are not forwarded raw."
+          }
+        ],
+        "finding_ids": []
+      }
+    ],
+    "findings": [],
+    "implemented_changes": [
+      {
+        "claim": "The factory dependency shape was extended to accept Beacon reserve while retaining repository, Atlas, logger, and handle entry point behavior.",
+        "evidence": [
+          {
+            "file": "after/src/index.ts",
+            "line_start": 14,
+            "line_end": 28,
+            "explanation": "ShippingDependencies includes repository, atlas, beacon, and logger."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 597,
+            "line_end": 651,
+            "explanation": "createShippingService returns the handle method and routes get/dispatch commands."
+          }
+        ]
+      },
+      {
+        "claim": "The implementation adds queued, dispatched, deferred, and unavailable public/storage state handling with JSON-compatible parsing and allowlisted public responses.",
+        "evidence": [
+          {
+            "file": "after/src/index.ts",
+            "line_start": 58,
+            "line_end": 82,
+            "explanation": "Stored and public shipment unions include deferred and unavailable."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 210,
+            "line_end": 293,
+            "explanation": "Stored records are parsed into state variants and converted to public bodies without private fields."
+          }
+        ]
+      },
+      {
+        "claim": "Carrier decision handling implements Atlas-first dispatch, Beacon fallback, rate-limit deferral, terminal unavailability, contextual aborts, and save-before-event ordering.",
+        "evidence": [
+          {
+            "file": "after/src/index.ts",
+            "line_start": 341,
+            "line_end": 432,
+            "explanation": "Carrier confirmations and rejection signals are classified by structured provider-specific fields."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 444,
+            "line_end": 467,
+            "explanation": "saveDecision persists the selected decision before committed logging and response."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 477,
+            "line_end": 595,
+            "explanation": "dispatchShipment handles deferred polling/resumption, sequential carrier attempts, fallback, unavailable decisions, and aborts."
+          }
+        ]
+      }
+    ],
+    "preserved_consumers": [
+      {
+        "consumer": "Existing get callers for queued and dispatched schemaVersion 1 shipments",
+        "assessment": "Preserved: valid get commands read the repository, parse starter records, and return 200 public bodies without provider calls, saves, or logs.",
+        "evidence": [
+          {
+            "file": "after/src/index.ts",
+            "line_start": 210,
+            "line_end": 237,
+            "explanation": "Starter queued/dispatched records are accepted."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 262,
+            "line_end": 293,
+            "explanation": "Public bodies omit schemaVersion and recipient."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 635,
+            "line_end": 636,
+            "explanation": "get returns immediately after public conversion."
+          }
+        ]
+      },
+      {
+        "consumer": "Existing queued Atlas dispatch callers",
+        "assessment": "Preserved: queued dispatch still attempts Atlas first and saves an Atlas dispatched record with exact bookingId and command nowMs before logging/returning.",
+        "evidence": [
+          {
+            "file": "after/src/index.ts",
+            "line_start": 486,
+            "line_end": 497,
+            "explanation": "Queued dispatch selects Atlas first."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 394,
+            "line_end": 405,
+            "explanation": "Atlas bookingId is accepted as the confirmation identifier."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 499,
+            "line_end": 517,
+            "explanation": "Dispatched record uses provider, bookingId, and dispatchedAtMs from the current command flow."
+          }
+        ]
+      },
+      {
+        "consumer": "Existing invalid command, missing shipment, and already-dispatched idempotency callers",
+        "assessment": "Preserved: invalid commands return 400 before lookup, missing records return 404, and dispatched records return the saved 200 body without effects.",
+        "evidence": [
+          {
+            "file": "after/src/index.ts",
+            "line_start": 599,
+            "line_end": 620,
+            "explanation": "Invalid and missing outcomes are handled before dispatch side effects."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 643,
+            "line_end": 644,
+            "explanation": "Already dispatched shipments return the saved public body."
+          }
+        ]
+      }
+    ],
+    "overall_assessment": "No necessary correction is established. The implementation satisfies the B1-B4 preservation obligations and C1-C7 carrier recovery, deferral, abort, diagnostic, and privacy obligations under the supplied host/storage scope.",
+    "uncertainties": [
+      "No code or tests were executed, per instruction; assessment is based on source and contract review only.",
+      "Arbitrary corrupt or foreign stored records were not treated as contractual inputs because API.md and CHANGE.md restrict supplied storage to host-created queued records and this service's own JSON-compatible records."
+    ],
+    "outcome": "supported",
+    "decisions": []
+  },
+  "supplementalAssessment": {
+    "candidate_id": "C018",
+    "audit_outcome": "supported",
+    "files_read": [
+      "before/src/index.ts",
+      "after/src/index.ts"
+    ],
+    "requirement_assessments": [
+      {
+        "id": "B1",
+        "status": "supported",
+        "rationale": "Required fields are checked before read/state handling and accepted strings retain their original values; invalid and missing commands return the required responses.",
+        "evidence": [
+          {
+            "file": "after/src/index.ts",
+            "line_start": 132,
+            "line_end": 145,
+            "explanation": "Required fields are checked before read/state handling and accepted strings retain their original values; invalid and missing commands return the required responses."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 168,
+            "line_end": 197,
+            "explanation": "Required fields are checked before read/state handling and accepted strings retain their original values; invalid and missing commands return the required responses."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 597,
+            "line_end": 620,
+            "explanation": "Required fields are checked before read/state handling and accepted strings retain their original values; invalid and missing commands return the required responses."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "B2",
+        "status": "supported",
+        "rationale": "The decoder accepts starter and own-produced JSON states, preserves base business fields, and selected public get returns without further effects.",
+        "evidence": [
+          {
+            "file": "after/src/index.ts",
+            "line_start": 199,
+            "line_end": 294,
+            "explanation": "The decoder accepts starter and own-produced JSON states, preserves base business fields, and selected public get returns without further effects."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 622,
+            "line_end": 646,
+            "explanation": "The decoder accepts starter and own-produced JSON states, preserves base business fields, and selected public get returns without further effects."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "B3",
+        "status": "supported",
+        "rationale": "Queued state starts Atlas; valid confirmation preserves exact identifier and command timestamp through save-before-event/response; terminal dispatched returns unchanged.",
+        "evidence": [
+          {
+            "file": "after/src/index.ts",
+            "line_start": 394,
+            "line_end": 432,
+            "explanation": "Queued state starts Atlas; valid confirmation preserves exact identifier and command timestamp through save-before-event/response; terminal dispatched returns unchanged."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 444,
+            "line_end": 467,
+            "explanation": "Queued state starts Atlas; valid confirmation preserves exact identifier and command timestamp through save-before-event/response; terminal dispatched returns unchanged."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 486,
+            "line_end": 517,
+            "explanation": "Queued state starts Atlas; valid confirmation preserves exact identifier and command timestamp through save-before-event/response; terminal dispatched returns unchanged."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 643,
+            "line_end": 644,
+            "explanation": "Queued state starts Atlas; valid confirmation preserves exact identifier and command timestamp through save-before-event/response; terminal dispatched returns unchanged."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "B4",
+        "status": "supported",
+        "rationale": "Both requests use exact stored and recipient fields with shipment-ID key, and host nowMs drives deadlines and dispatch timestamps.",
+        "evidence": [
+          {
+            "file": "after/src/index.ts",
+            "line_start": 325,
+            "line_end": 338,
+            "explanation": "Both requests use exact stored and recipient fields with shipment-ID key, and host nowMs drives deadlines and dispatch timestamps."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 354,
+            "line_end": 387,
+            "explanation": "Both requests use exact stored and recipient fields with shipment-ID key, and host nowMs drives deadlines and dispatch timestamps."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 482,
+            "line_end": 505,
+            "explanation": "Both requests use exact stored and recipient fields with shipment-ID key, and host nowMs drives deadlines and dispatch timestamps."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C1",
+        "status": "supported",
+        "rationale": "Only definitive Atlas refusal advances the loop to Beacon; ordered selected refusals prevent reattempt, Beacon reference normalizes, and both refusals persist terminal unavailability.",
+        "evidence": [
+          {
+            "file": "after/src/index.ts",
+            "line_start": 341,
+            "line_end": 433,
+            "explanation": "Only definitive Atlas refusal advances the loop to Beacon; ordered selected refusals prevent reattempt, Beacon reference normalizes, and both refusals persist terminal unavailability."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 470,
+            "line_end": 497,
+            "explanation": "Only definitive Atlas refusal advances the loop to Beacon; ordered selected refusals prevent reattempt, Beacon reference normalizes, and both refusals persist terminal unavailability."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 555,
+            "line_end": 576,
+            "explanation": "Only definitive Atlas refusal advances the loop to Beacon; ordered selected refusals prevent reattempt, Beacon reference normalizes, and both refusals persist terminal unavailability."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 645,
+            "line_end": 646,
+            "explanation": "Only definitive Atlas refusal advances the loop to Beacon; ordered selected refusals prevent reattempt, Beacon reference normalizes, and both refusals persist terminal unavailability."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C2",
+        "status": "supported",
+        "rationale": "Rate limits require strictly future safe-integer deadlines and return through a saved same-carrier deferred decision retaining exact deadline and prior refusals.",
+        "evidence": [
+          {
+            "file": "after/src/index.ts",
+            "line_start": 354,
+            "line_end": 389,
+            "explanation": "Rate limits require strictly future safe-integer deadlines and return through a saved same-carrier deferred decision retaining exact deadline and prior refusals."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 520,
+            "line_end": 540,
+            "explanation": "Rate limits require strictly future safe-integer deadlines and return through a saved same-carrier deferred decision retaining exact deadline and prior refusals."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 444,
+            "line_end": 467,
+            "explanation": "Rate limits require strictly future safe-integer deadlines and return through a saved same-carrier deferred decision retaining exact deadline and prior refusals."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C3",
+        "status": "supported",
+        "rationale": "Deferred state holds JSON-compatible nextProvider/deadline/refusals; early polls are inert and due dispatch resumes the saved selection, retaining context across new throttles/refusals.",
+        "evidence": [
+          {
+            "file": "after/src/index.ts",
+            "line_start": 238,
+            "line_end": 257,
+            "explanation": "Deferred state holds JSON-compatible nextProvider/deadline/refusals; early polls are inert and due dispatch resumes the saved selection, retaining context across new throttles/refusals."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 482,
+            "line_end": 489,
+            "explanation": "Deferred state holds JSON-compatible nextProvider/deadline/refusals; early polls are inert and due dispatch resumes the saved selection, retaining context across new throttles/refusals."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 520,
+            "line_end": 576,
+            "explanation": "Deferred state holds JSON-compatible nextProvider/deadline/refusals; early polls are inert and due dispatch resumes the saved selection, retaining context across new throttles/refusals."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C4",
+        "status": "supported",
+        "rationale": "Unknown rejection and malformed/unusable provider outcomes remain distinct abort classes; abort carries attempted carrier and prior refusals without save or fallback.",
+        "evidence": [
+          {
+            "file": "after/src/index.ts",
+            "line_start": 296,
+            "line_end": 322,
+            "explanation": "Unknown rejection and malformed/unusable provider outcomes remain distinct abort classes; abort carries attempted carrier and prior refusals without save or fallback."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 341,
+            "line_end": 433,
+            "explanation": "Unknown rejection and malformed/unusable provider outcomes remain distinct abort classes; abort carries attempted carrier and prior refusals without save or fallback."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 543,
+            "line_end": 552,
+            "explanation": "Unknown rejection and malformed/unusable provider outcomes remain distinct abort classes; abort carries attempted carrier and prior refusals without save or fallback."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C5",
+        "status": "supported",
+        "rationale": "Repository exceptions remain local, carry established refusal context and return before committed logs or business responses; no failed save path makes additional provider calls.",
+        "evidence": [
+          {
+            "file": "after/src/index.ts",
+            "line_start": 444,
+            "line_end": 467,
+            "explanation": "Repository exceptions remain local, carry established refusal context and return before committed logs or business responses; no failed save path makes additional provider calls."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 507,
+            "line_end": 575,
+            "explanation": "Repository exceptions remain local, carry established refusal context and return before committed logs or business responses; no failed save path makes additional provider calls."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 604,
+            "line_end": 616,
+            "explanation": "Repository exceptions remain local, carry established refusal context and return before committed logs or business responses; no failed save path makes additional provider calls."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C6",
+        "status": "supported",
+        "rationale": "One allowlisted event follows each successful decision save or abort; invalid/missing/get/terminal/early-poll branches bypass logging.",
+        "evidence": [
+          {
+            "file": "after/src/index.ts",
+            "line_start": 311,
+            "line_end": 322,
+            "explanation": "One allowlisted event follows each successful decision save or abort; invalid/missing/get/terminal/early-poll branches bypass logging."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 444,
+            "line_end": 467,
+            "explanation": "One allowlisted event follows each successful decision save or abort; invalid/missing/get/terminal/early-poll branches bypass logging."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 482,
+            "line_end": 483,
+            "explanation": "One allowlisted event follows each successful decision save or abort; invalid/missing/get/terminal/early-poll branches bypass logging."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 507,
+            "line_end": 576,
+            "explanation": "One allowlisted event follows each successful decision save or abort; invalid/missing/get/terminal/early-poll branches bypass logging."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 597,
+            "line_end": 647,
+            "explanation": "One allowlisted event follows each successful decision save or abort; invalid/missing/get/terminal/early-poll branches bypass logging."
+          }
+        ],
+        "finding_ids": []
+      },
+      {
+        "id": "C7",
+        "status": "supported",
+        "rationale": "Recipient is copied solely into carrier requests. Although stored refusals are shallow-copied on read, every in-scope persisted refusal originates from the explicitly selected provider/reason objects, so raw metadata cannot reach public, persistent or diagnostic output.",
+        "evidence": [
+          {
+            "file": "after/src/index.ts",
+            "line_start": 238,
+            "line_end": 338,
+            "explanation": "Recipient is copied solely into carrier requests. Although stored refusals are shallow-copied on read, every in-scope persisted refusal originates from the explicitly selected provider/reason objects, so raw metadata cannot reach public, persistent or diagnostic output."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 341,
+            "line_end": 413,
+            "explanation": "Recipient is copied solely into carrier requests. Although stored refusals are shallow-copied on read, every in-scope persisted refusal originates from the explicitly selected provider/reason objects, so raw metadata cannot reach public, persistent or diagnostic output."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 435,
+            "line_end": 467,
+            "explanation": "Recipient is copied solely into carrier requests. Although stored refusals are shallow-copied on read, every in-scope persisted refusal originates from the explicitly selected provider/reason objects, so raw metadata cannot reach public, persistent or diagnostic output."
+          },
+          {
+            "file": "after/src/index.ts",
+            "line_start": 500,
+            "line_end": 575,
+            "explanation": "Recipient is copied solely into carrier requests. Although stored refusals are shallow-copied on read, every in-scope persisted refusal originates from the explicitly selected provider/reason objects, so raw metadata cannot reach public, persistent or diagnostic output."
+          }
+        ],
+        "finding_ids": []
+      }
+    ],
+    "primary_finding_decisions": [],
+    "findings": [],
+    "uncertainties": [
+      "Static source audit only; implementations and tests were not executed.",
+      "This disclosed supplemental pass was added after primary judging began. The auditor retains context across assigned candidates and previously authored the recovery fixture/control; release assignments remain blind, but the pass is not independent of that prior context.",
+      "Supported means no established necessary correction in the inspected contract, not proof of defect-freedom."
+    ],
+    "external_semantics_sources": [],
+    "overall_assessment": "The full-source audit establishes no necessary correction. Refusal-derived fallback, strict future deferral, JSON restart and failed-write context satisfy the inspected requirements. Shallow copies of self-written refusal records do not imply a privacy defect: their only in-scope source constructs the two documented fields."
+  },
+  "originalArtifactHashes": {
+    "generationResult": "1c5609a357600720da130163d38e564bbc48cc5df693c24f159c24a7a4800fef",
+    "primaryResult": "eeb1b061f5b36f022c1f3cbd3d4c8d9fd916750827474733d38d5fd0c68be050",
+    "primaryAssessment": "6c40e0f17c5c2be666e557975ad26c4fd01c8e5b7b2e6c26bd1b5fcbf07b9373",
+    "supplementalAssessment": "771513ff62652b056e7bfd6680c77c025768ed54638ccad8ab32d6354a69d613",
+    "source": {
+      "index.ts": "53160332efdcdd597b219fee17f57f2cdb633ebe7982c6e2582d84951346ba0d"
+    }
+  }
+}

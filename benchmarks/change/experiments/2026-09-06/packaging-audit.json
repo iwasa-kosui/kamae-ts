@@ -1,0 +1,772 @@
+{
+  "recordedAt": "2026-09-06T05:12:22.416Z",
+  "purpose": "Inspect possible source packaging omissions, never code quality",
+  "limitation": "Static literal imports from src/index.ts only; dynamic loading, aliases or other entry points require manual inspection.",
+  "records": [
+    {
+      "candidate_id": "C023",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/batch.ts",
+        "src/orders.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/single.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C035",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/batch.ts",
+        "src/orders.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/single.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C062",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/batch.ts",
+        "src/orders.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/single.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C034",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/batch.ts",
+        "src/orders.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/single.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C021",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/batch.ts",
+        "src/orders.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/single.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C008",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/batch.ts",
+        "src/orders.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/single.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C010",
+      "inspectedPaths": [
+        "src/index.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C017",
+      "inspectedPaths": [
+        "src/index.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C055",
+      "inspectedPaths": [
+        "src/index.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C007",
+      "inspectedPaths": [
+        "src/index.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C061",
+      "inspectedPaths": [
+        "src/index.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C014",
+      "inspectedPaths": [
+        "src/index.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C058",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/reservation.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/report.ts",
+        "src/observation.ts",
+        "src/providerB.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C002",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/reservation.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/report.ts",
+        "src/observation.ts",
+        "src/providerBReservation.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C052",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/reservation.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/report.ts",
+        "src/observation.ts",
+        "src/providerB.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C026",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/reservation.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/stock-report.ts",
+        "src/observation.ts",
+        "src/provider-b-reservation.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C044",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/reservation.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/report.ts",
+        "src/observation.ts",
+        "src/providerBReservation.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C057",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/reservation.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/report.ts",
+        "src/observation.ts",
+        "src/providerB.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C053",
+      "inspectedPaths": [
+        "src/index.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C064",
+      "inspectedPaths": [
+        "src/index.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C001",
+      "inspectedPaths": [
+        "src/index.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C029",
+      "inspectedPaths": [
+        "src/index.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C051",
+      "inspectedPaths": [
+        "src/index.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C047",
+      "inspectedPaths": [
+        "src/index.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C012",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/batch.ts",
+        "src/orders.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/single.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C048",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/batch.ts",
+        "src/orders.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/single.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C067",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/batch.ts",
+        "src/orders.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/single.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C030",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/batch.ts",
+        "src/orders.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/single.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C070",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/batch.ts",
+        "src/orders.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/single.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C066",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/batch.ts",
+        "src/orders.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/single.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C069",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/batch.ts",
+        "src/orders.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/single.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C050",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/batch.ts",
+        "src/orders.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/single.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C060",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/batch.ts",
+        "src/orders.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/single.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C004",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/batch.ts",
+        "src/orders.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/single.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C038",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/batch.ts",
+        "src/orders.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/single.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C072",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/batch.ts",
+        "src/orders.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/single.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C019",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/reservation.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/report.ts",
+        "src/observation.ts",
+        "src/providerB.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C059",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/reservation.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/observation.ts",
+        "src/report.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C015",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/reservation.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/observation.ts",
+        "src/providerB.ts",
+        "src/report.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C025",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/reservation.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/stock-report.ts",
+        "src/observation.ts",
+        "src/provider-b-reservation.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C032",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/reservation.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/report.ts",
+        "src/observation.ts",
+        "src/providerBReservation.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C049",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/observation.ts",
+        "src/types.ts",
+        "src/reservation.ts",
+        "src/validation.ts",
+        "src/providerB.ts",
+        "src/report.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C056",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/observation.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/reservation.ts",
+        "src/provider-b.ts",
+        "src/report.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C037",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/reservation.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/report.ts",
+        "src/observation.ts",
+        "src/provider-b.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C068",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/reservation.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/observation.ts",
+        "src/stock-report.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C041",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/reservation.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/report.ts",
+        "src/observation.ts",
+        "src/provider-b.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C033",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/reservation.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/report.ts",
+        "src/observation.ts",
+        "src/providerB.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C043",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/reservation.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/stock-report.ts",
+        "src/observation.ts",
+        "src/provider-b-reservation.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C003",
+      "inspectedPaths": [
+        "src/index.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C022",
+      "inspectedPaths": [
+        "src/index.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C009",
+      "inspectedPaths": [
+        "src/index.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C027",
+      "inspectedPaths": [
+        "src/index.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C016",
+      "inspectedPaths": [
+        "src/index.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C011",
+      "inspectedPaths": [
+        "src/index.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C018",
+      "inspectedPaths": [
+        "src/index.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C045",
+      "inspectedPaths": [
+        "src/index.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C046",
+      "inspectedPaths": [
+        "src/index.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C065",
+      "inspectedPaths": [
+        "src/index.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C006",
+      "inspectedPaths": [
+        "src/index.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C020",
+      "inspectedPaths": [
+        "src/index.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C028",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/reservation.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/report.ts",
+        "src/observation.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C040",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/reservation.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/stockReport.ts",
+        "src/observation.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C039",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/reservation.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/report.ts",
+        "src/observation.ts",
+        "src/provider-b.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C071",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/reservation.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/responses.ts",
+        "src/report.ts",
+        "src/observation.ts",
+        "src/providerB.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C024",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/reservation.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/report.ts",
+        "src/observation.ts",
+        "src/providerB.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C005",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/reservation.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/stockReport.ts",
+        "src/observation.ts",
+        "src/providerBReservation.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C054",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/batch.ts",
+        "src/orders.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/single.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C042",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/batch.ts",
+        "src/orders.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/single.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C063",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/batch.ts",
+        "src/orders.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/single.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C036",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/batch.ts",
+        "src/orders.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/single.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C031",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/batch.ts",
+        "src/orders.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/single.ts"
+      ],
+      "flags": []
+    },
+    {
+      "candidate_id": "C013",
+      "inspectedPaths": [
+        "src/index.ts",
+        "src/batch.ts",
+        "src/orders.ts",
+        "src/types.ts",
+        "src/validation.ts",
+        "src/single.ts"
+      ],
+      "flags": []
+    }
+  ]
+}

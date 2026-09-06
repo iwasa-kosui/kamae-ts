@@ -1,5 +1,8 @@
 # PRD design and implementation benchmark
 
+For release comparisons using actual modifications of existing applications and
+blinded corrective agent assessment, see the [implemented-change benchmark](change/README.md).
+
 Compare the same model, reasoning effort, product requirements, and starting
 toolchain with and without the in-tree `kamae` skill. Each condition proposes a
 design and implements it in a fresh session. `kamae-review` is not an automatic judge.

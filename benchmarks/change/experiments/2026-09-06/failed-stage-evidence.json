@@ -1,0 +1,33 @@
+[
+  {
+    "stage": "reviews/C052/adjudicator/adjudicator.stage.json",
+    "execution": {
+      "exitCode": 1,
+      "timedOut": false,
+      "durationMs": 155195
+    },
+    "events": {
+      "completed": false,
+      "failed": true,
+      "toolCalls": 20,
+      "usage": null,
+      "malformedLines": 0
+    },
+    "recordedOutcome": "failed",
+    "recordedError": "Error: adjudicator did not complete cleanly",
+    "originalStageSha256": "4d585555314a70baec24902385fb985e1cc57ae2da9c29494fb82936c16692bf",
+    "originalStdoutSha256": "8cc8ae383e2fa98a647550ce637d9e3c6f9c38895f53ca969dce73d0f728b414",
+    "errorEvents": [
+      {
+        "type": "error",
+        "message": "Selected model is at capacity. Please try a different model."
+      },
+      {
+        "type": "turn.failed",
+        "error": {
+          "message": "Selected model is at capacity. Please try a different model."
+        }
+      }
+    ]
+  }
+]
