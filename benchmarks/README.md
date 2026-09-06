@@ -23,6 +23,11 @@ skill comparison. Improving this harness is not a substitute for that work.
 The [Japanese rubric draft](design-evaluation-draft.ja.md) specifies the proposed
 assessment units, rating anchors, and calibration contrasts.
 
+New [design scenarios](design-scenarios/README.md) contain initial tasks, withheld
+changes, and predeclared observation maps. Use their prepare-only CLI and
+[human preview](design-scenarios/REVIEW.ja.md); they are not cases for this
+historical runner. No generation or assessment has been run for the new suite.
+
 ## Protocol v2: remove design priming
 
 The original protocol preinstalled Zod and neverthrow, supplied a TypeScript

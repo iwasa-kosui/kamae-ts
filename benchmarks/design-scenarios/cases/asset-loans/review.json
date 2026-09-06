@@ -1,0 +1,154 @@
+{
+  "caseId": "asset-loans",
+  "units": [
+    {
+      "id": "loan-values",
+      "axis": "D1",
+      "phase": "initial",
+      "requirements": [
+        "L1",
+        "L3",
+        "L4"
+      ],
+      "meaning": "Loan, asset, staff/borrower identities, duration, and receipt references have distinct meanings.",
+      "scope": [
+        "Request parsing and asset lookup",
+        "Domain values passed to approval, issue, return, and storage"
+      ],
+      "question": "Which distinctions survive the actual internal calls, rather than existing only in aliases?",
+      "counterevidence": [
+        "A wire DTO may use primitives legitimately; follow conversion into the domain.",
+        "An unused brand is not application."
+      ]
+    },
+    {
+      "id": "loan-states",
+      "axis": "D2",
+      "phase": "initial",
+      "requirements": [
+        "L2",
+        "L3",
+        "L4",
+        "L5"
+      ],
+      "meaning": "Approval, handover, and return each establish different required facts.",
+      "scope": [
+        "All initial state representations",
+        "Construction and JSON restoration",
+        "Handover/return transitions and their callers"
+      ],
+      "question": "How do types express the facts required in approved, active, and returned loans and the allowed source states?",
+      "counterevidence": [
+        "Account for narrowing before a transition call.",
+        "Approval authorization is a separate dynamic decision; do not claim the state type proves it."
+      ]
+    },
+    {
+      "id": "loan-boundaries",
+      "axis": "D3",
+      "phase": "initial",
+      "requirements": [
+        "L1",
+        "L3",
+        "L5"
+      ],
+      "meaning": "Request, asset lookup, issue response, and stored record are external representations.",
+      "scope": [
+        "Public input conversion",
+        "Asset and issue response conversion",
+        "Saved-record restoration and use"
+      ],
+      "question": "Where does each external representation become a trusted domain value, and is that converted value used?",
+      "counterevidence": [
+        "Handwritten parsers can establish the same boundary.",
+        "Do not require extra host capabilities or score malformed-input case counts."
+      ]
+    },
+    {
+      "id": "loan-handover-workflow",
+      "axis": "D4",
+      "phase": "initial",
+      "requirements": [
+        "L3"
+      ],
+      "meaning": "An approved loan and an issue decision lead to either an active loan with handover facts or a declined operation retaining approval.",
+      "scope": [
+        "Approved input to the handover workflow",
+        "Issue-response interpretation",
+        "Connection to the saved loan and public outcome"
+      ],
+      "question": "Do the actual stage contracts connect approved facts, the issue decision, and the resulting loan without losing the meaning established at each step?",
+      "counterevidence": [
+        "A workflow need not produce a separate document or use a pipeline library.",
+        "Distinguish D2 state invariants from D4 stage connections; cross-reference shared evidence instead of counting one cause twice."
+      ]
+    },
+    {
+      "id": "loan-decisions",
+      "axis": "D5",
+      "phase": "initial",
+      "requirements": [
+        "L1",
+        "L2",
+        "L3",
+        "L4"
+      ],
+      "meaning": "Eligibility and due-time decisions use asset policy, actor, state, duration, and time.",
+      "scope": [
+        "Approval and handover decisions",
+        "Due-time calculation",
+        "Clock, storage, and equipment effects"
+      ],
+      "question": "Can the business decisions be followed as value transformations apart from host calls and shared mutation?",
+      "counterevidence": [
+        "The issue call legitimately occurs during handover.",
+        "Passing a host object into a decision does not by itself establish purity."
+      ]
+    },
+    {
+      "id": "loan-rejections",
+      "axis": "D6",
+      "phase": "initial",
+      "requirements": [
+        "L1",
+        "L3",
+        "L6"
+      ],
+      "meaning": "Excess duration and declined handover retain the facts needed by callers.",
+      "scope": [
+        "Rejection construction",
+        "Intermediate propagation",
+        "Last business-error handler"
+      ],
+      "question": "Do the requested/maximum duration and issue reason remain available in specific alternatives through the handling path?",
+      "counterevidence": [
+        "Inspect whether broadening happens before business handling or only during final external serialization.",
+        "Do not prescribe Result library names or a representation for unrelated infrastructure faults."
+      ]
+    },
+    {
+      "id": "inspection-change",
+      "axis": "D7",
+      "phase": "change",
+      "requirements": [
+        "L4",
+        "L5",
+        "C1",
+        "C2",
+        "C3"
+      ],
+      "meaning": "Physical return now precedes inspection, with usable and repair outcomes and older closed records.",
+      "scope": [
+        "Before/after return and inspection representations",
+        "New transition and caller paths",
+        "Old-record restoration and retrieval"
+      ],
+      "question": "Does the implemented change extend the model and actual consumers while preserving required inspection facts and meaningful old-record interpretation?",
+      "counterevidence": [
+        "A justified redesign can improve application; do not reward small diffs.",
+        "No performed change means U, not predicted maintainability."
+      ]
+    }
+  ],
+  "exclusions": []
+}

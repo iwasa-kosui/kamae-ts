@@ -89,6 +89,12 @@ calibrated.
 The [detailed rubric draft in Japanese](benchmarks/design-evaluation-draft.ja.md)
 defines criterion-specific anchors, evidence requirements, and calibration cases.
 
+Three [design scenarios](benchmarks/design-scenarios/README.md) now provide initial
+tasks, withheld follow-up changes, and evaluator-only observation maps. Their
+preparation CLI packages inputs without model calls. Read the
+[scenario preview](benchmarks/design-scenarios/REVIEW.ja.md) before execution;
+generation and assessment remain pending.
+
 The [historical PRD harness](benchmarks/README.md) and its protocol remain available
 for inspecting earlier work. Its acceptance-based comparison was rejected as an
 evaluation of the skill's design effectiveness.

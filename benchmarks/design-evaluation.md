@@ -6,6 +6,12 @@ The detailed [Japanese rubric draft](design-evaluation-draft.ja.md) defines
 assessment units, four-level anchors for each criterion, evidence records, and
 calibration contrasts. This document provides the rationale and source observations.
 
+The [scenario suite](design-scenarios/README.md) supplies three concrete initial
+tasks, withheld follow-up changes, and predeclared observation maps against a
+v0.1 rubric snapshot. Its CLI only checks and prepares input packets. Scenario
+generation, behaviorally equivalent calibration controls, and a grader remain
+pending; the suite is awaiting [human review](design-scenarios/REVIEW.ja.md).
+
 ## Purpose
 
 Kamae teaches functional domain modeling in server-side TypeScript. Evaluate how

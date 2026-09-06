@@ -1,0 +1,142 @@
+{
+  "caseId": "wholesale-quotes",
+  "units": [
+    {
+      "id": "quote-values",
+      "axis": "D1",
+      "phase": "initial",
+      "requirements": [
+        "Q1",
+        "Q2",
+        "Q3"
+      ],
+      "meaning": "Counts, grams, kilograms, cents, basis points, product codes, and identities have different roles.",
+      "scope": [
+        "Quantity conversion guided by catalogue units",
+        "Merchandise pricing and weight calculation",
+        "Internal freight and total calculations"
+      ],
+      "question": "How are the relevant units and constrained quantities distinguished through actual pricing consumers?",
+      "counterevidence": [
+        "Do not reward a type for every scalar if there is no meaningful distinction.",
+        "Conversion to a primitive at the host boundary may be intentional."
+      ]
+    },
+    {
+      "id": "quote-boundaries",
+      "axis": "D3",
+      "phase": "initial",
+      "requirements": [
+        "Q1",
+        "Q2",
+        "Q4",
+        "Q6"
+      ],
+      "meaning": "Request strings, catalogue/customer JSON, freight responses, and saved quote JSON differ from internal pricing values.",
+      "scope": [
+        "All named external-to-domain conversion paths",
+        "Conversion outputs used by pricing",
+        "Document restoration"
+      ],
+      "question": "Do parsing and conversion outputs carry meaning into internal pricing and retrieval rather than leaving callers with raw records?",
+      "counterevidence": [
+        "A schema declaration alone is insufficient.",
+        "Reusing the stored quote's fixed facts is not a missing catalogue lookup."
+      ]
+    },
+    {
+      "id": "quote-pipeline",
+      "axis": "D4",
+      "phase": "initial",
+      "requirements": [
+        "Q1",
+        "Q2",
+        "Q3",
+        "Q4"
+      ],
+      "meaning": "Catalogue-resolved quantities, merchandise pricing, freight, and issued documents form distinct business stages.",
+      "scope": [
+        "Stage input/output contracts",
+        "Data passed into freight lookup",
+        "Composition into the saved quotation"
+      ],
+      "question": "Do actual stage contracts and connections express what has been established before the next stage runs?",
+      "counterevidence": [
+        "Sequential function calls can compose stages without a pipeline library.",
+        "Do not demand domain events when a quotation document is the required output."
+      ]
+    },
+    {
+      "id": "quote-decisions",
+      "axis": "D5",
+      "phase": "initial",
+      "requirements": [
+        "Q2",
+        "Q3",
+        "Q4"
+      ],
+      "meaning": "Pricing and weight are calculations over externally supplied facts.",
+      "scope": [
+        "Discount, line pricing, and weight decisions",
+        "Catalogue/customer/freight/clock effects",
+        "Composition that persists the document"
+      ],
+      "question": "Are calculations explicit value transformations, and where are their impure dependencies connected?",
+      "counterevidence": [
+        "Freight lookup legitimately follows weight calculation.",
+        "Do not add abstractions for deterministic helpers merely to make them injectable."
+      ]
+    },
+    {
+      "id": "quote-rejections",
+      "axis": "D6",
+      "phase": "initial",
+      "requirements": [
+        "Q1",
+        "Q4",
+        "Q5"
+      ],
+      "meaning": "Unit-dependent quantity and freight rejections retain product, quantity, unit, and destination information.",
+      "scope": [
+        "Error alternatives from parsing and resolution",
+        "Pricing/freight composition",
+        "Public rejection mapping"
+      ],
+      "question": "Does specific rejection information remain available until the relevant business handling is complete?",
+      "counterevidence": [
+        "A final JSON response can use another representation after handling.",
+        "Do not equate all host promise rejections with business rejections."
+      ]
+    },
+    {
+      "id": "quote-acceptance-change",
+      "axis": "D7",
+      "phase": "change",
+      "requirements": [
+        "Q4",
+        "Q6",
+        "C1",
+        "C2",
+        "C3"
+      ],
+      "meaning": "A previously fixed quote can now acquire an order and credit authorization, or remain unaccepted after a limit refusal.",
+      "scope": [
+        "Before/after quote model and restoration",
+        "Credit-reservation stage and its connection",
+        "Shortfall handling and accepted-document consumers"
+      ],
+      "question": "Does the real change carry quoted money and acceptance facts through the new stage and handle prior records without erasing the design's constraints?",
+      "counterevidence": [
+        "The initial case has no lifecycle rating; inspect the new lifecycle as part of the performed change.",
+        "A different but coherent storage design is not a defect."
+      ]
+    }
+  ],
+  "exclusions": [
+    {
+      "axis": "D2",
+      "phase": "initial",
+      "reason": "The initial task issues and retrieves fixed quotation documents and has no subsequent lifecycle operation. Temporary computation stages belong to D4. The later acceptance lifecycle is assessed in D7."
+    }
+  ]
+}
