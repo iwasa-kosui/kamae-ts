@@ -16,6 +16,13 @@ not a reproduction of its full plugin or published benchmark. See the
 [protocol](protocol.md), [analysis notes](analysis-notes.md), and
 [exploratory source review](review-notes.md).
 
+For a review of the whole generated projects, browse the
+[expanded implementations](implementations/README.md) and
+[architecture comparison](architecture-review.md). Each project index includes
+the original directory tree, all source/test files, design, and dependencies.
+The architecture comparison distinguishes reduced repetition from concentrated
+responsibilities; maintainability was not measured by this pilot.
+
 ## Preregistered outcomes
 
 Medians include both design and implementation, including in-session repairs.
