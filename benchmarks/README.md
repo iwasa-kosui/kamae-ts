@@ -1,8 +1,27 @@
-# PRD design and implementation benchmark
+# Historical PRD generation harness
 
-Compare the same model, reasoning effort, product requirements, and starting
-toolchain with and without the in-tree `kamae` skill. Each condition proposes a
-design and implements it in a fresh session. `kamae-review` is not an automatic judge.
+This harness generated designs and implementations from the same PRD with and
+without `kamae`. Its acceptance-based comparison was rejected as an evaluation of
+the skill's design effectiveness. The instructions below document that historical
+protocol; they do not establish a valid design benchmark.
+
+## What this benchmark measures
+
+The current runner reports delivery and product behavior. Acceptance-test pass
+rates do not measure whether kamae's functional domain modeling guidance was
+applied. They must not be presented as a skill-effectiveness or design-quality score.
+
+The proposed [DMMF design evaluation](design-evaluation.md) assesses the application
+of those design techniques. Functional compliance is assumed by the task and is
+not assessed again through scores, side reports, or eligibility gates. The proposal requires
+evidence from types, construction paths, function contracts, and dependencies.
+The proposal is not yet an implemented or calibrated grader. The existing runner,
+acceptance checks, and seven-dimension manual review sheet retain their current
+behavior for historical reproducibility; their outputs do not constitute DMMF
+assessments. Establish and calibrate the design criteria before starting a new
+skill comparison. Improving this harness is not a substitute for that work.
+The [Japanese rubric draft](design-evaluation-draft.ja.md) specifies the proposed
+assessment units, rating anchors, and calibration contrasts.
 
 ## Protocol v2: remove design priming
 

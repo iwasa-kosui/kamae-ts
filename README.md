@@ -81,11 +81,17 @@ For full skill replacement, use Claude Code's standard skill path-shadowing (`.c
 
 ## Benchmark
 
-Compare how the same model designs and implements the same PRD with and without
-`kamae`. The [benchmark harness](benchmarks/README.md) preserves the initial design,
-generated implementation, shared acceptance-test results, and a design review sheet.
-Run `bun run benchmark --dry-run --runs 1` to inspect the protocol, or
-`bun run benchmark --model <model-id> --runs 3` for a real comparison.
+The proposed [DMMF design evaluation](benchmarks/design-evaluation.md) assesses how
+generated code applies functional domain modeling. Functional acceptance scores
+and gates are outside that assessment. Its grader is not yet implemented or
+calibrated.
+
+The [detailed rubric draft in Japanese](benchmarks/design-evaluation-draft.ja.md)
+defines criterion-specific anchors, evidence requirements, and calibration cases.
+
+The [historical PRD harness](benchmarks/README.md) and its protocol remain available
+for inspecting earlier work. Its acceptance-based comparison was rejected as an
+evaluation of the skill's design effectiveness.
 
 ## Documentation
 
