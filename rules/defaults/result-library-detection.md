@@ -15,6 +15,10 @@ Read the project's `package.json` (`dependencies` and `devDependencies`). Match 
 3. `fp-ts` → load `result-libraries/fp-ts.md`
 4. `option-t` → load `result-libraries/option-t.md`
 
-Load only the matching file when error handling is in scope. If none are present, ask the user which to introduce before proceeding with error-handling code.
+Select the matching library when error handling is in scope. Load its guide only
+when implementing or verifying its API, including rejectable I/O wrappers. Reusing
+an established helper does not require rereading the guide. If none are present,
+follow an existing custom implementation/override or ask which to introduce unless
+the user already authorized that choice. Continue work that does not need a Result library.
 
 Override this default by placing a `name: result-library` rule in `.claude/rules/` or `~/.claude/rules/` with a higher-tier `library-preference` selection.

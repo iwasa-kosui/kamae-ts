@@ -1,6 +1,6 @@
 # Declarative Style and Test Data Checklist
 
-Reference: [`../../kamae/SKILL.md` §5–§6](../../kamae/SKILL.md), [`../../kamae/declarative-style.md`](../../kamae/declarative-style.md), [`../../kamae/test-data.md`](../../kamae/test-data.md).
+Reference: [`../../kamae/declarative-style.md`](../../kamae/declarative-style.md), [`../../kamae/test-data.md`](../../kamae/test-data.md).
 
 ## 5.1 Are array operations declarative? — Low
 

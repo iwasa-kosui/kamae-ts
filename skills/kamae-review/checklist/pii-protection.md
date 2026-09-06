@@ -1,6 +1,6 @@
 # PII Protection Checklist
 
-Reference: [`../../kamae/SKILL.md` §4 "PII Protection"](../../kamae/SKILL.md), [`../../kamae/boundary-defense.md`](../../kamae/boundary-defense.md).
+Reference: [`../../kamae/boundary-defense.md`](../../kamae/boundary-defense.md).
 
 ## 4.3 Do PII fields use `Sensitive<T>`? — High
 

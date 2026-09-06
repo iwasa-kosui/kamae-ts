@@ -1,6 +1,6 @@
 # Boundary Defense Checklist
 
-Reference: [`../../kamae/SKILL.md` §4](../../kamae/SKILL.md), [`../../kamae/boundary-defense.md`](../../kamae/boundary-defense.md), and the project's validation library guide under [`../../kamae/validation-libraries/`](../../kamae/validation-libraries/).
+Reference: [`../../kamae/boundary-defense.md`](../../kamae/boundary-defense.md), and the project's validation library guide under [`../../kamae/validation-libraries/`](../../kamae/validation-libraries/).
 
 ## 4.1 Is schema validation present at every external boundary? — High
 

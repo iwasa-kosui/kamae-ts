@@ -1,10 +1,12 @@
 # State Transitions Checklist
 
-Reference: [`../../kamae/SKILL.md` §2](../../kamae/SKILL.md), [`../../kamae/state-modeling.md`](../../kamae/state-modeling.md).
+Reference: [`../../kamae/state-modeling.md`](../../kamae/state-modeling.md).
 
 ## 2.1 Do state transitions constrain source states by argument type? — Medium
 
-Flag: a transition function whose argument type is the union (`TaxiRequest`) instead of the specific source state (`Waiting`). The wider type allows callers to apply the transition to invalid source states.
+Flag: a direct transition primitive whose argument type admits invalid source states, such as `assignDriver(request: TaxiRequest): EnRoute` instead of `assignDriver(waiting: Waiting): EnRoute`. Its argument must constrain callers to valid source states; a union containing only valid sources, such as `CancellableRequest`, is also correct.
+
+Do not flag a decision entrypoint merely because it accepts a wider union. It may narrow `TaxiRequest`, return an expected `InvalidState` error in a `Result` for invalid sources, and invoke the narrow transition only after narrowing. Inspect the decision and transition together: the entrypoint handles expected business outcomes; the transition primitive relies on its source type.
 
 ## 2.2 Do `switch` statements over Discriminated Unions have `assertNever`? — Medium
 

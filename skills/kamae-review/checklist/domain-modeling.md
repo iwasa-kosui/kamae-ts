@@ -1,6 +1,6 @@
 # Domain Modeling Checklist
 
-Reference: [`../../kamae/SKILL.md` §1](../../kamae/SKILL.md), [`../../kamae/domain-modeling.md`](../../kamae/domain-modeling.md), and the project's validation library guide under [`../../kamae/validation-libraries/`](../../kamae/validation-libraries/).
+Reference: [`../../kamae/domain-modeling.md`](../../kamae/domain-modeling.md), and the project's validation library guide under [`../../kamae/validation-libraries/`](../../kamae/validation-libraries/).
 
 ## 1.1 Are domain states modeled as Discriminated Unions? — Medium
 

@@ -1,0 +1,34 @@
+import { ResultAsync, err, ok, type Result } from "neverthrow";
+type Pending = Readonly<{kind: "Pending"; amount: number}>;
+type Approved = Readonly<{kind: "Approved"; amount: number}>;
+type Request = Pending | Approved;
+type InvalidState = Readonly<{kind: "InvalidState"}>;
+const approve = (pending: Pending): Approved => ({...pending, kind: "Approved"});
+export const decide = (request: Request): Result<Approved, InvalidState> =>
+  request.kind === "Pending" ? ok(approve(request)) : err({kind: "InvalidState"});
+export const checkAmount = (amount: number): Result<number, {kind: "InvalidAmount"}> => {
+  if (amount <= 0) throw new Error("InvalidAmount");
+  return ok(amount);
+};
+declare const persist: (value: Approved) => Promise<void>;
+export const save = async (value: Approved): Promise<Result<void, {kind: "StorageDecision"; detail: unknown}>> => {
+  try { await persist(value); return ok(undefined); }
+  catch (detail: unknown) { return err({kind: "StorageDecision", detail}); }
+};
+export const saveSafe = (value: Approved) => ResultAsync.fromSafePromise(persist(value));
+const stop = Symbol("stop");
+export const firstPositive = (values: readonly number[]): number | undefined => {
+  let found: number | undefined;
+  try {
+    values.forEach(value => { if(value > 0) { found = value; throw stop; } });
+  } catch (error: unknown) { if (error !== stop) throw error; }
+  return found;
+};
+export const assertNever = (value: never): never => { throw new Error("Impossible state"); };
+export const amountOf = (request: Request): number => {
+  switch(request.kind) {
+    case "Pending": return request.amount;
+    case "Approved": return request.amount;
+    default: return assertNever(request);
+  }
+};
