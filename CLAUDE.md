@@ -19,12 +19,15 @@ See `benchmarks/design-evaluation.md` for the proposed DMMF-based evaluation cri
 that proposal is not yet an implemented or calibrated grader.
 
 `benchmarks/design-scenarios/` contains the new initial/change tasks and evaluator
-observation maps. Its CLI prepares inputs only and is independent of the historical
-runner. Run `bun run benchmark:scenarios check` and
+observation maps. Its `benchmark:scenarios` CLI prepares inputs only. The separate
+`benchmark:design` runner performs exploratory initial/change generation with
+context isolation and source snapshots; it does not perform functional grading.
+Run `bun run benchmark:scenarios check` and
 `bun run benchmark:scenarios:test` after changes to these inputs or their packaging.
-Show `benchmarks/design-scenarios/REVIEW.ja.md` before model execution; execution
-is currently pending human scenario review. A later comparison also requires
-the calibrated assessment procedure described in the proposal.
+Show `benchmarks/design-scenarios/REVIEW.ja.md` before model execution. The initial
+suite was reviewed and its pilot authorized. A calibrated comparison still requires
+the assessment procedure described in the proposal; exploratory evidence must be
+labeled as uncalibrated.
 
 ## Worktree conventions
 

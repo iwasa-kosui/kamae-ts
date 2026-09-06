@@ -8,9 +8,10 @@ calibration contrasts. This document provides the rationale and source observati
 
 The [scenario suite](design-scenarios/README.md) supplies three concrete initial
 tasks, withheld follow-up changes, and predeclared observation maps against a
-v0.1 rubric snapshot. Its CLI only checks and prepares input packets. Scenario
-generation, behaviorally equivalent calibration controls, and a grader remain
-pending; the suite is awaiting [human review](design-scenarios/REVIEW.ja.md).
+v0.1 rubric snapshot. Its preparation CLI checks and packages inputs; a separate
+pilot runner captures exploratory initial/change generations for source review.
+Behaviorally equivalent calibration controls and a calibrated grader remain
+pending. The [human scenario preview](design-scenarios/REVIEW.ja.md) describes the tasks.
 
 ## Purpose
 
