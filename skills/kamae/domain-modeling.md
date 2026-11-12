@@ -151,6 +151,78 @@ export const ProductIdBrand = Symbol();
 type ProductId = string & { readonly [typeof ProductIdBrand]: never };
 ```
 
+## Represent fixed value sets as enum-like objects
+
+Represent a fixed set of values, such as a business classification or the list of strings an external input may contain, as an enum-like pair: an `as const` object and a union type with the same name. Do not hold the set as an array of `string` or as bare string constants. Do not use the TypeScript `enum` keyword.
+
+```typescript
+// Bad: the set of values does not appear in any type, so callers keep handling `string`
+const SALES_CHANNELS: ReadonlyArray<string> = ["web", "store", "phone"];
+
+const isSalesChannel = (value: string): boolean => SALES_CHANNELS.includes(value);
+
+// Good: the object holds the values and the type is derived from it
+const SalesChannel = {
+  Web: "web",
+  Store: "store",
+  Phone: "phone",
+} as const;
+
+type SalesChannel = (typeof SalesChannel)[keyof typeof SalesChannel];
+```
+
+**Rationale:** An array typed as `ReadonlyArray<string>` erases the members, so `includes` returns only a `boolean` and the compiler does not narrow the value afterwards. The enum-like pair makes the members a type: a function that takes `SalesChannel` rejects any other string at compile time, and a `switch` over it can use `assertNever` for exhaustiveness. The `enum` keyword is excluded because a string enum type is nominal: the literal `"web"` is not assignable to it, so every schema output and test fixture would need a conversion.
+
+### Narrow external input with a type guard or a schema
+
+Narrow a `string` from an external input to the set with a type guard (`value is X`) or with a validation-library schema. Do not compare the input with a `string` array and then treat it as the set, and do not use a type assertion. [boundary-defense.md](./boundary-defense.md#banning-type-assertions-as) allows only `as const` and `as const satisfies Type`.
+
+```typescript
+// Good: the type guard narrows `string` to `SalesChannel` without an assertion
+const isSalesChannel = (value: string): value is SalesChannel =>
+  Object.values(SalesChannel).some((member) => member === value);
+
+// Good: a schema narrows unknown input (Zod 4 shown; use the detected library guide for others)
+const SalesChannelSchema = z.enum(SalesChannel);
+```
+
+```typescript
+// Bad: `includes` returns a boolean, so `raw` stays `string` afterwards
+const handle = (raw: string) => {
+  if (SALES_CHANNELS.includes(raw)) {
+    return register(raw); // register takes SalesChannel, so this is a compile error
+  }
+};
+
+// Bad: the assertion claims a type that nothing has checked
+const channel = raw as SalesChannel;
+```
+
+Keep the guard out of the enum-like object. Functions placed inside it would add their names to `keyof typeof SalesChannel` and therefore to the union type. Define the guard as a standalone function in the same file, following the one-concept-per-file rule below. The general rule for grouping functions under the same-named object is in [Companion Object Pattern](#companion-object-pattern); this pair is the exception because its object is the value set itself.
+
+### Separate value sets that are handled differently
+
+When some values are processed and others are deliberately not processed, define one constant and one type for each group. The types then tell the two groups apart.
+
+```typescript
+const ImportableStatus = {
+  Active: "active",
+  Pending: "pending",
+} as const;
+type ImportableStatus = (typeof ImportableStatus)[keyof typeof ImportableStatus];
+
+const SkippedStatus = {
+  Archived: "archived",
+  Draft: "draft",
+} as const;
+type SkippedStatus = (typeof SkippedStatus)[keyof typeof SkippedStatus];
+
+// Only importable values reach this function
+const importRow: (status: ImportableStatus, row: Row) => ImportedRow = /* ... */;
+```
+
+**Rationale:** A single list that mixes both groups forces every caller to re-check which members to process. With two types, passing a `SkippedStatus` to `importRow` is a compile error, and the decision about which group a raw value belongs to is made once, at the boundary, by the two type guards.
+
 ## Ensure immutability with `Readonly<>`
 
 Define domain objects with `Readonly<>` to prevent property reassignment. Express state changes by creating new objects.
